@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TS Affiliate Platform
 
-## Getting Started
+Affiliate management portal for True Sciences. Syncs SliceWP data from WooCommerce, applies custom deal rules (e.g. sponsor overrides), and gives affiliates a paid/unpaid commission dashboard.
 
-First, run the development server:
+## Stack
+
+- Next.js 14 (App Router)
+- Supabase Auth + PostgreSQL
+- Prisma ORM
+- SliceWP REST API + WooCommerce REST API
+
+## Setup
+
+1. Create a new Supabase project (separate from the payout calculator).
+
+2. Copy env file:
+
+```bash
+cp .env.example .env.local
+```
+
+3. Fill in Supabase, database, WooCommerce, and SliceWP credentials.
+
+4. Push schema and seed users:
+
+```bash
+npm install
+npm run db:push
+npm run db:seed
+```
+
+5. Start dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## First-run checklist
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Log in as admin (`anthony@true-sciences.com` / `changeme123` after seed)
+2. Go to **Admin → Integration Settings** and save WooCommerce + SliceWP keys
+3. Run **Full Sync** on the Admin page
+4. Create a deal rule (e.g. Trin 10% of Blair revenue)
+5. Run sync again to generate override ledger entries
+6. Affiliates log in and view unpaid/paid ledger on Dashboard
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Deal rules
 
-## Learn More
+Deal rules let you configure custom payouts that SliceWP cannot handle natively:
 
-To learn more about Next.js, take a look at the following resources:
+| Type | Example |
+|---|---|
+| `REVENUE_OVERRIDE` | Trin earns 10% of Blair's referred order revenue |
+| `COMMISSION_OVERRIDE` | Sponsor earns 10% of recruit's commission |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Rules are evaluated on every commission sync. Override entries appear in the sponsor's ledger with the recruit as source.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## API routes
 
-## Deploy on Vercel
+| Route | Description |
+|---|---|
+| `POST /api/sync` | Full SliceWP sync (admin or cron bearer token) |
+| `GET /api/ledger` | Affiliate commission ledger |
+| `POST /api/admin/deal-rules` | Create deal rule |
+| `POST /api/admin/payouts/run` | Mark due unpaid entries as paid |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Cron sync (optional)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Set `SYNC_CRON_SECRET` and call:
+
+```bash
+curl -X POST https://your-app.vercel.app/api/sync \
+  -H "Authorization: Bearer $SYNC_CRON_SECRET"
+```
+
+## Trin / Blair example
+
+After sync identifies both affiliates in SliceWP:
+
+1. Admin → Deal Rules
+2. Name: `Trin 10% of Blair revenue`
+3. Sponsor: Trindalyn
+4. Recruit: Blair
+5. Rate: `10` (% of order revenue)
+
+Trindalyn's dashboard will show team override lines tied to Blair's orders with unpaid/paid tabs.

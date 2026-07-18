@@ -1,0 +1,202 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  AFFILIATE
+}
+
+enum AffiliateStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  REJECTED
+}
+
+enum CommissionStatus {
+  PENDING
+  UNPAID
+  PAID
+  REJECTED
+}
+
+enum LedgerEntryType {
+  DIRECT
+  OVERRIDE
+  BONUS
+  ADJUSTMENT
+}
+
+enum DealRuleType {
+  REVENUE_OVERRIDE
+  COMMISSION_OVERRIDE
+  BONUS
+}
+
+enum DealBasis {
+  ORDER_REVENUE
+  RECRUIT_COMMISSION
+  FIXED
+}
+
+enum PayoutSchedule {
+  WEEKLY_MONDAY
+  BIWEEKLY
+  MONTHLY
+}
+
+enum PayoutBatchStatus {
+  DRAFT
+  PROCESSING
+  COMPLETED
+}
+
+model Profile {
+  id          String     @id @db.Uuid
+  email       String     @unique
+  name        String
+  role        Role       @default(AFFILIATE)
+  affiliateId String?    @unique
+  affiliate   Affiliate? @relation(fields: [affiliateId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Affiliate {
+  id             String          @id @default(cuid())
+  slicewpId      Int             @unique
+  email          String
+  paymentEmail   String?
+  displayName    String?
+  status         AffiliateStatus @default(PENDING)
+  commissionRate Decimal?        @db.Decimal(5, 2)
+  syncedAt       DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  profile              Profile?
+  commissions          Commission[]
+  ledgerEntries        LedgerEntry[]        @relation("AffiliateLedger")
+  sourceLedgerEntries  LedgerEntry[]        @relation("SourceAffiliateLedger")
+  sponsorRules         DealRule[]           @relation("SponsorRules")
+  sourceRules          DealRule[]           @relation("SourceRules")
+  payoutBatchItems     PayoutBatchItem[]
+}
+
+model Commission {
+  id              String           @id @default(cuid())
+  slicewpId       Int              @unique
+  affiliateId     String
+  affiliate       Affiliate        @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  wooOrderId      Int?
+  amount          Decimal          @db.Decimal(12, 2)
+  orderRevenue    Decimal?         @db.Decimal(12, 2)
+  status          CommissionStatus @default(UNPAID)
+  type            String?
+  origin          String?
+  parentSlicewpId Int?
+  dateCreated     DateTime
+  syncedAt        DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  ledgerEntries   LedgerEntry[]
+}
+
+model DealRule {
+  id                 String         @id @default(cuid())
+  name               String
+  type               DealRuleType
+  sponsorAffiliateId String
+  sponsorAffiliate   Affiliate      @relation("SponsorRules", fields: [sponsorAffiliateId], references: [id], onDelete: Cascade)
+  sourceAffiliateId  String?
+  sourceAffiliate    Affiliate?     @relation("SourceRules", fields: [sourceAffiliateId], references: [id], onDelete: Cascade)
+  ratePercent        Decimal        @db.Decimal(5, 2)
+  basis              DealBasis
+  schedule           PayoutSchedule @default(WEEKLY_MONDAY)
+  active             Boolean        @default(true)
+  metadata           Json?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  ledgerEntries      LedgerEntry[]
+}
+
+model LedgerEntry {
+  id                  String           @id @default(cuid())
+  affiliateId         String
+  affiliate           Affiliate        @relation("AffiliateLedger", fields: [affiliateId], references: [id], onDelete: Cascade)
+  type                LedgerEntryType
+  amount              Decimal          @db.Decimal(12, 2)
+  status              CommissionStatus @default(UNPAID)
+  description         String?
+  wooOrderId          Int?
+  orderRevenue        Decimal?         @db.Decimal(12, 2)
+  sourceAffiliateId   String?
+  sourceAffiliate     Affiliate?       @relation("SourceAffiliateLedger", fields: [sourceAffiliateId], references: [id], onDelete: SetNull)
+  sourceCommissionId  String?
+  sourceCommission    Commission?      @relation(fields: [sourceCommissionId], references: [id], onDelete: SetNull)
+  dealRuleId          String?
+  dealRule            DealRule?        @relation(fields: [dealRuleId], references: [id], onDelete: SetNull)
+  slicewpCommissionId Int?
+  payoutBatchId       String?
+  payoutBatch         PayoutBatch?     @relation(fields: [payoutBatchId], references: [id], onDelete: SetNull)
+  payoutWeek          DateTime?
+  paidAt              DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  @@index([affiliateId, status])
+  @@index([sourceAffiliateId])
+  @@index([wooOrderId])
+}
+
+model PayoutBatch {
+  id            String            @id @default(cuid())
+  label         String
+  periodStart   DateTime
+  periodEnd     DateTime
+  status        PayoutBatchStatus @default(DRAFT)
+  processedAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  items         PayoutBatchItem[]
+  ledgerEntries LedgerEntry[]
+}
+
+model PayoutBatchItem {
+  id          String      @id @default(cuid())
+  batchId     String
+  batch       PayoutBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  affiliateId String
+  affiliate   Affiliate   @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  totalAmount Decimal     @db.Decimal(12, 2)
+  entryCount  Int
+
+  @@unique([batchId, affiliateId])
+}
+
+model Settings {
+  id                             String   @id @default("default")
+  wcStoreUrlEncrypted            String?
+  wcConsumerKeyEncrypted         String?
+  wcConsumerSecretEncrypted      String?
+  slicewpConsumerKeyEncrypted    String?
+  slicewpConsumerSecretEncrypted String?
+  lastAffiliateSyncAt            DateTime?
+  lastCommissionSyncAt           DateTime?
+  updatedAt                      DateTime @updatedAt
+}
+
+model SyncLog {
+  id        String   @id @default(cuid())
+  type      String
+  status    String
+  message   String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+}

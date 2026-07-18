@@ -2,26 +2,95 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* True Sciences light dashboard tokens (from global-base.css) */
+    --background: 220 18% 97%;
+    --foreground: 222 32% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 32% 12%;
+
+    --muted: 220 16% 94%;
+    --muted-foreground: 220 10% 38%;
+
+    --primary: 215 50% 25%;
+    --primary-foreground: 0 0% 100%;
+    --primary-soft: 215 24% 90%;
+
+    --secondary: 220 14% 93%;
+    --secondary-foreground: 222 32% 12%;
+
+    --accent: 215 50% 25%;
+    --accent-foreground: 0 0% 100%;
+
+    --success: 158 42% 42%;
+    --success-foreground: 0 0% 100%;
+    --success-soft: 158 32% 92%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --warning-soft: 38 80% 94%;
+
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 14% 86%;
+    --input: 220 14% 86%;
+    --ring: 215 50% 25%;
+
+    --radius: 0.75rem;
+
+    /* TS brand hex reference */
+    --brand: #002c50;
+    --brand-dark: #001830;
+    --brand-mid: #003868;
+    --brand-light: #4888b8;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-text-size-adjust: 100%;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply tracking-tight text-foreground;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-}
+@layer components {
+  .select-field {
+    @apply flex h-10 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+  }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  .page-title {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+
+  .page-description {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .stat-value {
+    @apply text-2xl font-semibold text-success;
+  }
+
+  .filter-pill {
+    @apply rounded-full px-3 py-1 text-xs font-medium transition-colors;
+  }
+
+  .filter-pill-active {
+    @apply bg-primary/10 text-primary;
+  }
+
+  .filter-pill-inactive {
+    @apply bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground;
   }
 }
