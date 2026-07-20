@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { LedgerTable } from "@/components/LedgerTable";
 import { TeamPanel, useTeam } from "@/components/TeamPanel";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { FileText, Users, TrendingUp } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,11 +26,22 @@ export default function DashboardPage() {
   const [ledgerTab, setLedgerTab] = useState<"all" | "unpaid" | "paid" | "overrides">("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
+  const [q, setQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQ(q);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [q]);
 
   const tabFilters = ledgerTabToFilters(ledgerTab, sourceFilter);
 
   const { data, error, isLoading, refetch, isFetching } = useLedger({
     ...tabFilters,
+    q: debouncedQ,
     page,
     limit: 50,
     enabled: !!user,
@@ -231,35 +243,33 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {data.sourceAffiliates.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleSourceFilter("all")}
-                    className={`filter-pill ${
-                      sourceFilter === "all"
-                        ? "filter-pill-active"
-                        : "filter-pill-inactive"
-                    }`}
-                  >
-                    All team members
-                  </button>
-                  {data.sourceAffiliates.map((affiliate) => (
-                    <button
-                      key={affiliate.id}
-                      type="button"
-                      onClick={() => handleSourceFilter(affiliate.id)}
-                      className={`filter-pill ${
-                        sourceFilter === affiliate.id
-                          ? "filter-pill-active"
-                          : "filter-pill-inactive"
-                      }`}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Input
+                  placeholder="Search order ID or description..."
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  className="sm:max-w-sm"
+                />
+                {data.sourceAffiliates.length > 0 && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                      Filter by recruit:
+                    </span>
+                    <select
+                      className="select-field w-full sm:max-w-xs"
+                      value={sourceFilter}
+                      onChange={(e) => handleSourceFilter(e.target.value)}
                     >
-                      {affiliate.displayName ?? affiliate.email}
-                    </button>
-                  ))}
-                </div>
-              )}
+                      <option value="all">All team members</option>
+                      {data.sourceAffiliates.map((affiliate) => (
+                        <option key={affiliate.id} value={affiliate.id}>
+                          {affiliate.displayName ?? affiliate.email}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
 
               <Tabs value={ledgerTab} onValueChange={handleTabChange}>
                 <TabsList>

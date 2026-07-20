@@ -7,6 +7,7 @@ type StatCardProps = {
   value: string;
   hint?: string;
   variant?: "default" | "success" | "warning" | "primary";
+  className?: string;
 };
 
 const valueStyles = {
@@ -21,9 +22,10 @@ export function StatCard({
   value,
   hint,
   variant = "default",
+  className,
 }: StatCardProps) {
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {label}

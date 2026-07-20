@@ -74,6 +74,7 @@ export type LedgerQueryOptions = {
   status?: string;
   type?: string;
   sourceAffiliateId?: string;
+  q?: string;
   enabled?: boolean;
 };
 
@@ -84,6 +85,7 @@ function buildLedgerUrl(options: LedgerQueryOptions): string {
   if (options.limit) params.set("limit", String(options.limit));
   if (options.status) params.set("status", options.status);
   if (options.type) params.set("type", options.type);
+  if (options.q) params.set("q", options.q);
   if (options.sourceAffiliateId) {
     params.set("sourceAffiliateId", options.sourceAffiliateId);
   }

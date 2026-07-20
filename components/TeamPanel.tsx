@@ -59,7 +59,7 @@ export function TeamPanel({
           Affiliates under you — deal-rule recruits and SliceWP parent links
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="grid gap-4 sm:grid-cols-2">
         {team.map((member) => {
           const name = member.displayName ?? member.email;
           const milestone = member.stats.milestone;
@@ -67,7 +67,7 @@ export function TeamPanel({
           return (
             <div
               key={member.id}
-              className="rounded-md border border-border bg-card p-3 space-y-2"
+              className="rounded-md border border-border bg-card p-4 space-y-3 shadow-sm"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>

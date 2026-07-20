@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/admin/PageHeader";
 import {
@@ -76,6 +76,7 @@ export default function AdminDealRulesPage() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [deletingRule, setDeletingRule] = useState<DealRuleListItem | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
   function openEdit(rule: DealRuleListItem) {
     setEditingRule(rule);
@@ -222,6 +223,7 @@ export default function AdminDealRulesPage() {
       setForm({ name: "", ratePercent: "10", milestoneRevenueThreshold: "10000" });
       setSponsor(null);
       setRecruit(null);
+      setCreateOpen(false);
       await refetchRules();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create rule");
@@ -235,6 +237,12 @@ export default function AdminDealRulesPage() {
       <PageHeader
         title="Deal Rules"
         description="Custom override payouts — e.g. sponsor earns % of recruit revenue"
+        actions={
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create rule
+          </Button>
+        }
       />
 
       {rulesError && (
@@ -242,112 +250,32 @@ export default function AdminDealRulesPage() {
       )}
 
       <Card className="border-primary/20 bg-primary-soft/40">
-        <CardHeader>
-          <CardTitle>Team revenue share (Trin / Blair example)</CardTitle>
-          <CardDescription>
-            When a recruit generates sales, the sponsor earns a % of{" "}
-            <strong>order revenue</strong> — not the recruit&apos;s commission.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>
-            <strong>Example:</strong> Blair closes a $10,000 order. Blair earns
-            $3,000 (30% SliceWP commission). Trindalyn earns $1,000 (10% of
-            $10,000 revenue) as a team bonus — but only after Blair&apos;s{" "}
-            <strong>cumulative referred revenue hits the milestone</strong>.
-            Until then, Trin&apos;s bonus lines show as Pending.
-          </p>
-          <p>
-            <strong>Setup:</strong> Sponsor = Trindalyn, Recruit = Blair, Rate
-            = 10, Milestone = 10000. Paid weekly on Mondays once unlocked.
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Create rule</CardTitle>
-          <CardDescription>
-            Applies to new syncs immediately and backfills existing recruit
-            commissions when created
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={createRule} className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="name">Rule name</Label>
-              <Input
-                id="name"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Trin 10% of Blair revenue"
-                required
-                disabled={submitting}
-              />
-            </div>
-            <AffiliateSearchCombobox
-              id="sponsor"
-              label="Sponsor (gets paid)"
-              value={sponsor?.id ?? ""}
-              selected={sponsor}
-              onChange={(_id, affiliate) => setSponsor(affiliate)}
-              excludeId={recruit?.id}
-              disabled={submitting}
-            />
-            <AffiliateSearchCombobox
-              id="source"
-              label="Recruit (generates override)"
-              value={recruit?.id ?? ""}
-              selected={recruit}
-              onChange={(_id, affiliate) => setRecruit(affiliate)}
-              excludeId={sponsor?.id}
-              disabled={submitting}
-            />
-            <div className="space-y-2">
-              <Label htmlFor="rate">Rate (% of order revenue)</Label>
-              <Input
-                id="rate"
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.ratePercent}
-                onChange={(e) =>
-                  setForm({ ...form, ratePercent: e.target.value })
-                }
-                required
-                disabled={submitting}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="milestone">
-                Revenue milestone (optional)
-              </Label>
-              <Input
-                id="milestone"
-                type="number"
-                min="0"
-                step="1"
-                value={form.milestoneRevenueThreshold}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    milestoneRevenueThreshold: e.target.value,
-                  })
-                }
-                placeholder="10000 — sponsor paid after recruit hits this"
-                disabled={submitting}
-              />
-              <p className="text-xs text-muted-foreground">
-                Leave empty to pay team bonuses immediately on each order.
+        <CardHeader className="py-4">
+          <details className="group">
+            <summary className="cursor-pointer font-medium text-foreground list-none flex items-center justify-between">
+              How do team deal rules work? (Trin / Blair example)
+              <span className="text-muted-foreground group-open:hidden">+</span>
+              <span className="text-muted-foreground hidden group-open:inline">-</span>
+            </summary>
+            <div className="mt-4 space-y-2 text-sm text-muted-foreground border-t border-border/50 pt-4">
+              <p>
+                When a recruit generates sales, the sponsor earns a % of{" "}
+                <strong>order revenue</strong> — not the recruit&apos;s commission.
+              </p>
+              <p>
+                <strong>Example:</strong> Blair closes a $10,000 order. Blair earns
+                $3,000 (30% SliceWP commission). Trindalyn earns $1,000 (10% of
+                $10,000 revenue) as a team bonus — but only after Blair&apos;s{" "}
+                <strong>cumulative referred revenue hits the milestone</strong>.
+                Until then, Trin&apos;s bonus lines show as Pending.
+              </p>
+              <p>
+                <strong>Setup:</strong> Sponsor = Trindalyn, Recruit = Blair, Rate
+                = 10, Milestone = 10000. Paid weekly on Mondays once unlocked.
               </p>
             </div>
-            <div className="flex items-end md:col-span-2">
-              <Button type="submit" disabled={submitting}>
-                {submitting ? "Creating & backfilling…" : "Create rule"}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
+          </details>
+        </CardHeader>
       </Card>
 
       <Card>
@@ -431,6 +359,109 @@ export default function AdminDealRulesPage() {
           )}
         </CardContent>
       </Card>
+
+      {createOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
+            aria-label="Close dialog"
+            onClick={() => {
+              if (!submitting) setCreateOpen(false);
+            }}
+          />
+          <Card className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-lg">
+            <CardHeader>
+              <CardTitle>Create rule</CardTitle>
+              <CardDescription>
+                Applies to new syncs immediately and backfills existing recruit
+                commissions when created.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={createRule} className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="name">Rule name</Label>
+                  <Input
+                    id="name"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="Trin 10% of Blair revenue"
+                    required
+                    disabled={submitting}
+                  />
+                </div>
+                <AffiliateSearchCombobox
+                  id="sponsor"
+                  label="Sponsor (gets paid)"
+                  value={sponsor?.id ?? ""}
+                  selected={sponsor}
+                  onChange={(_id, affiliate) => setSponsor(affiliate)}
+                  excludeId={recruit?.id}
+                  disabled={submitting}
+                />
+                <AffiliateSearchCombobox
+                  id="source"
+                  label="Recruit (generates override)"
+                  value={recruit?.id ?? ""}
+                  selected={recruit}
+                  onChange={(_id, affiliate) => setRecruit(affiliate)}
+                  excludeId={sponsor?.id}
+                  disabled={submitting}
+                />
+                <div className="space-y-2">
+                  <Label htmlFor="rate">Rate (% of order revenue)</Label>
+                  <Input
+                    id="rate"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.ratePercent}
+                    onChange={(e) =>
+                      setForm({ ...form, ratePercent: e.target.value })
+                    }
+                    required
+                    disabled={submitting}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="milestone">
+                    Revenue milestone (optional)
+                  </Label>
+                  <Input
+                    id="milestone"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={form.milestoneRevenueThreshold}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        milestoneRevenueThreshold: e.target.value,
+                      })
+                    }
+                    placeholder="10000 — sponsor paid after recruit hits this"
+                    disabled={submitting}
+                  />
+                </div>
+                <div className="flex justify-end gap-2 md:col-span-2 mt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setCreateOpen(false)}
+                    disabled={submitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={submitting}>
+                    {submitting ? "Creating & backfilling…" : "Create rule"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {editingRule && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { TableSkeleton } from "@/components/admin/TableSkeleton";
@@ -45,6 +45,7 @@ function statusBadgeVariant(
 }
 
 export default function AdminAffiliatesPage() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
@@ -152,22 +153,16 @@ export default function AdminAffiliatesPage() {
                 </TableHeader>
                 <TableBody>
                   {data.items.map((affiliate) => (
-                    <TableRow key={affiliate.id} className="cursor-pointer">
-                      <TableCell className="font-medium">
-                        <Link
-                          href={`/admin/affiliates/${affiliate.id}`}
-                          className="text-primary hover:underline"
-                        >
-                          {affiliate.displayName ?? "—"}
-                        </Link>
+                    <TableRow 
+                      key={affiliate.id} 
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => router.push(`/admin/affiliates/${affiliate.id}`)}
+                    >
+                      <TableCell className="font-medium text-primary">
+                        {affiliate.displayName ?? "—"}
                       </TableCell>
                       <TableCell>
-                        <Link
-                          href={`/admin/affiliates/${affiliate.id}`}
-                          className="hover:underline"
-                        >
-                          {affiliate.email}
-                        </Link>
+                        {affiliate.email}
                       </TableCell>
                       <TableCell>{affiliate.slicewpId}</TableCell>
                       <TableCell>

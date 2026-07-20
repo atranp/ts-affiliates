@@ -63,12 +63,19 @@ export default function AdminDashboardPage() {
         title="Overview"
         description="Platform health, payouts, and sync status at a glance"
         actions={
-          <Button onClick={() => setSyncOpen(true)} disabled={syncing}>
-            <RefreshCw
-              className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`}
-            />
-            {syncing ? "Syncing..." : "Run Full Sync"}
-          </Button>
+          <div className="flex items-center gap-4">
+            {data && (
+              <span className="text-xs text-muted-foreground hidden sm:inline-block">
+                Last synced: {formatSyncTime(data.sync.lastAffiliateSyncAt)}
+              </span>
+            )}
+            <Button onClick={() => setSyncOpen(true)} disabled={syncing}>
+              <RefreshCw
+                className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`}
+              />
+              {syncing ? "Syncing..." : "Run Full Sync"}
+            </Button>
+          </div>
         }
       />
 
@@ -81,30 +88,42 @@ export default function AdminDashboardPage() {
           Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
         ) : data ? (
           <>
-            <StatCard
-              label="Affiliates"
-              value={String(data.affiliates.total)}
-              hint={`${data.affiliates.active} active · ${data.affiliates.withPortalAccess} with portal access`}
-              variant="primary"
-            />
-            <StatCard
-              label="Unpaid"
-              value={formatCurrency(data.ledger.unpaidTotal)}
-              hint={`${data.ledger.unpaidCount} ledger entries`}
-              variant="primary"
-            />
-            <StatCard
-              label="Paid"
-              value={formatCurrency(data.ledger.paidTotal)}
-              hint={`${data.ledger.paidCount} entries paid`}
-              variant="success"
-            />
-            <StatCard
-              label="Pending review"
-              value={formatCurrency(data.ledger.pendingTotal)}
-              hint={`${data.dealRules.active} active deal rules`}
-              variant="warning"
-            />
+            <Link href="/admin/affiliates" className="block focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-xl">
+              <StatCard
+                label="Affiliates"
+                value={String(data.affiliates.total)}
+                hint={`${data.affiliates.active} active · ${data.affiliates.withPortalAccess} with portal access`}
+                variant="primary"
+                className="hover:border-primary/50 transition-colors"
+              />
+            </Link>
+            <Link href="/admin/affiliates?status=ACTIVE" className="block focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-xl">
+              <StatCard
+                label="Unpaid"
+                value={formatCurrency(data.ledger.unpaidTotal)}
+                hint={`${data.ledger.unpaidCount} ledger entries`}
+                variant="primary"
+                className="hover:border-primary/50 transition-colors"
+              />
+            </Link>
+            <Link href="/admin/affiliates?status=ACTIVE" className="block focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-xl">
+              <StatCard
+                label="Paid"
+                value={formatCurrency(data.ledger.paidTotal)}
+                hint={`${data.ledger.paidCount} entries paid`}
+                variant="success"
+                className="hover:border-success/50 transition-colors"
+              />
+            </Link>
+            <Link href="/admin/deal-rules" className="block focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-xl">
+              <StatCard
+                label="Pending review"
+                value={formatCurrency(data.ledger.pendingTotal)}
+                hint={`${data.dealRules.active} active deal rules`}
+                variant="warning"
+                className="hover:border-warning/50 transition-colors"
+              />
+            </Link>
           </>
         ) : null}
       </div>

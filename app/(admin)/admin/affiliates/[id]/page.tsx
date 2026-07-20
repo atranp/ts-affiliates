@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, UserPlus, FileText, Users, Share2 } from "lucide-react";
+import { UserPlus, FileText, Users, Share2, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { StatCard, StatCardSkeleton } from "@/components/admin/StatCard";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { LedgerTable } from "@/components/LedgerTable";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -78,8 +79,18 @@ export default function AdminAffiliateDetailPage() {
   const [viewTab, setViewTab] = useState<"ledger" | "team" | "rules">("ledger");
   const [ledgerTab, setLedgerTab] = useState<"all" | "unpaid" | "paid" | "overrides">("all");
   const [page, setPage] = useState(1);
+  const [q, setQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviting, setInviting] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQ(q);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [q]);
 
   const tabFilters = ledgerTabToFilters(ledgerTab);
 
@@ -92,6 +103,7 @@ export default function AdminAffiliateDetailPage() {
   } = useLedger({
     affiliateId,
     ...tabFilters,
+    q: debouncedQ,
     page,
     limit: 50,
     enabled: !!affiliateId,
@@ -139,12 +151,15 @@ export default function AdminAffiliateDetailPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Button variant="ghost" size="sm" className="mb-3 -ml-2" asChild>
-          <Link href="/admin/affiliates">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to affiliates
+        <nav className="mb-4 flex items-center gap-1 text-sm text-muted-foreground">
+          <Link href="/admin/affiliates" className="hover:text-foreground hover:underline transition-colors">
+            Affiliates
           </Link>
-        </Button>
+          <ChevronRight className="h-4 w-4" />
+          <span className="font-medium text-foreground">
+            {affiliate ? (affiliate.displayName ?? "Details") : "Loading..."}
+          </span>
+        </nav>
 
         {affiliateLoading ? (
           <div className="space-y-2">
@@ -283,18 +298,27 @@ export default function AdminAffiliateDetailPage() {
             {/* Main Content */}
             <div className="flex-1 min-w-0">
               <Tabs value={viewTab} onValueChange={(v) => setViewTab(v as typeof viewTab)} className="w-full">
-                <TabsList className="mb-4">
-                  <TabsTrigger value="ledger" className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
+                <TabsList className="mb-4 h-10 w-full justify-start overflow-x-auto overflow-y-hidden rounded-none border-b border-border bg-transparent p-0">
+                  <TabsTrigger 
+                    value="ledger" 
+                    className="relative h-10 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground shadow-none transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
                     Ledger
                   </TabsTrigger>
-                  <TabsTrigger value="team" className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Team
+                  <TabsTrigger 
+                    value="team" 
+                    className="relative h-10 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground shadow-none transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                  >
+                    <Users className="mr-2 h-4 w-4" />
+                    Team {teamData?.team && `(${teamData.team.length})`}
                   </TabsTrigger>
-                  <TabsTrigger value="rules" className="flex items-center gap-2">
-                    <Share2 className="h-4 w-4" />
-                    Deal rules
+                  <TabsTrigger 
+                    value="rules" 
+                    className="relative h-10 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground shadow-none transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                  >
+                    <Share2 className="mr-2 h-4 w-4" />
+                    Deal rules {(affiliate.dealRules.asSponsor.length + affiliate.dealRules.asRecruit.length > 0) && `(${affiliate.dealRules.asSponsor.length + affiliate.dealRules.asRecruit.length})`}
                   </TabsTrigger>
                 </TabsList>
 
@@ -317,13 +341,20 @@ export default function AdminAffiliateDetailPage() {
                       {ledgerLoading && <TableSkeleton columns={7} rows={6} />}
 
                       {!ledgerLoading && !ledgerError && ledger && (
-                        <Tabs
-                          value={ledgerTab}
-                          onValueChange={(v) => {
-                            setLedgerTab(v as typeof ledgerTab);
-                            setPage(1);
-                          }}
-                        >
+                        <div className="space-y-4">
+                          <Input
+                            placeholder="Search order ID or description..."
+                            value={q}
+                            onChange={(e) => setQ(e.target.value)}
+                            className="max-w-sm"
+                          />
+                          <Tabs
+                            value={ledgerTab}
+                            onValueChange={(v) => {
+                              setLedgerTab(v as typeof ledgerTab);
+                              setPage(1);
+                            }}
+                          >
                           <TabsList>
                             <TabsTrigger value="all">All</TabsTrigger>
                             <TabsTrigger value="unpaid">Unpaid</TabsTrigger>
@@ -370,6 +401,7 @@ export default function AdminAffiliateDetailPage() {
                             )}
                           </TabsContent>
                         </Tabs>
+                        </div>
                       )}
                     </CardContent>
                   </Card>

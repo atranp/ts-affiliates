@@ -154,7 +154,7 @@ export default function AdminSettingsPage() {
                     id="wcConsumerKey"
                     value={wcConsumerKey}
                     onChange={(e) => setWcConsumerKey(e.target.value)}
-                    placeholder="Leave blank to keep existing"
+                    placeholder={settings?.hasWooCommerce ? "••••••••" : "Leave blank to keep existing"}
                   />
                 </div>
                 <div className="space-y-2">
@@ -164,7 +164,7 @@ export default function AdminSettingsPage() {
                     type="password"
                     value={wcConsumerSecret}
                     onChange={(e) => setWcConsumerSecret(e.target.value)}
-                    placeholder="Leave blank to keep existing"
+                    placeholder={settings?.hasWooCommerce ? "••••••••" : "Leave blank to keep existing"}
                   />
                 </div>
               </>
@@ -193,7 +193,7 @@ export default function AdminSettingsPage() {
                     id="slicewpConsumerKey"
                     value={slicewpConsumerKey}
                     onChange={(e) => setSlicewpConsumerKey(e.target.value)}
-                    placeholder="Leave blank to keep existing"
+                    placeholder={settings?.hasSliceWP ? "••••••••" : "Leave blank to keep existing"}
                   />
                 </div>
                 <div className="space-y-2">
@@ -203,7 +203,7 @@ export default function AdminSettingsPage() {
                     type="password"
                     value={slicewpConsumerSecret}
                     onChange={(e) => setSlicewpConsumerSecret(e.target.value)}
-                    placeholder="Leave blank to keep existing"
+                    placeholder={settings?.hasSliceWP ? "••••••••" : "Leave blank to keep existing"}
                   />
                 </div>
               </>

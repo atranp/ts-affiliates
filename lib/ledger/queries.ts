@@ -31,6 +31,7 @@ export type LedgerFilters = {
   status?: CommissionStatus;
   type?: LedgerEntryType;
   sourceAffiliateId?: string;
+  q?: string;
   page?: number;
   limit?: number;
 };
@@ -46,7 +47,7 @@ type LedgerGroupRow = {
 };
 
 function buildWhere(filters: LedgerFilters): Prisma.LedgerEntryWhereInput {
-  return {
+  const where: Prisma.LedgerEntryWhereInput = {
     affiliateId: filters.affiliateId,
     ...(filters.status ? { status: filters.status } : {}),
     ...(filters.type ? { type: filters.type } : {}),
@@ -54,6 +55,17 @@ function buildWhere(filters: LedgerFilters): Prisma.LedgerEntryWhereInput {
       ? { sourceAffiliateId: filters.sourceAffiliateId }
       : {}),
   };
+
+  if (filters.q) {
+    const qNum = Number(filters.q);
+    if (!Number.isNaN(qNum) && qNum > 0) {
+      where.wooOrderId = qNum;
+    } else {
+      where.description = { contains: filters.q, mode: "insensitive" };
+    }
+  }
+
+  return where;
 }
 
 function matchesLedgerFilters(
