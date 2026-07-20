@@ -7,6 +7,7 @@ Affiliate management portal for True Sciences. Syncs SliceWP data from WooCommer
 - Next.js 14 (App Router)
 - Supabase Auth + PostgreSQL
 - Prisma ORM
+- TanStack Query (client cache)
 - SliceWP REST API + WooCommerce REST API
 
 ## Setup
@@ -66,12 +67,18 @@ Rules are evaluated on every commission sync. Override entries appear in the spo
 
 ## Cron sync (optional)
 
-Set `SYNC_CRON_SECRET` and call:
+Set `SYNC_CRON_SECRET` in Vercel env. A Vercel cron runs `GET /api/sync` every 6 hours (see `vercel.json`). Manual trigger:
 
 ```bash
 curl -X POST https://your-app.vercel.app/api/sync \
   -H "Authorization: Bearer $SYNC_CRON_SECRET"
 ```
+
+Page loads read from Supabase/Postgres — SliceWP is only hit during sync jobs.
+
+## Client caching
+
+TanStack Query caches API responses for 60s (`staleTime`). Revisiting admin/affiliate pages is instant until stale or invalidated (e.g. after sync).
 
 ## Trin / Blair example
 

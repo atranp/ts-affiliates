@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowRight, RefreshCw, Users } from "lucide-react";
 import { PageHeader } from "@/components/admin/PageHeader";
@@ -16,8 +17,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useAdminQuery, adminMutate } from "@/hooks/use-admin-query";
-import type { AdminStats, SyncResult } from "@/lib/admin/types";
+import {
+  adminMutate,
+  useAdminStats,
+} from "@/hooks/use-admin-query";
+import type { SyncResult } from "@/lib/admin/types";
 import { formatCurrency } from "@/lib/utils";
 
 function formatSyncTime(iso: string | null) {
@@ -29,9 +33,8 @@ function formatSyncTime(iso: string | null) {
 }
 
 export default function AdminDashboardPage() {
-  const { data, error, isLoading, mutate } = useAdminQuery<AdminStats>(
-    "/api/admin/stats"
-  );
+  const queryClient = useQueryClient();
+  const { data, error, isLoading, refetch } = useAdminStats();
   const [syncOpen, setSyncOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
@@ -45,7 +48,8 @@ export default function AdminDashboardPage() {
         `Synced ${result.affiliatesUpserted} affiliates, ${result.commissionsUpserted} commissions, ${result.profilesLinked} profiles linked`
       );
       setSyncOpen(false);
-      await mutate();
+      await queryClient.invalidateQueries({ queryKey: ["admin"] });
+      await queryClient.invalidateQueries({ queryKey: ["ledger"] });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sync failed");
     } finally {
@@ -54,7 +58,7 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Overview"
         description="Platform health, payouts, and sync status at a glance"
@@ -69,7 +73,7 @@ export default function AdminDashboardPage() {
       />
 
       {error && (
-        <ErrorState message={error.message} onRetry={() => mutate()} />
+        <ErrorState message={error.message} onRetry={() => refetch()} />
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -139,7 +143,10 @@ export default function AdminDashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle>Sync & integrations</CardTitle>
-            <CardDescription>SliceWP and WooCommerce connection status</CardDescription>
+            <CardDescription>
+              Data is read from Supabase — SliceWP sync runs on a schedule or
+              manually
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             {isLoading ? (

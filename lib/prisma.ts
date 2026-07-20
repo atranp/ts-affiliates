@@ -22,6 +22,10 @@ function resolveDatabaseUrl(): string {
     parsed.searchParams.set("connection_limit", "1");
   }
 
+  if (!parsed.searchParams.has("pool_timeout")) {
+    parsed.searchParams.set("pool_timeout", "30");
+  }
+
   return parsed.toString();
 }
 

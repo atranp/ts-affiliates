@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-auth";
+import { jsonCached } from "@/lib/api-cache";
 import { prisma } from "@/lib/prisma";
 import { encryptOptional } from "@/lib/encryption";
 
@@ -11,7 +12,7 @@ export async function GET() {
     where: { id: "default" },
   });
 
-  return NextResponse.json({
+  return jsonCached({
     hasWooCommerce:
       !!settings?.wcStoreUrlEncrypted && !!settings?.wcConsumerKeyEncrypted,
     hasSliceWP:

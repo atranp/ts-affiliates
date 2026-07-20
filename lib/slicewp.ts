@@ -44,6 +44,9 @@ export interface SliceWPAffiliate {
   status?: string;
   commission_rate?: string;
   date_created?: string;
+  /** SliceWP Multi-level Affiliates add-on */
+  parent_id?: number | string;
+  parent_affiliate_id?: number | string;
 }
 
 export interface SliceWPCommission {

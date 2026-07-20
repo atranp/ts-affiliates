@@ -16,14 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAdminQuery, adminMutate } from "@/hooks/use-admin-query";
-
-type SettingsResponse = {
-  hasWooCommerce: boolean;
-  hasSliceWP: boolean;
-  lastAffiliateSyncAt: string | null;
-  lastCommissionSyncAt: string | null;
-};
+import { useAdminSettings, adminMutate } from "@/hooks/use-admin-query";
 
 function formatSyncTime(iso: string | null) {
   if (!iso) return "Never";
@@ -34,8 +27,7 @@ function formatSyncTime(iso: string | null) {
 }
 
 export default function AdminSettingsPage() {
-  const { data: settings, error, isLoading, mutate } =
-    useAdminQuery<SettingsResponse>("/api/settings");
+  const { data: settings, error, isLoading, refetch } = useAdminSettings();
   const [wcStoreUrl, setWcStoreUrl] = useState("");
   const [wcConsumerKey, setWcConsumerKey] = useState("");
   const [wcConsumerSecret, setWcConsumerSecret] = useState("");
@@ -66,7 +58,7 @@ export default function AdminSettingsPage() {
       setSlicewpConsumerKey("");
       setSlicewpConsumerSecret("");
       toast.success("Settings saved");
-      await mutate();
+      await refetch();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save settings");
     } finally {
@@ -75,14 +67,14 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-4">
       <PageHeader
         title="Integration Settings"
         description="WooCommerce and SliceWP credentials for sync jobs"
       />
 
       {error && (
-        <ErrorState message={error.message} onRetry={() => mutate()} />
+        <ErrorState message={error.message} onRetry={() => refetch()} />
       )}
 
       {isLoading ? (

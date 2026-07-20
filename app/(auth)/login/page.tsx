@@ -40,6 +40,9 @@ export default function LoginPage() {
     }
 
     const meRes = await fetch("/api/me");
+    if (meRes.ok) {
+      await supabase.auth.refreshSession();
+    }
     const me = meRes.ok ? await meRes.json() : null;
     router.push(me?.role === "ADMIN" ? "/admin" : "/dashboard");
     router.refresh();
@@ -47,7 +50,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
-      <Card className="w-full max-w-md border-border shadow-card">
+      <Card className="w-full max-w-md border-border shadow-sm">
         <CardHeader className="space-y-1">
           <p className="text-sm font-semibold uppercase tracking-wide text-brand">
             True Sciences

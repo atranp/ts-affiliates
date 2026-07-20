@@ -21,6 +21,8 @@
     "@radix-ui/react-tabs": "^1.1.17",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.7",
+    "@tanstack/react-query": "^5.101.3",
+    "@tanstack/react-query-devtools": "^5.101.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
@@ -31,13 +33,14 @@
     "react": "^18",
     "react-dom": "^18",
     "sonner": "^2.0.7",
-    "swr": "^2.4.2",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "^3.6.0",
+    "ws": "^8.21.1"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/ws": "^8.18.1",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
     "postcss": "^8",

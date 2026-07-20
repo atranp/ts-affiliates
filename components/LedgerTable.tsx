@@ -26,6 +26,7 @@ type LedgerEntry = {
     displayName: string | null;
     email: string;
   } | null;
+  dealRule?: { id: string; name: string } | null;
 };
 
 function statusVariant(
@@ -37,7 +38,22 @@ function statusVariant(
   return "secondary";
 }
 
-export function LedgerTable({ entries }: { entries: LedgerEntry[] }) {
+function formatPayoutWeek(iso: string | null) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+export function LedgerTable({
+  entries,
+  showDetails = false,
+}: {
+  entries: LedgerEntry[];
+  showDetails?: boolean;
+}) {
   if (entries.length === 0) {
     return <p className="text-sm text-muted-foreground">No entries yet.</p>;
   }
@@ -48,10 +64,12 @@ export function LedgerTable({ entries }: { entries: LedgerEntry[] }) {
         <TableRow>
           <TableHead>Date</TableHead>
           <TableHead>Type</TableHead>
-          <TableHead>Source</TableHead>
+          {showDetails && <TableHead>Details</TableHead>}
+          {!showDetails && <TableHead>Source</TableHead>}
           <TableHead>Order</TableHead>
           <TableHead>Sale</TableHead>
           <TableHead>Amount</TableHead>
+          {showDetails && <TableHead>Payout week</TableHead>}
           <TableHead>Status</TableHead>
         </TableRow>
       </TableHeader>
@@ -61,12 +79,25 @@ export function LedgerTable({ entries }: { entries: LedgerEntry[] }) {
             <TableCell>
               {new Date(entry.createdAt).toLocaleDateString("en-US")}
             </TableCell>
-            <TableCell>{entry.type}</TableCell>
             <TableCell>
-              {entry.sourceAffiliate?.displayName ??
-                entry.sourceAffiliate?.email ??
-                "—"}
+              <Badge variant={entry.type === "OVERRIDE" ? "unpaid" : "secondary"}>
+                {entry.type === "OVERRIDE" ? "Team bonus" : entry.type}
+              </Badge>
             </TableCell>
+            {showDetails ? (
+              <TableCell className="max-w-xs text-sm text-muted-foreground">
+                {entry.description ??
+                  entry.sourceAffiliate?.displayName ??
+                  entry.sourceAffiliate?.email ??
+                  "—"}
+              </TableCell>
+            ) : (
+              <TableCell>
+                {entry.sourceAffiliate?.displayName ??
+                  entry.sourceAffiliate?.email ??
+                  "—"}
+              </TableCell>
+            )}
             <TableCell>
               {entry.wooOrderId ? `#${entry.wooOrderId}` : "—"}
             </TableCell>
@@ -78,6 +109,11 @@ export function LedgerTable({ entries }: { entries: LedgerEntry[] }) {
             <TableCell className="font-medium text-success">
               {formatCurrency(entry.amount)}
             </TableCell>
+            {showDetails && (
+              <TableCell className="text-sm text-muted-foreground">
+                {formatPayoutWeek(entry.payoutWeek)}
+              </TableCell>
+            )}
             <TableCell>
               <Badge variant={statusVariant(entry.status)}>{entry.status}</Badge>
             </TableCell>

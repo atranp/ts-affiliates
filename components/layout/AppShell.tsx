@@ -56,7 +56,7 @@ export function AppShell({
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-border bg-card/95 shadow-sm backdrop-blur">
-        <div className="mx-auto max-w-7xl px-3 py-3 sm:px-4 sm:py-4">
+        <div className="mx-auto max-w-7xl px-3 py-2 sm:px-4 sm:py-3">
           <div className="flex items-center justify-between gap-3">
             <Link href={homeHref} className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
@@ -142,7 +142,7 @@ export function AppShell({
         </div>
       </header>
 
-      <main className="mx-auto min-h-[calc(100vh-57px)] max-w-7xl overflow-x-hidden px-3 py-5 sm:min-h-[calc(100vh-80px)] sm:px-4 sm:py-8">
+      <main className="mx-auto min-h-[calc(100vh-53px)] max-w-7xl overflow-x-hidden px-3 py-4 sm:min-h-[calc(100vh-65px)] sm:px-4 sm:py-6">
         {children}
       </main>
     </>

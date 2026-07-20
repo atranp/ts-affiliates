@@ -5,10 +5,12 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useState,
 } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Role } from "@prisma/client";
 import { createClient } from "@/lib/supabase/client";
+import { apiFetch } from "@/lib/api-client";
+import { queryKeys } from "@/lib/query-keys";
 
 export type AuthUser = {
   id: string;
@@ -34,27 +36,27 @@ const AuthContext = createContext<AuthContextValue>({
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const { data: user = null, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.me,
+    queryFn: async () => {
+      try {
+        return await apiFetch<AuthUser>("/api/me");
+      } catch {
+        return null;
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
 
   const refresh = useCallback(async () => {
-    try {
-      const res = await fetch("/api/me");
-      if (res.ok) {
-        setUser(await res.json());
-      } else {
-        setUser(null);
-      }
-    } catch {
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    await queryClient.invalidateQueries({ queryKey: queryKeys.me });
+    await refetch();
+  }, [queryClient, refetch]);
 
   useEffect(() => {
-    refresh();
-
     const supabase = createClient();
     const {
       data: { subscription },
@@ -66,14 +68,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   const signOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    setUser(null);
+    await fetch("/api/auth/signout", { method: "POST" });
+    queryClient.setQueryData(queryKeys.me, null);
     window.location.href = "/login";
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signOut, refresh }}>
+    <AuthContext.Provider
+      value={{ user, loading: isLoading, signOut, refresh }}
+    >
       {children}
     </AuthContext.Provider>
   );

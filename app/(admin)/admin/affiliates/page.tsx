@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { TableSkeleton } from "@/components/admin/TableSkeleton";
@@ -23,8 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useAdminQuery } from "@/hooks/use-admin-query";
-import type { PaginatedAffiliates } from "@/lib/admin/types";
+import { useAdminAffiliates } from "@/hooks/use-admin-query";
 import { formatCurrency } from "@/lib/utils";
 
 const STATUS_OPTIONS = ["all", "ACTIVE", "PENDING", "INACTIVE", "REJECTED"];
@@ -58,9 +58,11 @@ export default function AdminAffiliatesPage() {
     return () => clearTimeout(timer);
   }, [q]);
 
-  const queryKey = `/api/admin/affiliates?page=${page}&q=${encodeURIComponent(debouncedQ)}&status=${status}`;
-  const { data, error, isLoading, mutate } =
-    useAdminQuery<PaginatedAffiliates>(queryKey);
+  const { data, error, isLoading, refetch, isFetching } = useAdminAffiliates({
+    page,
+    q: debouncedQ,
+    status,
+  });
 
   const resetFilters = useCallback(() => {
     setQ("");
@@ -70,7 +72,7 @@ export default function AdminAffiliatesPage() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Affiliates"
         description="Synced from SliceWP — search, filter, and review portal access"
@@ -110,10 +112,12 @@ export default function AdminAffiliatesPage() {
           </div>
 
           {error && (
-            <ErrorState message={error.message} onRetry={() => mutate()} />
+            <ErrorState message={error.message} onRetry={() => refetch()} />
           )}
 
-          {isLoading && <TableSkeleton columns={6} rows={8} />}
+          {(isLoading || isFetching) && !data && (
+            <TableSkeleton columns={6} rows={8} />
+          )}
 
           {!isLoading && !error && data?.items.length === 0 && (
             <EmptyState
@@ -148,11 +152,23 @@ export default function AdminAffiliatesPage() {
                 </TableHeader>
                 <TableBody>
                   {data.items.map((affiliate) => (
-                    <TableRow key={affiliate.id}>
+                    <TableRow key={affiliate.id} className="cursor-pointer">
                       <TableCell className="font-medium">
-                        {affiliate.displayName ?? "—"}
+                        <Link
+                          href={`/admin/affiliates/${affiliate.id}`}
+                          className="text-primary hover:underline"
+                        >
+                          {affiliate.displayName ?? "—"}
+                        </Link>
                       </TableCell>
-                      <TableCell>{affiliate.email}</TableCell>
+                      <TableCell>
+                        <Link
+                          href={`/admin/affiliates/${affiliate.id}`}
+                          className="hover:underline"
+                        >
+                          {affiliate.email}
+                        </Link>
+                      </TableCell>
                       <TableCell>{affiliate.slicewpId}</TableCell>
                       <TableCell>
                         <Badge variant={statusBadgeVariant(affiliate.status)}>

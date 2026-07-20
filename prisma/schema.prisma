@@ -70,16 +70,20 @@ model Profile {
 }
 
 model Affiliate {
-  id             String          @id @default(cuid())
-  slicewpId      Int             @unique
-  email          String
-  paymentEmail   String?
-  displayName    String?
-  status         AffiliateStatus @default(PENDING)
-  commissionRate Decimal?        @db.Decimal(5, 2)
-  syncedAt       DateTime?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id                String          @id @default(cuid())
+  slicewpId         Int             @unique
+  email             String
+  paymentEmail      String?
+  displayName       String?
+  status            AffiliateStatus @default(PENDING)
+  commissionRate    Decimal?        @db.Decimal(5, 2)
+  parentSlicewpId   Int?
+  parentAffiliateId String?
+  parentAffiliate   Affiliate?      @relation("AffiliateTree", fields: [parentAffiliateId], references: [id], onDelete: SetNull)
+  childAffiliates   Affiliate[]     @relation("AffiliateTree")
+  syncedAt          DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   profile              Profile?
   commissions          Commission[]
@@ -88,6 +92,9 @@ model Affiliate {
   sponsorRules         DealRule[]           @relation("SponsorRules")
   sourceRules          DealRule[]           @relation("SourceRules")
   payoutBatchItems     PayoutBatchItem[]
+
+  @@index([parentAffiliateId])
+  @@index([email])
 }
 
 model Commission {
@@ -109,21 +116,22 @@ model Commission {
 }
 
 model DealRule {
-  id                 String         @id @default(cuid())
-  name               String
-  type               DealRuleType
-  sponsorAffiliateId String
-  sponsorAffiliate   Affiliate      @relation("SponsorRules", fields: [sponsorAffiliateId], references: [id], onDelete: Cascade)
-  sourceAffiliateId  String?
-  sourceAffiliate    Affiliate?     @relation("SourceRules", fields: [sourceAffiliateId], references: [id], onDelete: Cascade)
-  ratePercent        Decimal        @db.Decimal(5, 2)
-  basis              DealBasis
-  schedule           PayoutSchedule @default(WEEKLY_MONDAY)
-  active             Boolean        @default(true)
-  metadata           Json?
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
-  ledgerEntries      LedgerEntry[]
+  id                        String         @id @default(cuid())
+  name                      String
+  type                      DealRuleType
+  sponsorAffiliateId        String
+  sponsorAffiliate          Affiliate      @relation("SponsorRules", fields: [sponsorAffiliateId], references: [id], onDelete: Cascade)
+  sourceAffiliateId         String?
+  sourceAffiliate           Affiliate?     @relation("SourceRules", fields: [sourceAffiliateId], references: [id], onDelete: Cascade)
+  ratePercent               Decimal        @db.Decimal(5, 2)
+  basis                     DealBasis
+  milestoneRevenueThreshold Decimal?       @db.Decimal(12, 2)
+  schedule                  PayoutSchedule @default(WEEKLY_MONDAY)
+  active                    Boolean        @default(true)
+  metadata                  Json?
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+  ledgerEntries             LedgerEntry[]
 }
 
 model LedgerEntry {

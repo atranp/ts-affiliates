@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import {
+  applyRoleCookie,
+  ensureAuthRoleConsistency,
+} from "@/lib/auth-role";
 import { homePathForRole } from "@/lib/routes";
 
 export async function GET(request: Request) {
@@ -14,9 +18,17 @@ export async function GET(request: Request) {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      const role = user?.app_metadata?.role as string | undefined;
-      const destination = next ?? homePathForRole(role);
-      return NextResponse.redirect(`${origin}${destination}`);
+
+      const role = user
+        ? await ensureAuthRoleConsistency(
+            user.id,
+            user.app_metadata?.role as string | undefined
+          )
+        : null;
+      const destination = next ?? homePathForRole(role ?? undefined);
+      const response = NextResponse.redirect(`${origin}${destination}`);
+      if (role) applyRoleCookie(response, role);
+      return response;
     }
   }
 

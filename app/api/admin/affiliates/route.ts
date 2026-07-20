@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-auth";
+import { jsonCached } from "@/lib/api-cache";
 import { getPaginatedAffiliates } from "@/lib/admin/queries";
 
 export async function GET(request: Request) {
@@ -14,7 +15,7 @@ export async function GET(request: Request) {
 
   try {
     const result = await getPaginatedAffiliates({ page, pageSize, q, status });
-    return NextResponse.json(result);
+    return jsonCached(result);
   } catch (error) {
     console.error("Affiliates list failed:", error);
     return NextResponse.json(

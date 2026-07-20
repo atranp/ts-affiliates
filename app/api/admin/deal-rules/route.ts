@@ -1,7 +1,9 @@
 import { DealBasis, DealRuleType, PayoutSchedule } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-auth";
+import { jsonCached } from "@/lib/api-cache";
 import { prisma } from "@/lib/prisma";
+import { applyDealRuleRetroactively } from "@/lib/rules-engine";
 
 export async function GET() {
   const auth = await requireAdmin();
@@ -19,7 +21,7 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json(rules);
+  return jsonCached(rules);
 }
 
 export async function POST(request: Request) {
@@ -36,6 +38,7 @@ export async function POST(request: Request) {
     basis,
     schedule,
     active,
+    milestoneRevenueThreshold,
   } = body as {
     name: string;
     type: DealRuleType;
@@ -45,6 +48,7 @@ export async function POST(request: Request) {
     basis: DealBasis;
     schedule?: PayoutSchedule;
     active?: boolean;
+    milestoneRevenueThreshold?: number | null;
   };
 
   if (!name || !sponsorAffiliateId || !ratePercent || !basis || !type) {
@@ -59,6 +63,10 @@ export async function POST(request: Request) {
       sourceAffiliateId: sourceAffiliateId || null,
       ratePercent,
       basis,
+      milestoneRevenueThreshold:
+        milestoneRevenueThreshold != null && milestoneRevenueThreshold > 0
+          ? milestoneRevenueThreshold
+          : null,
       schedule: schedule ?? PayoutSchedule.WEEKLY_MONDAY,
       active: active ?? true,
     },
@@ -72,5 +80,10 @@ export async function POST(request: Request) {
     },
   });
 
-  return NextResponse.json(rule, { status: 201 });
+  const overridesCreated =
+    rule.sourceAffiliateId && rule.active
+      ? await applyDealRuleRetroactively(rule.id)
+      : 0;
+
+  return NextResponse.json({ ...rule, overridesCreated }, { status: 201 });
 }

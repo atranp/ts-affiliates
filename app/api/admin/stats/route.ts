@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-auth";
+import { jsonCached } from "@/lib/api-cache";
 import { getAdminStats } from "@/lib/admin/queries";
 
 export async function GET() {
@@ -8,7 +9,7 @@ export async function GET() {
 
   try {
     const stats = await getAdminStats();
-    return NextResponse.json(stats);
+    return jsonCached(stats);
   } catch (error) {
     console.error("Admin stats failed:", error);
     return NextResponse.json(

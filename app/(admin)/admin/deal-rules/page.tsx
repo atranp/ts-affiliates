@@ -1,11 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/admin/PageHeader";
+import {
+  AffiliateSearchCombobox,
+  type AffiliateOption,
+} from "@/components/admin/AffiliateSearchCombobox";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { TableSkeleton } from "@/components/admin/TableSkeleton";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { ErrorState } from "@/components/admin/ErrorState";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,68 +31,198 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useAdminQuery, adminMutate } from "@/hooks/use-admin-query";
+import {
+  adminMutate,
+  useAdminDealRules,
+  type DealRuleListItem,
+} from "@/hooks/use-admin-query";
 
-import type { PaginatedAffiliates } from "@/lib/admin/types";
-
-type DealRule = {
-  id: string;
-  name: string;
-  type: string;
-  ratePercent: string;
-  basis: string;
-  active: boolean;
-  sponsorAffiliate: { displayName: string | null; email: string };
-  sourceAffiliate: { displayName: string | null; email: string } | null;
-};
+function affiliateFromRule(
+  affiliate: { id: string; email: string; displayName: string | null }
+): AffiliateOption {
+  return {
+    id: affiliate.id,
+    email: affiliate.email,
+    displayName: affiliate.displayName,
+    slicewpId: 0,
+    status: "ACTIVE",
+  };
+}
 
 export default function AdminDealRulesPage() {
-  const {
-    data: affiliates,
-    isLoading: affiliatesLoading,
-    error: affiliatesError,
-    mutate: mutateAffiliates,
-  } = useAdminQuery<PaginatedAffiliates>("/api/admin/affiliates?pageSize=500");
   const {
     data: rules,
     isLoading: rulesLoading,
     error: rulesError,
-    mutate: mutateRules,
-  } = useAdminQuery<DealRule[]>("/api/admin/deal-rules");
+    refetch: refetchRules,
+  } = useAdminDealRules();
   const [submitting, setSubmitting] = useState(false);
+  const [sponsor, setSponsor] = useState<AffiliateOption | null>(null);
+  const [recruit, setRecruit] = useState<AffiliateOption | null>(null);
   const [form, setForm] = useState({
     name: "",
-    sponsorAffiliateId: "",
-    sourceAffiliateId: "",
     ratePercent: "10",
+    milestoneRevenueThreshold: "10000",
   });
+  const [editingRule, setEditingRule] = useState<DealRuleListItem | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    ratePercent: "",
+    milestoneRevenueThreshold: "",
+    active: true,
+  });
+  const [editSponsor, setEditSponsor] = useState<AffiliateOption | null>(null);
+  const [editRecruit, setEditRecruit] = useState<AffiliateOption | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingRule, setDeletingRule] = useState<DealRuleListItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const affiliateList = affiliates?.items ?? [];
+  function openEdit(rule: DealRuleListItem) {
+    setEditingRule(rule);
+    setEditForm({
+      name: rule.name,
+      ratePercent: rule.ratePercent,
+      milestoneRevenueThreshold: rule.milestoneRevenueThreshold ?? "",
+      active: rule.active,
+    });
+    setEditSponsor(affiliateFromRule(rule.sponsorAffiliate));
+    setEditRecruit(
+      rule.sourceAffiliate ? affiliateFromRule(rule.sourceAffiliate) : null
+    );
+  }
+
+  function closeEdit() {
+    if (savingEdit) return;
+    setEditingRule(null);
+    setEditSponsor(null);
+    setEditRecruit(null);
+  }
+
+  async function saveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingRule) return;
+
+    if (!editSponsor?.id || !editRecruit?.id) {
+      toast.error("Select both sponsor and recruit");
+      return;
+    }
+
+    if (editSponsor.id === editRecruit.id) {
+      toast.error("Sponsor and recruit must be different affiliates");
+      return;
+    }
+
+    setSavingEdit(true);
+    try {
+      const body = await adminMutate<
+        DealRuleListItem & {
+          overridesRemoved?: number;
+          overridesUpdated?: number;
+        }
+      >(`/api/admin/deal-rules/${editingRule.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editForm.name,
+          sponsorAffiliateId: editSponsor.id,
+          sourceAffiliateId: editRecruit.id,
+          ratePercent: Number(editForm.ratePercent),
+          milestoneRevenueThreshold: editForm.milestoneRevenueThreshold
+            ? Number(editForm.milestoneRevenueThreshold)
+            : null,
+          active: editForm.active,
+        }),
+      });
+
+      const parts: string[] = [];
+      if (body.overridesRemoved) {
+        parts.push(`removed ${body.overridesRemoved} pending/unpaid lines`);
+      }
+      if (body.overridesUpdated) {
+        parts.push(`updated ${body.overridesUpdated} ledger entries`);
+      }
+
+      toast.success(`Updated: ${body.name}`, {
+        description: parts.length > 0 ? parts.join(" · ") : undefined,
+      });
+      closeEdit();
+      await refetchRules();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update rule");
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deletingRule) return;
+
+    setDeleting(true);
+    try {
+      const body = await adminMutate<{ overridesRemoved: number }>(
+        `/api/admin/deal-rules/${deletingRule.id}`,
+        { method: "DELETE" }
+      );
+      toast.success(`Deleted: ${deletingRule.name}`, {
+        description:
+          body.overridesRemoved > 0
+            ? `Removed ${body.overridesRemoved} pending/unpaid team bonus lines. Paid history kept.`
+            : undefined,
+      });
+      setDeletingRule(null);
+      await refetchRules();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete rule");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   async function createRule(e: React.FormEvent) {
     e.preventDefault();
+
+    if (!sponsor?.id || !recruit?.id) {
+      toast.error("Select both sponsor and recruit");
+      return;
+    }
+
+    if (sponsor.id === recruit.id) {
+      toast.error("Sponsor and recruit must be different affiliates");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const body = await adminMutate<DealRule>("/api/admin/deal-rules", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name,
-          type: "REVENUE_OVERRIDE",
-          sponsorAffiliateId: form.sponsorAffiliateId,
-          sourceAffiliateId: form.sourceAffiliateId,
-          ratePercent: Number(form.ratePercent),
-          basis: "ORDER_REVENUE",
-        }),
+      const body = await adminMutate<
+        DealRuleListItem & { overridesCreated?: number }
+      >(
+        "/api/admin/deal-rules",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: form.name,
+            type: "REVENUE_OVERRIDE",
+            sponsorAffiliateId: sponsor.id,
+            sourceAffiliateId: recruit.id,
+            ratePercent: Number(form.ratePercent),
+            basis: "ORDER_REVENUE",
+            milestoneRevenueThreshold: form.milestoneRevenueThreshold
+              ? Number(form.milestoneRevenueThreshold)
+              : null,
+          }),
+        }
+      );
+      toast.success(`Created: ${body.name}`, {
+        description:
+          body.overridesCreated != null && body.overridesCreated > 0
+            ? `Backfilled ${body.overridesCreated} team bonus entries from existing recruit commissions.`
+            : "Future syncs will generate team bonus lines automatically.",
       });
-      toast.success(`Created deal rule: ${body.name}`);
-      setForm({
-        name: "",
-        sponsorAffiliateId: "",
-        sourceAffiliateId: "",
-        ratePercent: "10",
-      });
-      await mutateRules();
+      setForm({ name: "", ratePercent: "10", milestoneRevenueThreshold: "10000" });
+      setSponsor(null);
+      setRecruit(null);
+      await refetchRules();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create rule");
     } finally {
@@ -93,31 +230,46 @@ export default function AdminDealRulesPage() {
     }
   }
 
-  const isLoading = affiliatesLoading || rulesLoading;
-  const error = affiliatesError ?? rulesError;
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Deal Rules"
         description="Custom override payouts — e.g. sponsor earns % of recruit revenue"
       />
 
-      {error && (
-        <ErrorState
-          message={error.message}
-          onRetry={() => {
-            mutateAffiliates();
-            mutateRules();
-          }}
-        />
+      {rulesError && (
+        <ErrorState message={rulesError.message} onRetry={() => refetchRules()} />
       )}
+
+      <Card className="border-primary/20 bg-primary-soft/40">
+        <CardHeader>
+          <CardTitle>Team revenue share (Trin / Blair example)</CardTitle>
+          <CardDescription>
+            When a recruit generates sales, the sponsor earns a % of{" "}
+            <strong>order revenue</strong> — not the recruit&apos;s commission.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <p>
+            <strong>Example:</strong> Blair closes a $10,000 order. Blair earns
+            $3,000 (30% SliceWP commission). Trindalyn earns $1,000 (10% of
+            $10,000 revenue) as a team bonus — but only after Blair&apos;s{" "}
+            <strong>cumulative referred revenue hits the milestone</strong>.
+            Until then, Trin&apos;s bonus lines show as Pending.
+          </p>
+          <p>
+            <strong>Setup:</strong> Sponsor = Trindalyn, Recruit = Blair, Rate
+            = 10, Milestone = 10000. Paid weekly on Mondays once unlocked.
+          </p>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
           <CardTitle>Create rule</CardTitle>
           <CardDescription>
-            Overrides are applied on each commission sync
+            Applies to new syncs immediately and backfills existing recruit
+            commissions when created
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -130,49 +282,27 @@ export default function AdminDealRulesPage() {
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="Trin 10% of Blair revenue"
                 required
-                disabled={submitting || affiliatesLoading}
+                disabled={submitting}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="sponsor">Sponsor (gets paid)</Label>
-              <select
-                id="sponsor"
-                className="select-field"
-                value={form.sponsorAffiliateId}
-                onChange={(e) =>
-                  setForm({ ...form, sponsorAffiliateId: e.target.value })
-                }
-                required
-                disabled={submitting || affiliatesLoading}
-              >
-                <option value="">Select affiliate</option>
-                {affiliateList.map((affiliate) => (
-                  <option key={affiliate.id} value={affiliate.id}>
-                    {affiliate.displayName ?? affiliate.email}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="source">Recruit (generates override)</Label>
-              <select
-                id="source"
-                className="select-field"
-                value={form.sourceAffiliateId}
-                onChange={(e) =>
-                  setForm({ ...form, sourceAffiliateId: e.target.value })
-                }
-                required
-                disabled={submitting || affiliatesLoading}
-              >
-                <option value="">Select affiliate</option>
-                {affiliateList.map((affiliate) => (
-                  <option key={affiliate.id} value={affiliate.id}>
-                    {affiliate.displayName ?? affiliate.email}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <AffiliateSearchCombobox
+              id="sponsor"
+              label="Sponsor (gets paid)"
+              value={sponsor?.id ?? ""}
+              selected={sponsor}
+              onChange={(_id, affiliate) => setSponsor(affiliate)}
+              excludeId={recruit?.id}
+              disabled={submitting}
+            />
+            <AffiliateSearchCombobox
+              id="source"
+              label="Recruit (generates override)"
+              value={recruit?.id ?? ""}
+              selected={recruit}
+              onChange={(_id, affiliate) => setRecruit(affiliate)}
+              excludeId={sponsor?.id}
+              disabled={submitting}
+            />
             <div className="space-y-2">
               <Label htmlFor="rate">Rate (% of order revenue)</Label>
               <Input
@@ -188,9 +318,32 @@ export default function AdminDealRulesPage() {
                 disabled={submitting}
               />
             </div>
-            <div className="flex items-end">
-              <Button type="submit" disabled={submitting || affiliatesLoading}>
-                {submitting ? "Creating..." : "Create rule"}
+            <div className="space-y-2">
+              <Label htmlFor="milestone">
+                Revenue milestone (optional)
+              </Label>
+              <Input
+                id="milestone"
+                type="number"
+                min="0"
+                step="1"
+                value={form.milestoneRevenueThreshold}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    milestoneRevenueThreshold: e.target.value,
+                  })
+                }
+                placeholder="10000 — sponsor paid after recruit hits this"
+                disabled={submitting}
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave empty to pay team bonuses immediately on each order.
+              </p>
+            </div>
+            <div className="flex items-end md:col-span-2">
+              <Button type="submit" disabled={submitting}>
+                {submitting ? "Creating & backfilling…" : "Create rule"}
               </Button>
             </div>
           </form>
@@ -205,14 +358,14 @@ export default function AdminDealRulesPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading && <TableSkeleton columns={5} />}
-          {!isLoading && rules?.length === 0 && (
+          {rulesLoading && <TableSkeleton columns={7} />}
+          {!rulesLoading && rules?.length === 0 && (
             <EmptyState
               title="No deal rules yet"
               description="Create a rule above, then run sync to generate override ledger entries."
             />
           )}
-          {!isLoading && rules && rules.length > 0 && (
+          {!rulesLoading && rules && rules.length > 0 && (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -220,7 +373,9 @@ export default function AdminDealRulesPage() {
                   <TableHead>Sponsor</TableHead>
                   <TableHead>Recruit</TableHead>
                   <TableHead>Rate</TableHead>
-                  <TableHead>Basis</TableHead>
+                  <TableHead>Milestone</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -237,7 +392,38 @@ export default function AdminDealRulesPage() {
                         "—"}
                     </TableCell>
                     <TableCell>{rule.ratePercent}%</TableCell>
-                    <TableCell>{rule.basis}</TableCell>
+                    <TableCell>
+                      {rule.milestoneRevenueThreshold
+                        ? `$${Number(rule.milestoneRevenueThreshold).toLocaleString()} revenue`
+                        : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={rule.active ? "paid" : "secondary"}>
+                        {rule.active ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Edit ${rule.name}`}
+                          onClick={() => openEdit(rule)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Delete ${rule.name}`}
+                          onClick={() => setDeletingRule(rule)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -245,6 +431,136 @@ export default function AdminDealRulesPage() {
           )}
         </CardContent>
       </Card>
+
+      {editingRule && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
+            aria-label="Close edit dialog"
+            onClick={closeEdit}
+          />
+          <Card className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-lg">
+            <CardHeader>
+              <CardTitle>Edit rule</CardTitle>
+              <CardDescription>
+                Changes to rate or milestone recalculate team bonus lines. Changing
+                sponsor/recruit removes pending and unpaid lines first.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={saveEdit} className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="edit-name">Rule name</Label>
+                  <Input
+                    id="edit-name"
+                    value={editForm.name}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, name: e.target.value })
+                    }
+                    required
+                    disabled={savingEdit}
+                  />
+                </div>
+                <AffiliateSearchCombobox
+                  id="edit-sponsor"
+                  label="Sponsor (gets paid)"
+                  value={editSponsor?.id ?? ""}
+                  selected={editSponsor}
+                  onChange={(_id, affiliate) => setEditSponsor(affiliate)}
+                  excludeId={editRecruit?.id}
+                  disabled={savingEdit}
+                />
+                <AffiliateSearchCombobox
+                  id="edit-recruit"
+                  label="Recruit (generates override)"
+                  value={editRecruit?.id ?? ""}
+                  selected={editRecruit}
+                  onChange={(_id, affiliate) => setEditRecruit(affiliate)}
+                  excludeId={editSponsor?.id}
+                  disabled={savingEdit}
+                />
+                <div className="space-y-2">
+                  <Label htmlFor="edit-rate">Rate (% of order revenue)</Label>
+                  <Input
+                    id="edit-rate"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={editForm.ratePercent}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, ratePercent: e.target.value })
+                    }
+                    required
+                    disabled={savingEdit}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-milestone">Revenue milestone</Label>
+                  <Input
+                    id="edit-milestone"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={editForm.milestoneRevenueThreshold}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        milestoneRevenueThreshold: e.target.value,
+                      })
+                    }
+                    placeholder="Leave empty for no milestone"
+                    disabled={savingEdit}
+                  />
+                </div>
+                <div className="flex items-center gap-2 md:col-span-2">
+                  <input
+                    id="edit-active"
+                    type="checkbox"
+                    checked={editForm.active}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, active: e.target.checked })
+                    }
+                    disabled={savingEdit}
+                    className="h-4 w-4 rounded border-border"
+                  />
+                  <Label htmlFor="edit-active">Active — generate team bonuses on sync</Label>
+                </div>
+                <div className="flex justify-end gap-2 md:col-span-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={closeEdit}
+                    disabled={savingEdit}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={savingEdit}>
+                    {savingEdit ? "Saving…" : "Save changes"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={!!deletingRule}
+        title="Delete deal rule?"
+        description={
+          deletingRule
+            ? `"${deletingRule.name}" will be removed. Pending and unpaid team bonus lines for this rule are deleted. Paid entries stay in the ledger for history.`
+            : ""
+        }
+        confirmLabel="Delete rule"
+        destructive
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          if (!deleting) setDeletingRule(null);
+        }}
+      />
     </div>
   );
 }

@@ -47,3 +47,58 @@ export type SyncResult = {
   profilesLinked: number;
   overridesCreated: number;
 };
+
+export type AdminAffiliateProfile = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+} | null;
+
+export type InviteAffiliateResult = {
+  created: boolean;
+  linked: boolean;
+  email: string;
+  temporaryPassword?: string;
+  profileId: string;
+};
+
+export type AdminAffiliateDealRule = {
+  id: string;
+  name: string;
+  type: string;
+  ratePercent: string;
+  basis: string;
+  active: boolean;
+  milestoneRevenueThreshold: string | null;
+  counterparty: {
+    id: string;
+    displayName: string | null;
+    email: string;
+  } | null;
+};
+
+export type AdminAffiliateDetail = {
+  id: string;
+  slicewpId: number;
+  email: string;
+  paymentEmail: string | null;
+  displayName: string | null;
+  status: string;
+  commissionRate: string | null;
+  syncedAt: string | null;
+  profile: AdminAffiliateProfile;
+  ledger: {
+    unpaidTotal: number;
+    unpaidCount: number;
+    paidTotal: number;
+    paidCount: number;
+    pendingTotal: number;
+    overrideTotal: number;
+    overrideCount: number;
+  };
+  dealRules: {
+    asSponsor: AdminAffiliateDealRule[];
+    asRecruit: AdminAffiliateDealRule[];
+  };
+};
