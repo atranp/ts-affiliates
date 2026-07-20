@@ -67,7 +67,7 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
+    <div className="mx-auto max-w-2xl space-y-6">
       <PageHeader
         title="Integration Settings"
         description="WooCommerce and SliceWP credentials for sync jobs"
@@ -87,30 +87,37 @@ export default function AdminSettingsPage() {
           <CardHeader>
             <CardTitle>Status</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>
-              WooCommerce:{" "}
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
+            <div className="flex justify-between gap-4">
+              <span>WooCommerce</span>
               <span
                 className={
-                  settings?.hasWooCommerce ? "text-success" : "text-warning"
+                  settings?.hasWooCommerce ? "font-medium text-success" : "font-medium text-warning"
                 }
               >
                 {settings?.hasWooCommerce ? "Configured" : "Not configured"}
               </span>
-            </p>
-            <p>
-              SliceWP:{" "}
+            </div>
+            <div className="flex justify-between gap-4">
+              <span>SliceWP</span>
               <span
-                className={settings?.hasSliceWP ? "text-success" : "text-warning"}
+                className={settings?.hasSliceWP ? "font-medium text-success" : "font-medium text-warning"}
               >
                 {settings?.hasSliceWP ? "Configured" : "Not configured"}
               </span>
-            </p>
-            <p>Last affiliate sync: {formatSyncTime(settings?.lastAffiliateSyncAt ?? null)}</p>
-            <p>
-              Last commission sync:{" "}
-              {formatSyncTime(settings?.lastCommissionSyncAt ?? null)}
-            </p>
+            </div>
+            <div className="flex justify-between gap-4 border-t pt-3">
+              <span>Last affiliate sync</span>
+              <span className="font-medium text-foreground">
+                {formatSyncTime(settings?.lastAffiliateSyncAt ?? null)}
+              </span>
+            </div>
+            <div className="flex justify-between gap-4 border-t pt-3">
+              <span>Last commission sync</span>
+              <span className="font-medium text-foreground">
+                {formatSyncTime(settings?.lastCommissionSyncAt ?? null)}
+              </span>
+            </div>
           </CardContent>
         </Card>
       )}

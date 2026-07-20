@@ -72,7 +72,7 @@ export default function AdminAffiliatesPage() {
   }, []);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <PageHeader
         title="Affiliates"
         description="Synced from SliceWP — search, filter, and review portal access"

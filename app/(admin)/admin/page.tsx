@@ -58,7 +58,7 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <PageHeader
         title="Overview"
         description="Platform health, payouts, and sync status at a glance"
@@ -177,13 +177,13 @@ export default function AdminDashboardPage() {
                     {data.sync.hasSliceWP ? "Configured" : "Not configured"}
                   </span>
                 </div>
-                <div className="flex justify-between gap-4">
+                <div className="flex justify-between gap-4 border-t pt-3">
                   <span className="text-muted-foreground">Last affiliate sync</span>
                   <span className="text-right font-medium">
                     {formatSyncTime(data.sync.lastAffiliateSyncAt)}
                   </span>
                 </div>
-                <div className="flex justify-between gap-4">
+                <div className="flex justify-between gap-4 border-t pt-3">
                   <span className="text-muted-foreground">Last commission sync</span>
                   <span className="text-right font-medium">
                     {formatSyncTime(data.sync.lastCommissionSyncAt)}

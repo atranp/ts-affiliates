@@ -5,6 +5,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { LedgerTable } from "@/components/LedgerTable";
 import { TeamPanel, useTeam } from "@/components/TeamPanel";
 import { ErrorState } from "@/components/admin/ErrorState";
+import { FileText, Users, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,11 +21,12 @@ import { formatCurrency } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
-  const [tab, setTab] = useState<"all" | "unpaid" | "paid" | "overrides">("all");
+  const [viewTab, setViewTab] = useState<"overview" | "ledger" | "team">("overview");
+  const [ledgerTab, setLedgerTab] = useState<"all" | "unpaid" | "paid" | "overrides">("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
 
-  const tabFilters = ledgerTabToFilters(tab, sourceFilter);
+  const tabFilters = ledgerTabToFilters(ledgerTab, sourceFilter);
 
   const { data, error, isLoading, refetch, isFetching } = useLedger({
     ...tabFilters,
@@ -37,12 +39,13 @@ export default function DashboardPage() {
 
   function focusTeamMember(sourceId: string, status: "unpaid" | "paid" | "all") {
     setSourceFilter(sourceId);
-    setTab(status === "all" ? "overrides" : status);
+    setLedgerTab(status === "all" ? "overrides" : status);
     setPage(1);
+    setViewTab("ledger");
   }
 
   function handleTabChange(value: string) {
-    setTab(value as typeof tab);
+    setLedgerTab(value as typeof ledgerTab);
     setPage(1);
   }
 
@@ -58,7 +61,7 @@ export default function DashboardPage() {
   const hasTeamBonuses = (data?.teamBonuses.length ?? 0) > 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
         <h1 className="page-title">
           Welcome{user?.affiliateName ? `, ${user.affiliateName}` : ""}
@@ -72,16 +75,25 @@ export default function DashboardPage() {
         <ErrorState message={error.message} onRetry={() => refetch()} />
       )}
 
-      {teamLoading && (
-        <p className="text-sm text-muted-foreground">Loading team...</p>
-      )}
-      {teamData?.team && teamData.team.length > 0 && (
-        <TeamPanel team={teamData.team} />
-      )}
-
       {data && (
-        <>
-          <div className="grid gap-4 sm:grid-cols-3">
+        <Tabs value={viewTab} onValueChange={(v) => setViewTab(v as typeof viewTab)}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="ledger" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Ledger
+            </TabsTrigger>
+            <TabsTrigger value="team" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              My Team
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="mt-0 space-y-6">
+            <div className="grid gap-4 sm:grid-cols-3">
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription>Unpaid (all)</CardDescription>
@@ -208,11 +220,13 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           )}
+          </TabsContent>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Commission ledger</CardTitle>
-              <CardDescription>
+          <TabsContent value="ledger" className="mt-0">
+            <Card>
+              <CardHeader>
+                <CardTitle>Commission ledger</CardTitle>
+                <CardDescription>
                 Direct SliceWP commissions plus team bonus lines
               </CardDescription>
             </CardHeader>
@@ -247,14 +261,14 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              <Tabs value={tab} onValueChange={handleTabChange}>
+              <Tabs value={ledgerTab} onValueChange={handleTabChange}>
                 <TabsList>
                   <TabsTrigger value="all">All</TabsTrigger>
                   <TabsTrigger value="unpaid">Unpaid</TabsTrigger>
                   <TabsTrigger value="paid">Paid</TabsTrigger>
                   <TabsTrigger value="overrides">Team bonuses</TabsTrigger>
                 </TabsList>
-                <TabsContent value={tab} className="space-y-4">
+                <TabsContent value={ledgerTab} className="space-y-4">
                   <LedgerTable entries={data.entries} showDetails />
                   {data.totalPages > 1 && (
                     <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
@@ -283,11 +297,29 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   )}
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="team" className="mt-0 space-y-4">
+            {teamLoading ? (
+              <p className="text-sm text-muted-foreground">Loading team...</p>
+            ) : teamData?.team && teamData.team.length > 0 ? (
+              <TeamPanel team={teamData.team} />
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>No team members</CardTitle>
+                  <CardDescription>
+                    You don&apos;t have any active recruits or downline affiliates yet.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );
