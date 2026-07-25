@@ -17,6 +17,7 @@ export async function GET() {
       sourceAffiliate: {
         select: { id: true, email: true, displayName: true },
       },
+      team: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
     schedule,
     active,
     milestoneRevenueThreshold,
+    teamId,
   } = body as {
     name: string;
     type: DealRuleType;
@@ -49,10 +51,23 @@ export async function POST(request: Request) {
     schedule?: PayoutSchedule;
     active?: boolean;
     milestoneRevenueThreshold?: number | null;
+    teamId?: string | null;
   };
 
   if (!name || !sponsorAffiliateId || !ratePercent || !basis || !type) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
+
+  if (teamId) {
+    const team = await prisma.team.findFirst({
+      where: { id: teamId, sponsorAffiliateId },
+    });
+    if (!team) {
+      return NextResponse.json(
+        { error: "Team not found for this sponsor" },
+        { status: 400 }
+      );
+    }
   }
 
   const rule = await prisma.dealRule.create({
@@ -61,6 +76,7 @@ export async function POST(request: Request) {
       type,
       sponsorAffiliateId,
       sourceAffiliateId: sourceAffiliateId || null,
+      teamId: teamId || null,
       ratePercent,
       basis,
       milestoneRevenueThreshold:
@@ -77,6 +93,7 @@ export async function POST(request: Request) {
       sourceAffiliate: {
         select: { id: true, email: true, displayName: true },
       },
+      team: { select: { id: true, name: true } },
     },
   });
 

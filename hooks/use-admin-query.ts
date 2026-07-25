@@ -23,6 +23,8 @@ export type DealRuleListItem = {
   basis: string;
   active: boolean;
   milestoneRevenueThreshold: string | null;
+  teamId: string | null;
+  team: { id: string; name: string } | null;
   sponsorAffiliate: { id: string; displayName: string | null; email: string };
   sourceAffiliate: { id: string; displayName: string | null; email: string } | null;
 };

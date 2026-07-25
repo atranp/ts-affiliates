@@ -31,6 +31,7 @@ export type LedgerFilters = {
   status?: CommissionStatus;
   type?: LedgerEntryType;
   sourceAffiliateId?: string;
+  teamId?: string;
   q?: string;
   page?: number;
   limit?: number;
@@ -54,6 +55,7 @@ function buildWhere(filters: LedgerFilters): Prisma.LedgerEntryWhereInput {
     ...(filters.sourceAffiliateId
       ? { sourceAffiliateId: filters.sourceAffiliateId }
       : {}),
+    ...(filters.teamId ? { dealRule: { teamId: filters.teamId } } : {}),
   };
 
   if (filters.q) {

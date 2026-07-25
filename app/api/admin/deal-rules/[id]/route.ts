@@ -15,6 +15,7 @@ const ruleInclude = {
   sourceAffiliate: {
     select: { id: true, email: true, displayName: true },
   },
+  team: { select: { id: true, name: true } },
 } as const;
 
 function parseMilestone(value: unknown): number | null {
@@ -41,6 +42,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     ratePercent,
     milestoneRevenueThreshold,
     active,
+    teamId,
   } = body as {
     name?: string;
     sponsorAffiliateId?: string;
@@ -48,6 +50,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     ratePercent?: number;
     milestoneRevenueThreshold?: number | null;
     active?: boolean;
+    teamId?: string | null;
   };
 
   const nextSponsorId = sponsorAffiliateId ?? existing.sponsorAffiliateId;
@@ -68,6 +71,21 @@ export async function PATCH(request: Request, context: RouteContext) {
       { error: "Rate must be greater than zero" },
       { status: 400 }
     );
+  }
+
+  const nextTeamId =
+    teamId !== undefined ? teamId || null : existing.teamId;
+
+  if (nextTeamId) {
+    const team = await prisma.team.findFirst({
+      where: { id: nextTeamId, sponsorAffiliateId: nextSponsorId },
+    });
+    if (!team) {
+      return NextResponse.json(
+        { error: "Team not found for this sponsor" },
+        { status: 400 }
+      );
+    }
   }
 
   const affiliateChanged =
@@ -92,6 +110,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         ? { milestoneRevenueThreshold: parseMilestone(milestoneRevenueThreshold) }
         : {}),
       ...(active !== undefined ? { active } : {}),
+      ...(teamId !== undefined ? { teamId: nextTeamId } : {}),
     },
     include: ruleInclude,
   });

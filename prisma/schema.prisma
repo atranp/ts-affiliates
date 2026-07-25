@@ -92,6 +92,7 @@ model Affiliate {
   sponsorRules         DealRule[]           @relation("SponsorRules")
   sourceRules          DealRule[]           @relation("SourceRules")
   payoutBatchItems     PayoutBatchItem[]
+  managedTeams         Team[]               @relation("SponsorTeams")
 
   @@index([parentAffiliateId])
   @@index([email])
@@ -115,6 +116,22 @@ model Commission {
   ledgerEntries   LedgerEntry[]
 }
 
+model Team {
+  id                 String         @id @default(cuid())
+  name               String
+  description        String?
+  sponsorAffiliateId String
+  sponsorAffiliate   Affiliate      @relation("SponsorTeams", fields: [sponsorAffiliateId], references: [id], onDelete: Cascade)
+  active             Boolean        @default(true)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  dealRules     DealRule[]
+  payoutBatches PayoutBatch[]
+
+  @@index([sponsorAffiliateId])
+}
+
 model DealRule {
   id                        String         @id @default(cuid())
   name                      String
@@ -123,6 +140,8 @@ model DealRule {
   sponsorAffiliate          Affiliate      @relation("SponsorRules", fields: [sponsorAffiliateId], references: [id], onDelete: Cascade)
   sourceAffiliateId         String?
   sourceAffiliate           Affiliate?     @relation("SourceRules", fields: [sourceAffiliateId], references: [id], onDelete: Cascade)
+  teamId                    String?
+  team                      Team?          @relation(fields: [teamId], references: [id], onDelete: SetNull)
   ratePercent               Decimal        @db.Decimal(5, 2)
   basis                     DealBasis
   milestoneRevenueThreshold Decimal?       @db.Decimal(12, 2)
@@ -132,6 +151,8 @@ model DealRule {
   createdAt                 DateTime       @default(now())
   updatedAt                 DateTime       @updatedAt
   ledgerEntries             LedgerEntry[]
+
+  @@index([teamId])
 }
 
 model LedgerEntry {
@@ -164,16 +185,22 @@ model LedgerEntry {
 }
 
 model PayoutBatch {
-  id            String            @id @default(cuid())
-  label         String
-  periodStart   DateTime
-  periodEnd     DateTime
-  status        PayoutBatchStatus @default(DRAFT)
-  processedAt   DateTime?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  items         PayoutBatchItem[]
-  ledgerEntries LedgerEntry[]
+  id                 String            @id @default(cuid())
+  label              String
+  periodStart        DateTime
+  periodEnd          DateTime
+  status             PayoutBatchStatus @default(DRAFT)
+  sponsorAffiliateId String?
+  teamId             String?
+  team               Team?             @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  processedAt        DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  items              PayoutBatchItem[]
+  ledgerEntries      LedgerEntry[]
+
+  @@index([teamId])
+  @@index([sponsorAffiliateId])
 }
 
 model PayoutBatchItem {

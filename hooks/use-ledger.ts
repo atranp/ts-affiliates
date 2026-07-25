@@ -74,6 +74,7 @@ export type LedgerQueryOptions = {
   status?: string;
   type?: string;
   sourceAffiliateId?: string;
+  teamId?: string;
   q?: string;
   enabled?: boolean;
 };
@@ -89,6 +90,7 @@ function buildLedgerUrl(options: LedgerQueryOptions): string {
   if (options.sourceAffiliateId) {
     params.set("sourceAffiliateId", options.sourceAffiliateId);
   }
+  if (options.teamId) params.set("teamId", options.teamId);
   const qs = params.toString();
   return qs ? `/api/ledger?${qs}` : "/api/ledger";
 }

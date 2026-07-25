@@ -15,6 +15,7 @@ export async function GET(request: Request) {
   const statusParam = searchParams.get("status");
   const typeParam = searchParams.get("type");
   const sourceAffiliateId = searchParams.get("sourceAffiliateId") ?? undefined;
+  const teamId = searchParams.get("teamId") ?? undefined;
   const q = searchParams.get("q") ?? undefined;
   const page = Number(searchParams.get("page") ?? "1");
   const limit = Number(searchParams.get("limit") ?? "50");
@@ -45,6 +46,7 @@ export async function GET(request: Request) {
     status,
     type,
     sourceAffiliateId,
+    teamId,
     q,
     page,
     limit,

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { LedgerTable } from "@/components/LedgerTable";
+import { TeamsPanel, useTeams } from "@/components/TeamsPanel";
 import { TeamPanel, useTeam } from "@/components/TeamPanel";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { FileText, Users, TrendingUp } from "lucide-react";
@@ -22,9 +23,10 @@ import { formatCurrency } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
-  const [viewTab, setViewTab] = useState<"overview" | "ledger" | "team">("overview");
+  const [viewTab, setViewTab] = useState<"overview" | "ledger" | "teams">("overview");
   const [ledgerTab, setLedgerTab] = useState<"all" | "unpaid" | "paid" | "overrides">("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [teamFilter, setTeamFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
@@ -42,18 +44,35 @@ export default function DashboardPage() {
   const { data, error, isLoading, refetch, isFetching } = useLedger({
     ...tabFilters,
     q: debouncedQ,
+    teamId: teamFilter !== "all" ? teamFilter : undefined,
     page,
     limit: 50,
     enabled: !!user,
   });
 
-  const { data: teamData, isLoading: teamLoading } = useTeam(undefined, !!user);
+  const { data: teamsData, isLoading: teamsLoading } = useTeams(undefined, !!user);
+  const { data: legacyTeamData } = useTeam(undefined, !!user);
 
   function focusTeamMember(sourceId: string, status: "unpaid" | "paid" | "all") {
+    setTeamFilter("all");
     setSourceFilter(sourceId);
     setLedgerTab(status === "all" ? "overrides" : status);
     setPage(1);
     setViewTab("ledger");
+  }
+
+  function focusTeam(teamId: string) {
+    setSourceFilter("all");
+    setTeamFilter(teamId);
+    setLedgerTab("overrides");
+    setPage(1);
+    setViewTab("ledger");
+  }
+
+  function handleTeamFilter(value: string) {
+    setTeamFilter(value);
+    if (value !== "all") setSourceFilter("all");
+    setPage(1);
   }
 
   function handleTabChange(value: string) {
@@ -70,6 +89,7 @@ export default function DashboardPage() {
     return <p className="text-muted-foreground">Loading...</p>;
   }
 
+  const hasTeams = (teamsData?.teams.length ?? 0) > 0;
   const hasTeamBonuses = (data?.teamBonuses.length ?? 0) > 0;
 
   return (
@@ -98,9 +118,12 @@ export default function DashboardPage() {
               <FileText className="h-4 w-4" />
               Ledger
             </TabsTrigger>
-            <TabsTrigger value="team" className="flex items-center gap-2">
+            <TabsTrigger value="teams" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              My Team
+              My Teams
+              {teamsData?.teams && teamsData.teams.length > 0
+                ? ` (${teamsData.teams.length})`
+                : ""}
             </TabsTrigger>
           </TabsList>
 
@@ -138,7 +161,58 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {hasTeamBonuses && (
+          {hasTeams ? (
+            <Card className="border-primary/20 bg-primary-soft/30">
+              <CardHeader className="flex flex-row items-start justify-between gap-4">
+                <div>
+                  <CardTitle>Your teams</CardTitle>
+                  <CardDescription>
+                    Each team has its own recruits, rules, and bonus totals
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setViewTab("teams")}
+                >
+                  Manage teams
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {teamsData!.teams.map((team) => (
+                    <button
+                      key={team.id}
+                      type="button"
+                      onClick={() => setViewTab("teams")}
+                      className="rounded-lg border border-border bg-card p-4 text-left transition-colors hover:border-primary/40"
+                    >
+                      <p className="font-medium">{team.name}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {team.memberCount} recruits · {team.ruleCount} rules
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-3 text-sm">
+                        <span>
+                          Unpaid{" "}
+                          <strong className="text-primary">
+                            {formatCurrency(team.stats.unpaidTeamBonus)}
+                          </strong>
+                        </span>
+                        {team.stats.pendingTeamBonus > 0 && (
+                          <span>
+                            Pending{" "}
+                            <strong className="text-warning">
+                              {formatCurrency(team.stats.pendingTeamBonus)}
+                            </strong>
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ) : hasTeamBonuses ? (
             <Card className="border-primary/20 bg-primary-soft/30">
               <CardHeader>
                 <CardTitle>Team bonuses</CardTitle>
@@ -231,7 +305,7 @@ export default function DashboardPage() {
                 </div>
               </CardContent>
             </Card>
-          )}
+          ) : null}
           </TabsContent>
 
           <TabsContent value="ledger" className="mt-0">
@@ -250,6 +324,25 @@ export default function DashboardPage() {
                   onChange={(e) => setQ(e.target.value)}
                   className="sm:max-w-sm"
                 />
+                {teamsData?.teams && teamsData.teams.length > 0 && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                      Team:
+                    </span>
+                    <select
+                      className="select-field w-full sm:max-w-xs"
+                      value={teamFilter}
+                      onChange={(e) => handleTeamFilter(e.target.value)}
+                    >
+                      <option value="all">All teams</option>
+                      {teamsData.teams.map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 {data.sourceAffiliates.length > 0 && (
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
@@ -313,17 +406,27 @@ export default function DashboardPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="team" className="mt-0 space-y-4">
-            {teamLoading ? (
-              <p className="text-sm text-muted-foreground">Loading team...</p>
-            ) : teamData?.team && teamData.team.length > 0 ? (
-              <TeamPanel team={teamData.team} />
+          <TabsContent value="teams" className="mt-0 space-y-4">
+            {teamsLoading ? (
+              <p className="text-sm text-muted-foreground">Loading teams...</p>
+            ) : teamsData?.teams && teamsData.teams.length > 0 ? (
+              <TeamsPanel
+                teams={teamsData.teams}
+                onViewLedger={(recruitId) =>
+                  focusTeamMember(recruitId, "unpaid")
+                }
+                onViewTeamLedger={focusTeam}
+              />
+            ) : legacyTeamData?.team && legacyTeamData.team.length > 0 ? (
+              <TeamPanel team={legacyTeamData.team} />
             ) : (
               <Card>
                 <CardHeader>
-                  <CardTitle>No team members</CardTitle>
+                  <CardTitle>No teams yet</CardTitle>
                   <CardDescription>
-                    You don&apos;t have any active recruits or downline affiliates yet.
+                    Your admin can create teams and assign deal rules. Once set
+                    up, you&apos;ll see each team&apos;s recruits, rules, and
+                    bonus totals here.
                   </CardDescription>
                 </CardHeader>
               </Card>

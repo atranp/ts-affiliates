@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { SetupFlowCard } from "@/components/admin/SetupFlowCard";
 import {
   AffiliateSearchCombobox,
   type AffiliateOption,
@@ -34,8 +36,10 @@ import {
 import {
   adminMutate,
   useAdminDealRules,
+  useAdminQuery,
   type DealRuleListItem,
 } from "@/hooks/use-admin-query";
+import { apiFetch } from "@/lib/api-client";
 
 function affiliateFromRule(
   affiliate: { id: string; email: string; displayName: string | null }
@@ -50,6 +54,15 @@ function affiliateFromRule(
 }
 
 export default function AdminDealRulesPage() {
+  return (
+    <Suspense fallback={<p className="text-muted-foreground p-6">Loading deal rules...</p>}>
+      <AdminDealRulesPageContent />
+    </Suspense>
+  );
+}
+
+function AdminDealRulesPageContent() {
+  const searchParams = useSearchParams();
   const {
     data: rules,
     isLoading: rulesLoading,
@@ -63,6 +76,7 @@ export default function AdminDealRulesPage() {
     name: "",
     ratePercent: "10",
     milestoneRevenueThreshold: "10000",
+    teamId: "",
   });
   const [editingRule, setEditingRule] = useState<DealRuleListItem | null>(null);
   const [editForm, setEditForm] = useState({
@@ -70,6 +84,7 @@ export default function AdminDealRulesPage() {
     ratePercent: "",
     milestoneRevenueThreshold: "",
     active: true,
+    teamId: "",
   });
   const [editSponsor, setEditSponsor] = useState<AffiliateOption | null>(null);
   const [editRecruit, setEditRecruit] = useState<AffiliateOption | null>(null);
@@ -77,6 +92,62 @@ export default function AdminDealRulesPage() {
   const [deletingRule, setDeletingRule] = useState<DealRuleListItem | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [urlPrefilled, setUrlPrefilled] = useState(false);
+
+  useEffect(() => {
+    if (urlPrefilled) return;
+    const sponsorId = searchParams.get("sponsorId");
+    const teamIdParam = searchParams.get("teamId");
+    const shouldOpen = searchParams.get("create") === "1" || teamIdParam;
+
+    async function prefillFromUrl() {
+      try {
+        if (sponsorId) {
+          const affiliate = await apiFetch<{
+            id: string;
+            email: string;
+            displayName: string | null;
+            slicewpId: number;
+            status: string;
+          }>(`/api/admin/affiliates/${sponsorId}`);
+          setSponsor({
+            id: affiliate.id,
+            email: affiliate.email,
+            displayName: affiliate.displayName,
+            slicewpId: affiliate.slicewpId,
+            status: affiliate.status,
+          });
+        }
+        if (teamIdParam) {
+          setForm((f) => ({ ...f, teamId: teamIdParam }));
+        }
+        if (shouldOpen) setCreateOpen(true);
+      } catch {
+        // ignore
+      } finally {
+        setUrlPrefilled(true);
+      }
+    }
+
+    if (sponsorId || teamIdParam) prefillFromUrl();
+    else setUrlPrefilled(true);
+  }, [searchParams, urlPrefilled]);
+
+  const createTeamsUrl = sponsor?.id
+    ? `/api/admin/teams?sponsorAffiliateId=${sponsor.id}`
+    : null;
+  const editTeamsUrl = editSponsor?.id
+    ? `/api/admin/teams?sponsorAffiliateId=${editSponsor.id}`
+    : null;
+
+  const { data: createTeamsData } = useAdminQuery<{ teams: { id: string; name: string }[] }>(
+    ["admin", "teams", sponsor?.id ?? ""],
+    createTeamsUrl
+  );
+  const { data: editTeamsData } = useAdminQuery<{ teams: { id: string; name: string }[] }>(
+    ["admin", "teams", editSponsor?.id ?? ""],
+    editTeamsUrl
+  );
 
   function openEdit(rule: DealRuleListItem) {
     setEditingRule(rule);
@@ -85,6 +156,7 @@ export default function AdminDealRulesPage() {
       ratePercent: rule.ratePercent,
       milestoneRevenueThreshold: rule.milestoneRevenueThreshold ?? "",
       active: rule.active,
+      teamId: rule.teamId ?? "",
     });
     setEditSponsor(affiliateFromRule(rule.sponsorAffiliate));
     setEditRecruit(
@@ -132,6 +204,7 @@ export default function AdminDealRulesPage() {
             ? Number(editForm.milestoneRevenueThreshold)
             : null,
           active: editForm.active,
+          teamId: editForm.teamId || null,
         }),
       });
 
@@ -211,6 +284,7 @@ export default function AdminDealRulesPage() {
             milestoneRevenueThreshold: form.milestoneRevenueThreshold
               ? Number(form.milestoneRevenueThreshold)
               : null,
+            teamId: form.teamId || null,
           }),
         }
       );
@@ -220,7 +294,7 @@ export default function AdminDealRulesPage() {
             ? `Backfilled ${body.overridesCreated} team bonus entries from existing recruit commissions.`
             : "Future syncs will generate team bonus lines automatically.",
       });
-      setForm({ name: "", ratePercent: "10", milestoneRevenueThreshold: "10000" });
+      setForm({ name: "", ratePercent: "10", milestoneRevenueThreshold: "10000", teamId: "" });
       setSponsor(null);
       setRecruit(null);
       setCreateOpen(false);
@@ -233,10 +307,10 @@ export default function AdminDealRulesPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <PageHeader
         title="Deal Rules"
-        description="Custom override payouts — e.g. sponsor earns % of recruit revenue"
+        description="Step 2 — assign sponsor → recruit deals to a team, with rate & milestone"
         actions={
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
@@ -248,6 +322,8 @@ export default function AdminDealRulesPage() {
       {rulesError && (
         <ErrorState message={rulesError.message} onRetry={() => refetchRules()} />
       )}
+
+      <SetupFlowCard />
 
       <Card className="border-primary/20 bg-primary-soft/40">
         <CardHeader className="py-4">
@@ -300,6 +376,7 @@ export default function AdminDealRulesPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Sponsor</TableHead>
                   <TableHead>Recruit</TableHead>
+                  <TableHead>Team</TableHead>
                   <TableHead>Rate</TableHead>
                   <TableHead>Milestone</TableHead>
                   <TableHead>Status</TableHead>
@@ -318,6 +395,11 @@ export default function AdminDealRulesPage() {
                       {rule.sourceAffiliate?.displayName ??
                         rule.sourceAffiliate?.email ??
                         "—"}
+                    </TableCell>
+                    <TableCell>
+                      {rule.team?.name ?? (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell>{rule.ratePercent}%</TableCell>
                     <TableCell>
@@ -396,7 +478,10 @@ export default function AdminDealRulesPage() {
                   label="Sponsor (gets paid)"
                   value={sponsor?.id ?? ""}
                   selected={sponsor}
-                  onChange={(_id, affiliate) => setSponsor(affiliate)}
+                  onChange={(_id, affiliate) => {
+                    setSponsor(affiliate);
+                    setForm((f) => ({ ...f, teamId: "" }));
+                  }}
                   excludeId={recruit?.id}
                   disabled={submitting}
                 />
@@ -409,6 +494,25 @@ export default function AdminDealRulesPage() {
                   excludeId={sponsor?.id}
                   disabled={submitting}
                 />
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="create-team">Team (optional)</Label>
+                  <select
+                    id="create-team"
+                    className="select-field w-full"
+                    value={form.teamId}
+                    disabled={!sponsor?.id || submitting}
+                    onChange={(e) =>
+                      setForm({ ...form, teamId: e.target.value })
+                    }
+                  >
+                    <option value="">No team — unassigned</option>
+                    {createTeamsData?.teams.map((team) => (
+                      <option key={team.id} value={team.id}>
+                        {team.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="rate">Rate (% of order revenue)</Label>
                   <Input
@@ -498,7 +602,10 @@ export default function AdminDealRulesPage() {
                   label="Sponsor (gets paid)"
                   value={editSponsor?.id ?? ""}
                   selected={editSponsor}
-                  onChange={(_id, affiliate) => setEditSponsor(affiliate)}
+                  onChange={(_id, affiliate) => {
+                    setEditSponsor(affiliate);
+                    setEditForm((f) => ({ ...f, teamId: "" }));
+                  }}
                   excludeId={editRecruit?.id}
                   disabled={savingEdit}
                 />
@@ -511,6 +618,25 @@ export default function AdminDealRulesPage() {
                   excludeId={editSponsor?.id}
                   disabled={savingEdit}
                 />
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="edit-team">Team (optional)</Label>
+                  <select
+                    id="edit-team"
+                    className="select-field w-full"
+                    value={editForm.teamId}
+                    disabled={!editSponsor?.id || savingEdit}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, teamId: e.target.value })
+                    }
+                  >
+                    <option value="">No team — unassigned</option>
+                    {editTeamsData?.teams.map((team) => (
+                      <option key={team.id} value={team.id}>
+                        {team.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-rate">Rate (% of order revenue)</Label>
                   <Input

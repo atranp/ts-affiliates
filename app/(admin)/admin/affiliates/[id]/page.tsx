@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { UserPlus, FileText, Users, Share2, ChevronRight } from "lucide-react";
+import { UserPlus, FileText, Users, Share2, ChevronRight, ExternalLink } from "lucide-react";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { AffiliateQuickActions } from "@/components/admin/AffiliateQuickActions";
 import { StatCard, StatCardSkeleton } from "@/components/admin/StatCard";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { EmptyState } from "@/components/admin/EmptyState";
@@ -35,6 +36,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { adminMutate, useAdminAffiliate } from "@/hooks/use-admin-query";
 import { ledgerTabToFilters, useLedger } from "@/hooks/use-ledger";
 import { TeamPanel, useTeam } from "@/components/TeamPanel";
+import { TeamsPanel, useTeams } from "@/components/TeamsPanel";
 import type {
   AdminAffiliateDetail,
   InviteAffiliateResult,
@@ -78,6 +80,7 @@ export default function AdminAffiliateDetailPage() {
 
   const [viewTab, setViewTab] = useState<"ledger" | "team" | "rules">("ledger");
   const [ledgerTab, setLedgerTab] = useState<"all" | "unpaid" | "paid" | "overrides">("all");
+  const [teamFilter, setTeamFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
@@ -104,12 +107,17 @@ export default function AdminAffiliateDetailPage() {
     affiliateId,
     ...tabFilters,
     q: debouncedQ,
+    teamId: teamFilter !== "all" ? teamFilter : undefined,
     page,
     limit: 50,
     enabled: !!affiliateId,
   });
 
   const { data: teamData, isLoading: teamLoading } = useTeam(
+    affiliateId,
+    !!affiliateId
+  );
+  const { data: teamsData, isLoading: teamsLoading } = useTeams(
     affiliateId,
     !!affiliateId
   );
@@ -148,6 +156,19 @@ export default function AdminAffiliateDetailPage() {
   const displayName =
     affiliate?.displayName ?? affiliate?.email ?? "Affiliate";
 
+  const ruleCount =
+    (affiliate?.dealRules.asSponsor.length ?? 0) +
+    (affiliate?.dealRules.asRecruit.length ?? 0);
+  const teamCount =
+    teamsData?.teams?.length ??
+    (teamData?.team?.length ? 1 : 0);
+
+  function focusLedger(status: typeof ledgerTab) {
+    setViewTab("ledger");
+    setLedgerTab(status);
+    setPage(1);
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -171,7 +192,7 @@ export default function AdminAffiliateDetailPage() {
             title={displayName}
             description={`${affiliate.email} · SliceWP #${affiliate.slicewpId}`}
             actions={
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Badge variant={statusBadgeVariant(affiliate.status)}>
                   {affiliate.status}
                 </Badge>
@@ -180,16 +201,25 @@ export default function AdminAffiliateDetailPage() {
                     {affiliate.commissionRate}% base rate
                   </Badge>
                 )}
-                {!affiliate.profile && (
-                  <Button size="sm" onClick={() => setInviteOpen(true)}>
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Set up portal access
-                  </Button>
+                {affiliate.profile ? (
+                  <Badge variant="paid">Portal linked</Badge>
+                ) : (
+                  <Badge variant="outline">No portal login</Badge>
                 )}
               </div>
             }
           />
         ) : null}
+
+        {affiliate && (
+          <div className="mt-4">
+            <AffiliateQuickActions
+              affiliateId={affiliate.id}
+              hasPortalAccess={!!affiliate.profile}
+              onInvite={() => setInviteOpen(true)}
+            />
+          </div>
+        )}
       </div>
 
       {affiliateError && (
@@ -207,28 +237,59 @@ export default function AdminAffiliateDetailPage() {
       {affiliate && (
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard
-              label="Unpaid"
-              value={formatCurrency(affiliate.ledger.unpaidTotal)}
-              hint={`${affiliate.ledger.unpaidCount} entries`}
-              variant="primary"
-            />
-            <StatCard
-              label="Paid"
-              value={formatCurrency(affiliate.ledger.paidTotal)}
-              hint={`${affiliate.ledger.paidCount} entries`}
-              variant="success"
-            />
-            <StatCard
-              label="Pending"
-              value={formatCurrency(affiliate.ledger.pendingTotal)}
-              variant="warning"
-            />
-            <StatCard
-              label="Overrides"
-              value={formatCurrency(affiliate.ledger.overrideTotal)}
-              hint={`${affiliate.ledger.overrideCount} override entries`}
-            />
+            <button
+              type="button"
+              className="text-left"
+              onClick={() => focusLedger("unpaid")}
+            >
+              <StatCard
+                label="Unpaid"
+                value={formatCurrency(affiliate.ledger.unpaidTotal)}
+                hint={`${affiliate.ledger.unpaidCount} entries · click to view`}
+                variant="primary"
+                className="hover:border-primary/50 transition-colors cursor-pointer h-full"
+              />
+            </button>
+            <button
+              type="button"
+              className="text-left"
+              onClick={() => focusLedger("paid")}
+            >
+              <StatCard
+                label="Paid"
+                value={formatCurrency(affiliate.ledger.paidTotal)}
+                hint={`${affiliate.ledger.paidCount} entries · click to view`}
+                variant="success"
+                className="hover:border-success/50 transition-colors cursor-pointer h-full"
+              />
+            </button>
+            <button
+              type="button"
+              className="text-left"
+              onClick={() => focusLedger("all")}
+            >
+              <StatCard
+                label="Pending"
+                value={formatCurrency(affiliate.ledger.pendingTotal)}
+                hint="Milestone-gated bonuses · click to view"
+                variant="warning"
+                className="hover:border-warning/50 transition-colors cursor-pointer h-full"
+              />
+            </button>
+            <button
+              type="button"
+              className="text-left"
+              onClick={() => {
+                focusLedger("overrides");
+              }}
+            >
+              <StatCard
+                label="Overrides"
+                value={formatCurrency(affiliate.ledger.overrideTotal)}
+                hint={`${affiliate.ledger.overrideCount} team bonuses · click to view`}
+                className="hover:border-border transition-colors cursor-pointer h-full"
+              />
+            </button>
           </div>
 
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
@@ -305,20 +366,25 @@ export default function AdminAffiliateDetailPage() {
                   >
                     <FileText className="mr-2 h-4 w-4" />
                     Ledger
+                    {affiliate.ledger.unpaidCount > 0 && (
+                      <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-xs font-normal text-primary">
+                        {affiliate.ledger.unpaidCount} unpaid
+                      </span>
+                    )}
                   </TabsTrigger>
                   <TabsTrigger 
                     value="team" 
                     className="relative h-10 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground shadow-none transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
                   >
                     <Users className="mr-2 h-4 w-4" />
-                    Team {teamData?.team && `(${teamData.team.length})`}
+                    Teams{teamCount > 0 ? ` (${teamCount})` : ""}
                   </TabsTrigger>
                   <TabsTrigger 
                     value="rules" 
                     className="relative h-10 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground shadow-none transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
                   >
                     <Share2 className="mr-2 h-4 w-4" />
-                    Deal rules {(affiliate.dealRules.asSponsor.length + affiliate.dealRules.asRecruit.length > 0) && `(${affiliate.dealRules.asSponsor.length + affiliate.dealRules.asRecruit.length})`}
+                    Deal rules{ruleCount > 0 ? ` (${ruleCount})` : ""}
                   </TabsTrigger>
                 </TabsList>
 
@@ -342,12 +408,31 @@ export default function AdminAffiliateDetailPage() {
 
                       {!ledgerLoading && !ledgerError && ledger && (
                         <div className="space-y-4">
-                          <Input
-                            placeholder="Search order ID or description..."
-                            value={q}
-                            onChange={(e) => setQ(e.target.value)}
-                            className="max-w-sm"
-                          />
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                            <Input
+                              placeholder="Search order ID or description..."
+                              value={q}
+                              onChange={(e) => setQ(e.target.value)}
+                              className="sm:max-w-sm"
+                            />
+                            {teamsData?.teams && teamsData.teams.length > 0 && (
+                              <select
+                                className="select-field sm:max-w-xs"
+                                value={teamFilter}
+                                onChange={(e) => {
+                                  setTeamFilter(e.target.value);
+                                  setPage(1);
+                                }}
+                              >
+                                <option value="all">All teams</option>
+                                {teamsData.teams.map((team) => (
+                                  <option key={team.id} value={team.id}>
+                                    {team.name}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
                           <Tabs
                             value={ledgerTab}
                             onValueChange={(v) => {
@@ -408,35 +493,75 @@ export default function AdminAffiliateDetailPage() {
                 </TabsContent>
 
                 <TabsContent value="team" className="mt-0 space-y-4">
-                  {teamLoading ? (
-                    <p className="text-sm text-muted-foreground">Loading team...</p>
+                  {teamsLoading || teamLoading ? (
+                    <p className="text-sm text-muted-foreground">Loading teams...</p>
+                  ) : teamsData?.teams && teamsData.teams.length > 0 ? (
+                    <TeamsPanel
+                      teams={teamsData.teams}
+                      adminView
+                      onViewTeamLedger={(teamId) => {
+                        setTeamFilter(teamId);
+                        focusLedger("overrides");
+                      }}
+                    />
                   ) : teamData?.team && teamData.team.length > 0 ? (
                     <TeamPanel team={teamData.team} adminView />
                   ) : (
                     <Card>
                       <CardHeader>
-                        <CardTitle>No team members</CardTitle>
+                        <CardTitle>No teams yet</CardTitle>
                         <CardDescription>
-                          This affiliate has no active recruits and no downline affiliates.
+                          This affiliate isn&apos;t managing any teams. Create a
+                          team and assign deal rules to group recruits.
                         </CardDescription>
                       </CardHeader>
+                      <CardContent className="flex flex-wrap gap-2">
+                        <Button size="sm" asChild>
+                          <Link href={`/admin/teams?sponsorId=${affiliateId}&create=1`}>
+                            <Users className="mr-2 h-4 w-4" />
+                            Create team
+                          </Link>
+                        </Button>
+                        <Button size="sm" variant="outline" asChild>
+                          <Link href={`/admin/deal-rules?sponsorId=${affiliateId}`}>
+                            <Share2 className="mr-2 h-4 w-4" />
+                            Add deal rule
+                          </Link>
+                        </Button>
+                      </CardContent>
                     </Card>
                   )}
                 </TabsContent>
 
                 <TabsContent value="rules" className="mt-0">
                   <Card>
-                    <CardHeader>
-                      <CardTitle>Deal rules</CardTitle>
-                      <CardDescription>
-                        Override rules involving this affiliate
-                      </CardDescription>
+                    <CardHeader className="flex flex-row items-start justify-between gap-4">
+                      <div>
+                        <CardTitle>Deal rules</CardTitle>
+                        <CardDescription>
+                          Override rules where this affiliate is sponsor or recruit
+                        </CardDescription>
+                      </div>
+                      <Button size="sm" variant="outline" asChild>
+                        <Link href={`/admin/deal-rules?sponsorId=${affiliateId}`}>
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          Manage all rules
+                        </Link>
+                      </Button>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      {affiliate.dealRules.asSponsor.length === 0 && affiliate.dealRules.asRecruit.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                          No active or inactive rules found.
-                        </p>
+                      {ruleCount === 0 ? (
+                        <EmptyState
+                          title="No deal rules"
+                          description="Create a rule to pay this affiliate a % of a recruit's revenue — with optional milestones."
+                          action={
+                            <Button asChild>
+                              <Link href={`/admin/deal-rules?sponsorId=${affiliateId}`}>
+                                Add deal rule
+                              </Link>
+                            </Button>
+                          }
+                        />
                       ) : (
                         <>
                           {affiliate.dealRules.asSponsor.length > 0 && (
@@ -498,7 +623,16 @@ function RulesTable({
           <TableRow key={rule.id}>
             <TableCell className="font-medium">{rule.name}</TableCell>
             <TableCell>
-              {rule.counterparty?.displayName ?? rule.counterparty?.email ?? "—"}
+              {rule.counterparty ? (
+                <Link
+                  href={`/admin/affiliates/${rule.counterparty.id}`}
+                  className="text-primary hover:underline"
+                >
+                  {rule.counterparty.displayName ?? rule.counterparty.email}
+                </Link>
+              ) : (
+                "—"
+              )}
             </TableCell>
             <TableCell>{rule.ratePercent}%</TableCell>
             <TableCell>

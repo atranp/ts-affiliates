@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, Settings, Users, GitBranch } from "lucide-react";
+import { LayoutDashboard, Settings, Users, GitBranch, UsersRound, DollarSign } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 
 const navItems = [
@@ -11,7 +11,9 @@ const navItems = [
     exact: true,
   },
   { href: "/admin/affiliates", label: "Affiliates", icon: Users },
+  { href: "/admin/teams", label: "Teams", icon: UsersRound },
   { href: "/admin/deal-rules", label: "Deal Rules", icon: GitBranch },
+  { href: "/admin/payouts", label: "Payouts", icon: DollarSign },
   { href: "/admin/settings", label: "Integrations", icon: Settings },
 ];
 
