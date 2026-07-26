@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { LedgerTable } from "@/components/LedgerTable";
 import { TeamsPanel, useTeams } from "@/components/TeamsPanel";
 import { TeamPanel, useTeam } from "@/components/TeamPanel";
 import { ErrorState } from "@/components/admin/ErrorState";
-import { FileText, Users, TrendingUp } from "lucide-react";
+import { FileText, Users, TrendingUp, DollarSign } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,11 +19,30 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ledgerTabToFilters, useLedger } from "@/hooks/use-ledger";
+import { PayoutsList } from "@/components/payouts/PayoutsList";
 import { formatCurrency } from "@/lib/utils";
 
 export default function DashboardPage() {
+  return (
+    <Suspense fallback={<p className="text-muted-foreground">Loading...</p>}>
+      <DashboardPageContent />
+    </Suspense>
+  );
+}
+
+function DashboardPageContent() {
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab");
   const { user, loading: authLoading } = useAuth();
-  const [viewTab, setViewTab] = useState<"overview" | "ledger" | "teams">("overview");
+  const [viewTab, setViewTab] = useState<
+    "overview" | "ledger" | "teams" | "payouts"
+  >(
+    initialTab === "ledger" ||
+      initialTab === "teams" ||
+      initialTab === "payouts"
+      ? initialTab
+      : "overview"
+  );
   const [ledgerTab, setLedgerTab] = useState<"all" | "unpaid" | "paid" | "overrides">("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [teamFilter, setTeamFilter] = useState<string>("all");
@@ -120,6 +140,10 @@ export default function DashboardPage() {
               {teamsData?.teams && teamsData.teams.length > 0
                 ? ` (${teamsData.teams.length})`
                 : ""}
+            </TabsTrigger>
+            <TabsTrigger value="payouts" className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Payouts
             </TabsTrigger>
           </TabsList>
 
@@ -381,6 +405,17 @@ export default function DashboardPage() {
                 </CardHeader>
               </Card>
             )}
+          </TabsContent>
+
+          <TabsContent value="payouts" className="mt-0">
+            <Card>
+              <CardHeader>
+                <CardTitle>Payouts</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PayoutsList detailHrefPrefix="/dashboard/payouts" />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       )}

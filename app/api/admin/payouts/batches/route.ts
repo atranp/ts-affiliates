@@ -1,11 +1,20 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-auth";
+import { listPayoutBatchesForSponsor } from "@/lib/payouts/queries";
 import { listPayoutBatches } from "@/lib/teams/queries";
 import { toNumber } from "@/lib/utils";
 
-export async function GET() {
+export async function GET(request: Request) {
   const auth = await requireAdmin();
   if ("error" in auth) return auth.error;
+
+  const { searchParams } = new URL(request.url);
+  const sponsorAffiliateId = searchParams.get("sponsorAffiliateId");
+
+  if (sponsorAffiliateId) {
+    const batches = await listPayoutBatchesForSponsor(sponsorAffiliateId, 50);
+    return NextResponse.json({ batches });
+  }
 
   const batches = await listPayoutBatches(50);
 
@@ -27,13 +36,6 @@ export async function GET() {
         (sum, item) => sum + toNumber(item.totalAmount),
         0
       ),
-      items: batch.items.map((item) => ({
-        affiliateId: item.affiliateId,
-        displayName: item.affiliate.displayName,
-        email: item.affiliate.email,
-        totalAmount: item.totalAmount.toString(),
-        entryCount: item.entryCount,
-      })),
     })),
   });
 }

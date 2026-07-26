@@ -239,7 +239,7 @@ export async function getAffiliateDetail(
   if (!affiliate) return null;
 
   const ledgerSummary = await getLedgerSummary(id);
-  const [overrideAgg, rejectedAgg, pendingAgg] = await Promise.all([
+  const [overrideAgg, rejectedAgg, pendingAgg, directUnpaid] = await Promise.all([
     prisma.ledgerEntry.aggregate({
       where: { affiliateId: id, type: "OVERRIDE" },
       _sum: { amount: true },
@@ -252,6 +252,15 @@ export async function getAffiliateDetail(
     }),
     prisma.ledgerEntry.aggregate({
       where: { affiliateId: id, status: "PENDING" },
+      _count: { _all: true },
+    }),
+    prisma.ledgerEntry.aggregate({
+      where: {
+        affiliateId: id,
+        type: "DIRECT",
+        status: "UNPAID",
+      },
+      _sum: { amount: true },
       _count: { _all: true },
     }),
   ]);
@@ -285,6 +294,8 @@ export async function getAffiliateDetail(
       pendingCount: pendingAgg._count._all,
       rejectedTotal: toNumber(rejectedAgg._sum.amount),
       rejectedCount: rejectedAgg._count._all,
+      directUnpaidTotal: toNumber(directUnpaid._sum.amount),
+      directUnpaidCount: directUnpaid._count._all,
       overrideTotal: toNumber(overrideAgg._sum.amount),
       overrideCount: overrideAgg._count._all,
     },

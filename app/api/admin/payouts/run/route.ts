@@ -1,42 +1,10 @@
-import { CommissionStatus, LedgerEntryType } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { startOfDay } from "date-fns";
 import { requireAdmin } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
+import { buildPayoutEntryWhere } from "@/lib/payouts/scope";
+import type { PayoutScope } from "@/lib/payouts/types";
 import { toNumber } from "@/lib/utils";
-
-function buildEntryWhere(options: {
-  payoutWeek: Date;
-  teamId?: string;
-  sponsorAffiliateId?: string;
-}) {
-  const { payoutWeek, teamId, sponsorAffiliateId } = options;
-
-  return {
-    status: CommissionStatus.UNPAID,
-    payoutWeek: { lte: payoutWeek },
-    ...(teamId
-      ? {
-          OR: [
-            {
-              type: LedgerEntryType.OVERRIDE,
-              dealRule: { teamId },
-            },
-            ...(sponsorAffiliateId
-              ? [
-                  {
-                    type: LedgerEntryType.DIRECT,
-                    affiliateId: sponsorAffiliateId,
-                  },
-                ]
-              : []),
-          ],
-        }
-      : sponsorAffiliateId
-        ? { affiliateId: sponsorAffiliateId }
-        : {}),
-  } as const;
-}
 
 export async function POST(request: Request) {
   const auth = await requireAdmin();
@@ -48,6 +16,7 @@ export async function POST(request: Request) {
     : startOfDay(new Date());
   const teamId: string | undefined = body.teamId;
   const sponsorAffiliateId: string | undefined = body.sponsorAffiliateId;
+  const scope: PayoutScope = body.scope ?? (teamId ? "team" : "all");
 
   let team: { id: string; name: string; sponsorAffiliateId: string } | null =
     null;
@@ -64,10 +33,11 @@ export async function POST(request: Request) {
 
   const resolvedSponsorId = team?.sponsorAffiliateId ?? sponsorAffiliateId;
 
-  const where = buildEntryWhere({
+  const where = buildPayoutEntryWhere({
     payoutWeek,
     teamId,
     sponsorAffiliateId: resolvedSponsorId,
+    scope,
   });
 
   const entries = await prisma.ledgerEntry.findMany({
@@ -86,11 +56,14 @@ export async function POST(request: Request) {
     );
   }
 
+  const dateLabel = payoutWeek.toLocaleDateString("en-US");
   const label = team
-    ? `${team.name} payout · ${payoutWeek.toLocaleDateString("en-US")}`
-    : resolvedSponsorId
-      ? `Affiliate payout · ${payoutWeek.toLocaleDateString("en-US")}`
-      : `Platform payout · ${payoutWeek.toLocaleDateString("en-US")}`;
+    ? `${team.name} · ${dateLabel}`
+    : scope === "direct"
+      ? `Direct payout · ${dateLabel}`
+      : resolvedSponsorId
+        ? `Payout · ${dateLabel}`
+        : `Platform payout · ${dateLabel}`;
 
   const batch = await prisma.$transaction(async (tx) => {
     const createdBatch = await tx.payoutBatch.create({

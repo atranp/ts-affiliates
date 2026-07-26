@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import { DollarSign, History, Play } from "lucide-react";
 import { PageHeader } from "@/components/admin/PageHeader";
@@ -385,7 +386,12 @@ function AdminPayoutsPageContent() {
                   {batchesData.batches.map((batch) => (
                     <TableRow key={batch.id}>
                       <TableCell>
-                        <p className="font-medium">{batch.label}</p>
+                        <Link
+                          href={`/admin/payouts/${batch.id}`}
+                          className="font-medium hover:text-primary hover:underline"
+                        >
+                          {batch.label}
+                        </Link>
                         <p className="text-xs text-muted-foreground">
                           {batch.entryCount} entries · {batch.affiliateCount}{" "}
                           affiliates

@@ -97,6 +97,8 @@ export type AdminAffiliateDetail = {
     pendingCount: number;
     rejectedTotal: number;
     rejectedCount: number;
+    directUnpaidTotal: number;
+    directUnpaidCount: number;
     overrideTotal: number;
     overrideCount: number;
   };

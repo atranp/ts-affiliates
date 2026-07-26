@@ -1,10 +1,11 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { UserPlus, FileText, Users, Share2, ChevronRight } from "lucide-react";
+import { UserPlus, FileText, Users, Share2, ChevronRight, DollarSign } from "lucide-react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { AffiliateQuickActions } from "@/components/admin/AffiliateQuickActions";
 import { StatCard, StatCardSkeleton } from "@/components/admin/StatCard";
@@ -41,7 +42,10 @@ import type {
   AdminAffiliateDetail,
   InviteAffiliateResult,
 } from "@/lib/admin/types";
+import { AffiliatePayoutsTab } from "@/components/payouts/AffiliatePayoutsTab";
 import { formatCurrency } from "@/lib/utils";
+
+type ViewTab = "ledger" | "payouts" | "team" | "rules";
 
 function statusBadgeVariant(
   status: string
@@ -67,18 +71,25 @@ function formatDate(iso: string | null) {
 }
 
 export default function AdminAffiliateDetailPage() {
+  return (
+    <Suspense fallback={<p className="text-muted-foreground">Loading...</p>}>
+      <AdminAffiliateDetailPageContent />
+    </Suspense>
+  );
+}
+
+function AdminAffiliateDetailPageContent() {
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const affiliateId = params.id;
   const queryClient = useQueryClient();
 
-  const {
-    data: affiliate,
-    error: affiliateError,
-    isLoading: affiliateLoading,
-    refetch: refetchAffiliate,
-  } = useAdminAffiliate(affiliateId);
-
-  const [viewTab, setViewTab] = useState<"ledger" | "team" | "rules">("ledger");
+  const initialTab = searchParams.get("tab");
+  const [viewTab, setViewTab] = useState<ViewTab>(
+    initialTab === "payouts" || initialTab === "team" || initialTab === "rules"
+      ? initialTab
+      : "ledger"
+  );
   const [ledgerTab, setLedgerTab] = useState<LedgerTab>("all");
   const [teamFilter, setTeamFilter] = useState("all");
   const [page, setPage] = useState(1);
@@ -88,6 +99,13 @@ export default function AdminAffiliateDetailPage() {
   const [debouncedQ, setDebouncedQ] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviting, setInviting] = useState(false);
+
+  const {
+    data: affiliate,
+    error: affiliateError,
+    isLoading: affiliateLoading,
+    refetch: refetchAffiliate,
+  } = useAdminAffiliate(affiliateId);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -274,20 +292,16 @@ export default function AdminAffiliateDetailPage() {
                     {affiliate.commissionRate}%
                   </Badge>
                 )}
+                <AffiliateQuickActions
+                  affiliateId={affiliate.id}
+                  hasPortalAccess={!!affiliate.profile}
+                  onInvite={() => setInviteOpen(true)}
+                  onGoToPayouts={() => setViewTab("payouts")}
+                />
               </div>
             }
           />
         ) : null}
-
-        {affiliate && (
-          <div className="mt-4">
-            <AffiliateQuickActions
-              affiliateId={affiliate.id}
-              hasPortalAccess={!!affiliate.profile}
-              onInvite={() => setInviteOpen(true)}
-            />
-          </div>
-        )}
       </div>
 
       {affiliateError && (
@@ -431,6 +445,13 @@ export default function AdminAffiliateDetailPage() {
                     Ledger
                   </TabsTrigger>
                   <TabsTrigger 
+                    value="payouts" 
+                    className="relative h-10 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground shadow-none transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                  >
+                    <DollarSign className="mr-2 h-4 w-4" />
+                    Payouts
+                  </TabsTrigger>
+                  <TabsTrigger 
                     value="team" 
                     className="relative h-10 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground shadow-none transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
                   >
@@ -558,6 +579,27 @@ export default function AdminAffiliateDetailPage() {
                         </Tabs>
                         </div>
                       )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="payouts" className="mt-0">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Payouts</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <AffiliatePayoutsTab
+                        affiliateId={affiliate.id}
+                        displayName={displayName}
+                        unpaidDirectTotal={affiliate.ledger.directUnpaidTotal}
+                        onBatchCreated={() => {
+                          void queryClient.invalidateQueries({
+                            queryKey: queryKeys.admin.affiliate(affiliateId),
+                          });
+                          void refetchAffiliate();
+                        }}
+                      />
                     </CardContent>
                   </Card>
                 </TabsContent>

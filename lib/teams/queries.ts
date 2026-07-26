@@ -1,5 +1,7 @@
 import { CommissionStatus, LedgerEntryType, Prisma } from "@prisma/client";
 import { getMilestoneProgress } from "../milestone";
+import { buildPayoutEntryWhere } from "../payouts/scope";
+import type { PayoutRecruitLine, PayoutScope } from "../payouts/types";
 import { prisma } from "../prisma";
 import { toNumber } from "../utils";
 
@@ -61,27 +63,38 @@ export type TeamDetail = TeamSummary & {
 async function buildMemberStats(
   sponsorAffiliateId: string,
   memberIds: string[],
-  rulesByRecruit: Map<string, TeamRuleSummary[]>
+  rulesByRecruit: Map<string, TeamRuleSummary[]>,
+  period?: { from: Date; to: Date }
 ): Promise<Map<string, TeamMemberSummary["stats"]>> {
   const statsMap = new Map<string, TeamMemberSummary["stats"]>();
   if (memberIds.length === 0) return statsMap;
 
+  const commissionWhere: Prisma.CommissionWhereInput = {
+    affiliateId: { in: memberIds },
+    orderRevenue: { not: null },
+    ...(period
+      ? { createdAt: { gte: period.from, lte: period.to } }
+      : {}),
+  };
+
   const revenueByAffiliate = await prisma.commission.groupBy({
     by: ["affiliateId"],
-    where: {
-      affiliateId: { in: memberIds },
-      orderRevenue: { not: null },
-    },
+    where: commissionWhere,
     _sum: { orderRevenue: true },
   });
 
+  const bonusWhere: Prisma.LedgerEntryWhereInput = {
+    affiliateId: sponsorAffiliateId,
+    sourceAffiliateId: { in: memberIds },
+    type: LedgerEntryType.OVERRIDE,
+    ...(period
+      ? { createdAt: { gte: period.from, lte: period.to } }
+      : {}),
+  };
+
   const bonusEntries = await prisma.ledgerEntry.groupBy({
     by: ["sourceAffiliateId", "status"],
-    where: {
-      affiliateId: sponsorAffiliateId,
-      sourceAffiliateId: { in: memberIds },
-      type: LedgerEntryType.OVERRIDE,
-    },
+    where: bonusWhere,
     _sum: { amount: true },
   });
 
@@ -170,7 +183,8 @@ function mapRule(rule: {
 }
 
 export async function getTeamsForSponsor(
-  sponsorAffiliateId: string
+  sponsorAffiliateId: string,
+  period?: { from: Date; to: Date }
 ): Promise<TeamSummary[]> {
   const teams = await prisma.team.findMany({
     where: { sponsorAffiliateId },
@@ -215,7 +229,8 @@ export async function getTeamsForSponsor(
     const memberStats = await buildMemberStats(
       sponsorAffiliateId,
       memberIds,
-      rulesByRecruit
+      rulesByRecruit,
+      period
     );
 
     let totalRevenue = 0;
@@ -380,7 +395,9 @@ export type PayoutPreview = {
   teamId: string | null;
   teamName: string | null;
   sponsorAffiliateId: string | null;
+  scope: PayoutScope;
   lines: PayoutPreviewLine[];
+  recruitBreakdown: PayoutRecruitLine[];
   totals: {
     directTotal: number;
     overrideTotal: number;
@@ -394,6 +411,7 @@ export async function getPayoutPreview(options: {
   payoutWeek: Date;
   teamId?: string;
   sponsorAffiliateId?: string;
+  scope?: PayoutScope;
 }): Promise<PayoutPreview> {
   const team = options.teamId
     ? await prisma.team.findUnique({
@@ -405,35 +423,23 @@ export async function getPayoutPreview(options: {
   const sponsorAffiliateId =
     team?.sponsorAffiliateId ?? options.sponsorAffiliateId;
 
-  const where: Prisma.LedgerEntryWhereInput = {
-    status: CommissionStatus.UNPAID,
-    payoutWeek: { lte: options.payoutWeek },
-    ...(options.teamId
-      ? {
-          OR: [
-            {
-              type: LedgerEntryType.OVERRIDE,
-              dealRule: { teamId: options.teamId },
-            },
-            ...(sponsorAffiliateId
-              ? [
-                  {
-                    type: LedgerEntryType.DIRECT,
-                    affiliateId: sponsorAffiliateId,
-                  },
-                ]
-              : []),
-          ],
-        }
-      : sponsorAffiliateId
-        ? { affiliateId: sponsorAffiliateId }
-        : {}),
-  };
+  const scope: PayoutScope =
+    options.scope ?? (options.teamId ? "team" : "all");
+
+  const where = buildPayoutEntryWhere({
+    payoutWeek: options.payoutWeek,
+    teamId: options.teamId,
+    sponsorAffiliateId,
+    scope,
+  });
 
   const entries = await prisma.ledgerEntry.findMany({
     where,
     include: {
       affiliate: {
+        select: { id: true, email: true, displayName: true },
+      },
+      sourceAffiliate: {
         select: { id: true, email: true, displayName: true },
       },
     },
@@ -481,12 +487,34 @@ export async function getPayoutPreview(options: {
     entryCount += line.entryCount;
   }
 
+  const recruitMap = new Map<string, PayoutRecruitLine>();
+  for (const entry of entries) {
+    if (entry.type !== LedgerEntryType.OVERRIDE || !entry.sourceAffiliate) continue;
+    const id = entry.sourceAffiliate.id;
+    const current = recruitMap.get(id) ?? {
+      sourceAffiliateId: id,
+      displayName: entry.sourceAffiliate.displayName,
+      email: entry.sourceAffiliate.email,
+      overrideTotal: 0,
+      overrideCount: 0,
+    };
+    current.overrideTotal += toNumber(entry.amount);
+    current.overrideCount += 1;
+    recruitMap.set(id, current);
+  }
+
+  const recruitBreakdown = Array.from(recruitMap.values()).sort((a, b) =>
+    (a.displayName ?? a.email).localeCompare(b.displayName ?? b.email)
+  );
+
   return {
     payoutWeek: options.payoutWeek.toISOString(),
     teamId: team?.id ?? options.teamId ?? null,
     teamName: team?.name ?? null,
     sponsorAffiliateId: sponsorAffiliateId ?? null,
+    scope,
     lines,
+    recruitBreakdown,
     totals: {
       directTotal,
       overrideTotal,
