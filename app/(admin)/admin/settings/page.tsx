@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -68,10 +67,7 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <PageHeader
-        title="Integration Settings"
-        description="WooCommerce and SliceWP credentials for sync jobs"
-      />
+      <PageHeader title="Integrations" />
 
       {error && (
         <ErrorState message={error.message} onRetry={() => refetch()} />
@@ -126,9 +122,6 @@ export default function AdminSettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle>WooCommerce</CardTitle>
-            <CardDescription>
-              Used to fetch order revenue for override calculations
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {isLoading ? (
@@ -175,9 +168,6 @@ export default function AdminSettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle>SliceWP</CardTitle>
-            <CardDescription>
-              REST API keys for affiliate and commission sync
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {isLoading ? (

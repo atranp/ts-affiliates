@@ -4,21 +4,21 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { UserPlus, FileText, Users, Share2, ChevronRight, ExternalLink } from "lucide-react";
+import { UserPlus, FileText, Users, Share2, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { AffiliateQuickActions } from "@/components/admin/AffiliateQuickActions";
 import { StatCard, StatCardSkeleton } from "@/components/admin/StatCard";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
-import { LedgerTable } from "@/components/LedgerTable";
+import { AdminLedgerTable } from "@/components/admin/AdminLedgerTable";
+import { AddAdjustmentDialog } from "@/components/admin/AddAdjustmentDialog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -33,7 +33,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TableSkeleton } from "@/components/admin/TableSkeleton";
 import { useQueryClient } from "@tanstack/react-query";
-import { adminMutate, useAdminAffiliate } from "@/hooks/use-admin-query";
+import { adminMutate, queryKeys, useAdminAffiliate } from "@/hooks/use-admin-query";
 import { ledgerTabToFilters, useLedger } from "@/hooks/use-ledger";
 import { TeamPanel, useTeam } from "@/components/TeamPanel";
 import { TeamsPanel, useTeams } from "@/components/TeamsPanel";
@@ -83,6 +83,8 @@ export default function AdminAffiliateDetailPage() {
   const [teamFilter, setTeamFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
+  const [adjustmentOpen, setAdjustmentOpen] = useState(false);
+  const [ledgerSaving, setLedgerSaving] = useState(false);
   const [debouncedQ, setDebouncedQ] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviting, setInviting] = useState(false);
@@ -169,6 +171,77 @@ export default function AdminAffiliateDetailPage() {
     setPage(1);
   }
 
+  async function invalidateLedgerData() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["ledger"] }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.admin.affiliate(affiliateId),
+      }),
+    ]);
+  }
+
+  async function handleLedgerUpdate(
+    id: string,
+    data: { status?: string; amount?: number; description?: string | null }
+  ) {
+    setLedgerSaving(true);
+    try {
+      await adminMutate(`/api/admin/ledger/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      await invalidateLedgerData();
+      toast.success("Ledger entry updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Update failed");
+      throw err;
+    } finally {
+      setLedgerSaving(false);
+    }
+  }
+
+  async function handleBulkLedgerStatus(ids: string[], status: string) {
+    setLedgerSaving(true);
+    try {
+      await adminMutate("/api/admin/ledger", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, status }),
+      });
+      await invalidateLedgerData();
+      toast.success(`Updated ${ids.length} ${ids.length === 1 ? "entry" : "entries"}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Bulk update failed");
+      throw err;
+    } finally {
+      setLedgerSaving(false);
+    }
+  }
+
+  async function handleAddAdjustment(data: {
+    amount: number;
+    description: string;
+    status: string;
+  }) {
+    setLedgerSaving(true);
+    try {
+      await adminMutate("/api/admin/ledger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ affiliateId, ...data }),
+      });
+      await invalidateLedgerData();
+      setAdjustmentOpen(false);
+      toast.success("Adjustment added");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to add adjustment");
+      throw err;
+    } finally {
+      setLedgerSaving(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -198,13 +271,8 @@ export default function AdminAffiliateDetailPage() {
                 </Badge>
                 {affiliate.commissionRate && (
                   <Badge variant="secondary">
-                    {affiliate.commissionRate}% base rate
+                    {affiliate.commissionRate}%
                   </Badge>
-                )}
-                {affiliate.profile ? (
-                  <Badge variant="paid">Portal linked</Badge>
-                ) : (
-                  <Badge variant="outline">No portal login</Badge>
                 )}
               </div>
             }
@@ -245,7 +313,7 @@ export default function AdminAffiliateDetailPage() {
               <StatCard
                 label="Unpaid"
                 value={formatCurrency(affiliate.ledger.unpaidTotal)}
-                hint={`${affiliate.ledger.unpaidCount} entries · click to view`}
+                hint={`${affiliate.ledger.unpaidCount} entries`}
                 variant="primary"
                 className="hover:border-primary/50 transition-colors cursor-pointer h-full"
               />
@@ -258,7 +326,7 @@ export default function AdminAffiliateDetailPage() {
               <StatCard
                 label="Paid"
                 value={formatCurrency(affiliate.ledger.paidTotal)}
-                hint={`${affiliate.ledger.paidCount} entries · click to view`}
+                hint={`${affiliate.ledger.paidCount} entries`}
                 variant="success"
                 className="hover:border-success/50 transition-colors cursor-pointer h-full"
               />
@@ -271,7 +339,7 @@ export default function AdminAffiliateDetailPage() {
               <StatCard
                 label="Pending"
                 value={formatCurrency(affiliate.ledger.pendingTotal)}
-                hint="Milestone-gated bonuses · click to view"
+                hint="Milestone-gated"
                 variant="warning"
                 className="hover:border-warning/50 transition-colors cursor-pointer h-full"
               />
@@ -286,7 +354,7 @@ export default function AdminAffiliateDetailPage() {
               <StatCard
                 label="Overrides"
                 value={formatCurrency(affiliate.ledger.overrideTotal)}
-                hint={`${affiliate.ledger.overrideCount} team bonuses · click to view`}
+                hint={`${affiliate.ledger.overrideCount} bonuses`}
                 className="hover:border-border transition-colors cursor-pointer h-full"
               />
             </button>
@@ -298,7 +366,6 @@ export default function AdminAffiliateDetailPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">SliceWP profile</CardTitle>
-                  <CardDescription>Read-only — updated on sync</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                   <div className="flex flex-col gap-1">
@@ -342,10 +409,6 @@ export default function AdminAffiliateDetailPage() {
                     </>
                   ) : (
                     <div className="space-y-3">
-                      <p className="text-muted-foreground">
-                        This affiliate cannot sign in yet. Create a portal login using
-                        their SliceWP email.
-                      </p>
                       <Button variant="secondary" className="w-full" onClick={() => setInviteOpen(true)}>
                         <UserPlus className="mr-2 h-4 w-4" />
                         Create login
@@ -366,11 +429,6 @@ export default function AdminAffiliateDetailPage() {
                   >
                     <FileText className="mr-2 h-4 w-4" />
                     Ledger
-                    {affiliate.ledger.unpaidCount > 0 && (
-                      <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-xs font-normal text-primary">
-                        {affiliate.ledger.unpaidCount} unpaid
-                      </span>
-                    )}
                   </TabsTrigger>
                   <TabsTrigger 
                     value="team" 
@@ -391,10 +449,7 @@ export default function AdminAffiliateDetailPage() {
                 <TabsContent value="ledger" className="mt-0">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Commission ledger</CardTitle>
-                      <CardDescription>
-                        Direct commissions and team overrides
-                      </CardDescription>
+                      <CardTitle>Ledger</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {ledgerError && (
@@ -448,13 +503,16 @@ export default function AdminAffiliateDetailPage() {
                           </TabsList>
                           <TabsContent value={ledgerTab} className="space-y-4">
                             {ledger.entries.length === 0 ? (
-                              <EmptyState
-                                title="No ledger entries"
-                                description="Run a sync to import commissions from SliceWP."
-                              />
+                              <EmptyState title="No ledger entries" />
                             ) : (
                               <>
-                                <LedgerTable entries={ledger.entries} />
+                                <AdminLedgerTable
+                                  entries={ledger.entries}
+                                  loading={ledgerFetching || ledgerSaving}
+                                  onUpdateEntry={handleLedgerUpdate}
+                                  onBulkStatus={handleBulkLedgerStatus}
+                                  onAddAdjustment={() => setAdjustmentOpen(true)}
+                                />
                                 {ledger.totalPages > 1 && (
                                   <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
                                     <p className="text-sm text-muted-foreground">
@@ -510,10 +568,6 @@ export default function AdminAffiliateDetailPage() {
                     <Card>
                       <CardHeader>
                         <CardTitle>No teams yet</CardTitle>
-                        <CardDescription>
-                          This affiliate isn&apos;t managing any teams. Create a
-                          team and assign deal rules to group recruits.
-                        </CardDescription>
                       </CardHeader>
                       <CardContent className="flex flex-wrap gap-2">
                         <Button size="sm" asChild>
@@ -535,25 +589,13 @@ export default function AdminAffiliateDetailPage() {
 
                 <TabsContent value="rules" className="mt-0">
                   <Card>
-                    <CardHeader className="flex flex-row items-start justify-between gap-4">
-                      <div>
-                        <CardTitle>Deal rules</CardTitle>
-                        <CardDescription>
-                          Override rules where this affiliate is sponsor or recruit
-                        </CardDescription>
-                      </div>
-                      <Button size="sm" variant="outline" asChild>
-                        <Link href={`/admin/deal-rules?sponsorId=${affiliateId}`}>
-                          <ExternalLink className="mr-2 h-4 w-4" />
-                          Manage all rules
-                        </Link>
-                      </Button>
+                    <CardHeader>
+                      <CardTitle>Deal rules</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
                       {ruleCount === 0 ? (
                         <EmptyState
                           title="No deal rules"
-                          description="Create a rule to pay this affiliate a % of a recruit's revenue — with optional milestones."
                           action={
                             <Button asChild>
                               <Link href={`/admin/deal-rules?sponsorId=${affiliateId}`}>
@@ -589,12 +631,19 @@ export default function AdminAffiliateDetailPage() {
 
       <ConfirmDialog
         open={inviteOpen}
-        title="Set up portal access?"
-        description={`Creates a login for ${affiliate?.email ?? "this affiliate"} with a temporary password. No email is sent — share credentials manually.`}
+        title="Create portal login?"
+        description={`Temp password for ${affiliate?.email ?? "this affiliate"}. No email sent.`}
         confirmLabel="Create login"
         loading={inviting}
         onConfirm={handleInvite}
         onCancel={() => setInviteOpen(false)}
+      />
+
+      <AddAdjustmentDialog
+        open={adjustmentOpen}
+        loading={ledgerSaving}
+        onClose={() => setAdjustmentOpen(false)}
+        onSubmit={handleAddAdjustment}
       />
     </div>
   );

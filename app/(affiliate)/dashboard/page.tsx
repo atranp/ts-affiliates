@@ -8,7 +8,6 @@ import { TeamPanel, useTeam } from "@/components/TeamPanel";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { FileText, Users, TrendingUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -98,9 +97,6 @@ export default function DashboardPage() {
         <h1 className="page-title">
           Welcome{user?.affiliateName ? `, ${user.affiliateName}` : ""}
         </h1>
-        <p className="page-description">
-          Your commissions and team bonuses. Payouts run weekly on Mondays.
-        </p>
       </div>
 
       {error && (
@@ -131,25 +127,19 @@ export default function DashboardPage() {
             <div className="grid gap-4 sm:grid-cols-3">
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>Unpaid (all)</CardDescription>
+                <CardDescription>Unpaid</CardDescription>
                 <CardTitle className="text-2xl font-semibold text-primary">
                   {formatCurrency(data.summary.unpaidTotal)}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <Badge variant="unpaid">{data.summary.unpaidCount} entries</Badge>
-              </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>Paid (all)</CardDescription>
+                <CardDescription>Paid</CardDescription>
                 <CardTitle className="text-2xl text-success">
                   {formatCurrency(data.summary.paidTotal)}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <Badge variant="paid">{data.summary.paidCount} entries</Badge>
-              </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-2">
@@ -164,12 +154,7 @@ export default function DashboardPage() {
           {hasTeams ? (
             <Card className="border-primary/20 bg-primary-soft/30">
               <CardHeader className="flex flex-row items-start justify-between gap-4">
-                <div>
-                  <CardTitle>Your teams</CardTitle>
-                  <CardDescription>
-                    Each team has its own recruits, rules, and bonus totals
-                  </CardDescription>
-                </div>
+                <CardTitle>Teams</CardTitle>
                 <Button
                   variant="outline"
                   size="sm"
@@ -216,38 +201,24 @@ export default function DashboardPage() {
             <Card className="border-primary/20 bg-primary-soft/30">
               <CardHeader>
                 <CardTitle>Team bonuses</CardTitle>
-                <CardDescription>
-                  Your share of team members&apos; sales — paid out with Monday
-                  affiliate payouts.
-                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Card>
                     <CardHeader className="pb-2">
-                      <CardDescription>Unpaid team bonuses</CardDescription>
+                      <CardDescription>Unpaid</CardDescription>
                       <CardTitle className="text-xl text-primary">
                         {formatCurrency(data.overrideSummary.unpaidTotal)}
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <Badge variant="unpaid">
-                        {data.overrideSummary.unpaidCount} due Monday
-                      </Badge>
-                    </CardContent>
                   </Card>
                   <Card>
                     <CardHeader className="pb-2">
-                      <CardDescription>Paid team bonuses</CardDescription>
+                      <CardDescription>Paid</CardDescription>
                       <CardTitle className="text-xl text-success">
                         {formatCurrency(data.overrideSummary.paidTotal)}
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <Badge variant="paid">
-                        {data.overrideSummary.paidCount} paid out
-                      </Badge>
-                    </CardContent>
                   </Card>
                 </div>
 
@@ -262,16 +233,13 @@ export default function DashboardPage() {
                         <div>
                           <p className="font-medium">{name}&apos;s sales</p>
                           <p className="text-sm text-muted-foreground">
-                            Team bonus from this recruit&apos;s referred orders
                             {bonus.milestone && !bonus.milestone.met && (
                               <>
-                                {" · "}
-                                Milestone{" "}
                                 {formatCurrency(bonus.milestone.current)} /{" "}
                                 {formatCurrency(bonus.milestone.threshold)}
                               </>
                             )}
-                            {bonus.milestone?.met && " · Milestone reached"}
+                            {bonus.milestone?.met && "Milestone reached"}
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -311,11 +279,8 @@ export default function DashboardPage() {
           <TabsContent value="ledger" className="mt-0">
             <Card>
               <CardHeader>
-                <CardTitle>Commission ledger</CardTitle>
-                <CardDescription>
-                Direct SliceWP commissions plus team bonus lines
-              </CardDescription>
-            </CardHeader>
+                <CardTitle>Ledger</CardTitle>
+              </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Input
@@ -325,42 +290,32 @@ export default function DashboardPage() {
                   className="sm:max-w-sm"
                 />
                 {teamsData?.teams && teamsData.teams.length > 0 && (
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-                      Team:
-                    </span>
-                    <select
-                      className="select-field w-full sm:max-w-xs"
-                      value={teamFilter}
-                      onChange={(e) => handleTeamFilter(e.target.value)}
-                    >
-                      <option value="all">All teams</option>
-                      {teamsData.teams.map((team) => (
-                        <option key={team.id} value={team.id}>
-                          {team.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <select
+                    className="select-field w-full sm:max-w-xs"
+                    value={teamFilter}
+                    onChange={(e) => handleTeamFilter(e.target.value)}
+                  >
+                    <option value="all">All teams</option>
+                    {teamsData.teams.map((team) => (
+                      <option key={team.id} value={team.id}>
+                        {team.name}
+                      </option>
+                    ))}
+                  </select>
                 )}
                 {data.sourceAffiliates.length > 0 && (
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-                      Filter by recruit:
-                    </span>
-                    <select
-                      className="select-field w-full sm:max-w-xs"
-                      value={sourceFilter}
-                      onChange={(e) => handleSourceFilter(e.target.value)}
-                    >
-                      <option value="all">All team members</option>
-                      {data.sourceAffiliates.map((affiliate) => (
-                        <option key={affiliate.id} value={affiliate.id}>
-                          {affiliate.displayName ?? affiliate.email}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <select
+                    className="select-field w-full sm:max-w-xs"
+                    value={sourceFilter}
+                    onChange={(e) => handleSourceFilter(e.target.value)}
+                  >
+                    <option value="all">All recruits</option>
+                    {data.sourceAffiliates.map((affiliate) => (
+                      <option key={affiliate.id} value={affiliate.id}>
+                        {affiliate.displayName ?? affiliate.email}
+                      </option>
+                    ))}
+                  </select>
                 )}
               </div>
 
@@ -423,11 +378,6 @@ export default function DashboardPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>No teams yet</CardTitle>
-                  <CardDescription>
-                    Your admin can create teams and assign deal rules. Once set
-                    up, you&apos;ll see each team&apos;s recruits, rules, and
-                    bonus totals here.
-                  </CardDescription>
                 </CardHeader>
               </Card>
             )}

@@ -15,6 +15,8 @@ export type LedgerEntry = {
   payoutWeek: string | null;
   paidAt: string | null;
   createdAt: string;
+  payoutBatchId: string | null;
+  payoutBatch?: { id: string; label: string } | null;
   sourceAffiliateId: string | null;
   sourceAffiliate?: {
     displayName: string | null;

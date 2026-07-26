@@ -112,7 +112,7 @@ function TeamMemberRow({
           onClick={() => onViewLedger(member.id)}
           className="text-xs text-primary hover:underline"
         >
-          View ledger for this recruit →
+          View ledger
         </button>
       )}
     </div>
@@ -125,7 +125,6 @@ function TeamCard({
   onToggle,
   onViewLedger,
   onViewTeamLedger,
-  adminView = false,
 }: {
   team: TeamSummary;
   expanded: boolean;
@@ -166,7 +165,7 @@ function TeamCard({
             <p className="font-semibold text-primary">
               {formatCurrency(team.stats.unpaidTeamBonus)}
             </p>
-            <p className="text-xs text-muted-foreground">unpaid bonus</p>
+            <p className="text-xs text-muted-foreground">unpaid</p>
           </div>
         </div>
       </CardHeader>
@@ -209,7 +208,7 @@ function TeamCard({
               }}
               className="text-xs font-medium text-primary hover:underline"
             >
-              View all unpaid bonuses for this team →
+              View unpaid
             </button>
           </div>
         )}
@@ -220,9 +219,7 @@ function TeamCard({
               <p className="text-sm text-muted-foreground">Loading recruits...</p>
             )}
             {data?.team.members.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                No recruits assigned yet. {adminView ? "Add deal rules to this team." : "Your admin will add recruits via deal rules."}
-              </p>
+              <p className="text-sm text-muted-foreground">No recruits yet.</p>
             )}
             {data?.team.members.map((member) => (
               <TeamMemberRow
@@ -257,11 +254,7 @@ export function TeamsPanel({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>My teams</CardTitle>
-          <CardDescription>
-            Teams group your recruits and their deal rules. Ask your admin to
-            set up teams and assign rules.
-          </CardDescription>
+          <CardTitle>Teams</CardTitle>
         </CardHeader>
       </Card>
     );

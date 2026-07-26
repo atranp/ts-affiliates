@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { Check, Minus } from "lucide-react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { TableSkeleton } from "@/components/admin/TableSkeleton";
 import { EmptyState } from "@/components/admin/EmptyState";
@@ -74,19 +75,16 @@ export default function AdminAffiliatesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Affiliates"
-        description="Synced from SliceWP — search, filter, and review portal access"
-      />
+      <PageHeader title="Affiliates" />
 
       <Card>
         <CardHeader>
           <CardTitle>Directory</CardTitle>
-          <CardDescription>
-            {data
-              ? `${data.total} affiliate${data.total === 1 ? "" : "s"} total`
-              : "Loading affiliate directory..."}
-          </CardDescription>
+          {data && (
+            <CardDescription>
+              {data.total} affiliate{data.total === 1 ? "" : "s"}
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -123,11 +121,6 @@ export default function AdminAffiliatesPage() {
           {!isLoading && !error && data?.items.length === 0 && (
             <EmptyState
               title="No affiliates found"
-              description={
-                debouncedQ || status !== "all"
-                  ? "Try adjusting your search or filters."
-                  : "Run a sync from the overview to import affiliates from SliceWP."
-              }
               action={
                 debouncedQ || status !== "all" ? (
                   <Button variant="outline" onClick={resetFilters}>
@@ -170,14 +163,18 @@ export default function AdminAffiliatesPage() {
                           {affiliate.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            affiliate.hasPortalAccess ? "paid" : "outline"
-                          }
-                        >
-                          {affiliate.hasPortalAccess ? "Linked" : "No login"}
-                        </Badge>
+                      <TableCell className="text-center">
+                        {affiliate.hasPortalAccess ? (
+                          <Check
+                            className="mx-auto h-4 w-4 text-success"
+                            aria-label="Portal linked"
+                          />
+                        ) : (
+                          <Minus
+                            className="mx-auto h-4 w-4 text-muted-foreground"
+                            aria-label="No portal login"
+                          />
+                        )}
                       </TableCell>
                       <TableCell className="text-right font-medium text-primary">
                         {formatCurrency(affiliate.unpaidTotal)}

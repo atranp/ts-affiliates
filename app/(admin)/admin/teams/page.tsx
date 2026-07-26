@@ -6,7 +6,6 @@ import { Plus, DollarSign, GitBranch, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/PageHeader";
-import { SetupFlowCard } from "@/components/admin/SetupFlowCard";
 import {
   AffiliateSearchCombobox,
   type AffiliateOption,
@@ -20,7 +19,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -165,7 +163,6 @@ function AdminTeamsPageContent() {
     <div className="space-y-6">
       <PageHeader
         title="Teams"
-        description="Step 1 — group recruits under a sponsor before assigning deal rules"
         actions={
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
@@ -174,8 +171,6 @@ function AdminTeamsPageContent() {
         }
       />
 
-      <SetupFlowCard />
-
       {error && (
         <ErrorState message={error.message} onRetry={() => refetch()} />
       )}
@@ -183,17 +178,12 @@ function AdminTeamsPageContent() {
       <Card>
         <CardHeader>
           <CardTitle>All teams</CardTitle>
-          <CardDescription>
-            Assign deal rules to a team when creating or editing rules. Affiliates
-            see their teams on the dashboard.
-          </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading && <TableSkeleton columns={5} />}
           {!isLoading && data?.teams.length === 0 && (
             <EmptyState
               title="No teams yet"
-              description="Create a team for a sponsor affiliate, then assign deal rules to it."
               action={
                 <Button onClick={() => setCreateOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
@@ -306,16 +296,12 @@ function AdminTeamsPageContent() {
           <Card className="relative z-10 w-full max-w-lg shadow-lg">
             <CardHeader>
               <CardTitle>Create team</CardTitle>
-              <CardDescription>
-                The sponsor affiliate will see this team on their dashboard and
-                can track recruits assigned via deal rules.
-              </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={createTeam} className="space-y-4">
                 <AffiliateSearchCombobox
                   id="team-sponsor"
-                  label="Sponsor affiliate (team manager)"
+                  label="Sponsor"
                   value={sponsor?.id ?? ""}
                   selected={sponsor}
                   onChange={(_id, affiliate) => setSponsor(affiliate)}

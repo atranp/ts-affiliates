@@ -22,7 +22,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     <AppShell
       homeHref="/admin"
       portalLabel="Admin Console"
-      portalBadge="Admin"
       navItems={navItems}
     >
       {children}

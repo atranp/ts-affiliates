@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/admin/PageHeader";
-import { SetupFlowCard } from "@/components/admin/SetupFlowCard";
 import {
   AffiliateSearchCombobox,
   type AffiliateOption,
@@ -291,8 +290,8 @@ function AdminDealRulesPageContent() {
       toast.success(`Created: ${body.name}`, {
         description:
           body.overridesCreated != null && body.overridesCreated > 0
-            ? `Backfilled ${body.overridesCreated} team bonus entries from existing recruit commissions.`
-            : "Future syncs will generate team bonus lines automatically.",
+            ? `Backfilled ${body.overridesCreated} entries`
+            : undefined,
       });
       setForm({ name: "", ratePercent: "10", milestoneRevenueThreshold: "10000", teamId: "" });
       setSponsor(null);
@@ -310,7 +309,6 @@ function AdminDealRulesPageContent() {
     <div className="space-y-6">
       <PageHeader
         title="Deal Rules"
-        description="Step 2 — assign sponsor → recruit deals to a team, with rate & milestone"
         actions={
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
@@ -323,37 +321,6 @@ function AdminDealRulesPageContent() {
         <ErrorState message={rulesError.message} onRetry={() => refetchRules()} />
       )}
 
-      <SetupFlowCard />
-
-      <Card className="border-primary/20 bg-primary-soft/40">
-        <CardHeader className="py-4">
-          <details className="group">
-            <summary className="cursor-pointer font-medium text-foreground list-none flex items-center justify-between">
-              How do team deal rules work? (Trin / Blair example)
-              <span className="text-muted-foreground group-open:hidden">+</span>
-              <span className="text-muted-foreground hidden group-open:inline">-</span>
-            </summary>
-            <div className="mt-4 space-y-2 text-sm text-muted-foreground border-t border-border/50 pt-4">
-              <p>
-                When a recruit generates sales, the sponsor earns a % of{" "}
-                <strong>order revenue</strong> — not the recruit&apos;s commission.
-              </p>
-              <p>
-                <strong>Example:</strong> Blair closes a $10,000 order. Blair earns
-                $3,000 (30% SliceWP commission). Trindalyn earns $1,000 (10% of
-                $10,000 revenue) as a team bonus — but only after Blair&apos;s{" "}
-                <strong>cumulative referred revenue hits the milestone</strong>.
-                Until then, Trin&apos;s bonus lines show as Pending.
-              </p>
-              <p>
-                <strong>Setup:</strong> Sponsor = Trindalyn, Recruit = Blair, Rate
-                = 10, Milestone = 10000. Paid weekly on Mondays once unlocked.
-              </p>
-            </div>
-          </details>
-        </CardHeader>
-      </Card>
-
       <Card>
         <CardHeader>
           <CardTitle>Active rules</CardTitle>
@@ -364,10 +331,7 @@ function AdminDealRulesPageContent() {
         <CardContent>
           {rulesLoading && <TableSkeleton columns={7} />}
           {!rulesLoading && rules?.length === 0 && (
-            <EmptyState
-              title="No deal rules yet"
-              description="Create a rule above, then run sync to generate override ledger entries."
-            />
+            <EmptyState title="No deal rules yet" />
           )}
           {!rulesLoading && rules && rules.length > 0 && (
             <Table>
@@ -455,10 +419,6 @@ function AdminDealRulesPageContent() {
           <Card className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-lg">
             <CardHeader>
               <CardTitle>Create rule</CardTitle>
-              <CardDescription>
-                Applies to new syncs immediately and backfills existing recruit
-                commissions when created.
-              </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={createRule} className="grid gap-4 md:grid-cols-2">
@@ -475,7 +435,7 @@ function AdminDealRulesPageContent() {
                 </div>
                 <AffiliateSearchCombobox
                   id="sponsor"
-                  label="Sponsor (gets paid)"
+                  label="Sponsor"
                   value={sponsor?.id ?? ""}
                   selected={sponsor}
                   onChange={(_id, affiliate) => {
@@ -487,7 +447,7 @@ function AdminDealRulesPageContent() {
                 />
                 <AffiliateSearchCombobox
                   id="source"
-                  label="Recruit (generates override)"
+                  label="Recruit"
                   value={recruit?.id ?? ""}
                   selected={recruit}
                   onChange={(_id, affiliate) => setRecruit(affiliate)}
@@ -514,7 +474,7 @@ function AdminDealRulesPageContent() {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="rate">Rate (% of order revenue)</Label>
+                  <Label htmlFor="rate">Rate (%)</Label>
                   <Input
                     id="rate"
                     type="number"
@@ -529,9 +489,7 @@ function AdminDealRulesPageContent() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="milestone">
-                    Revenue milestone (optional)
-                  </Label>
+                  <Label htmlFor="milestone">Milestone (optional)</Label>
                   <Input
                     id="milestone"
                     type="number"
@@ -544,7 +502,7 @@ function AdminDealRulesPageContent() {
                         milestoneRevenueThreshold: e.target.value,
                       })
                     }
-                    placeholder="10000 — sponsor paid after recruit hits this"
+                    placeholder="10000"
                     disabled={submitting}
                   />
                 </div>
@@ -558,7 +516,7 @@ function AdminDealRulesPageContent() {
                     Cancel
                   </Button>
                   <Button type="submit" disabled={submitting}>
-                    {submitting ? "Creating & backfilling…" : "Create rule"}
+                    {submitting ? "Creating…" : "Create rule"}
                   </Button>
                 </div>
               </form>
@@ -579,8 +537,8 @@ function AdminDealRulesPageContent() {
             <CardHeader>
               <CardTitle>Edit rule</CardTitle>
               <CardDescription>
-                Changes to rate or milestone recalculate team bonus lines. Changing
-                sponsor/recruit removes pending and unpaid lines first.
+                Changing sponsor, recruit, rate, or milestone recalculates bonus
+                lines.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -599,7 +557,7 @@ function AdminDealRulesPageContent() {
                 </div>
                 <AffiliateSearchCombobox
                   id="edit-sponsor"
-                  label="Sponsor (gets paid)"
+                  label="Sponsor"
                   value={editSponsor?.id ?? ""}
                   selected={editSponsor}
                   onChange={(_id, affiliate) => {
@@ -611,7 +569,7 @@ function AdminDealRulesPageContent() {
                 />
                 <AffiliateSearchCombobox
                   id="edit-recruit"
-                  label="Recruit (generates override)"
+                  label="Recruit"
                   value={editRecruit?.id ?? ""}
                   selected={editRecruit}
                   onChange={(_id, affiliate) => setEditRecruit(affiliate)}
@@ -638,7 +596,7 @@ function AdminDealRulesPageContent() {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-rate">Rate (% of order revenue)</Label>
+                  <Label htmlFor="edit-rate">Rate (%)</Label>
                   <Input
                     id="edit-rate"
                     type="number"
@@ -653,7 +611,7 @@ function AdminDealRulesPageContent() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-milestone">Revenue milestone</Label>
+                  <Label htmlFor="edit-milestone">Milestone</Label>
                   <Input
                     id="edit-milestone"
                     type="number"
@@ -666,7 +624,7 @@ function AdminDealRulesPageContent() {
                         milestoneRevenueThreshold: e.target.value,
                       })
                     }
-                    placeholder="Leave empty for no milestone"
+                    placeholder="Optional"
                     disabled={savingEdit}
                   />
                 </div>
@@ -681,7 +639,7 @@ function AdminDealRulesPageContent() {
                     disabled={savingEdit}
                     className="h-4 w-4 rounded border-border"
                   />
-                  <Label htmlFor="edit-active">Active — generate team bonuses on sync</Label>
+                  <Label htmlFor="edit-active">Active</Label>
                 </div>
                 <div className="flex justify-end gap-2 md:col-span-2">
                   <Button

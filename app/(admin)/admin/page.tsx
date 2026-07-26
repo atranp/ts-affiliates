@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -61,7 +60,6 @@ export default function AdminDashboardPage() {
     <div className="space-y-6">
       <PageHeader
         title="Overview"
-        description="Platform health, payouts, and sync status at a glance"
         actions={
           <div className="flex items-center gap-4">
             {data && (
@@ -92,7 +90,7 @@ export default function AdminDashboardPage() {
               <StatCard
                 label="Affiliates"
                 value={String(data.affiliates.total)}
-                hint={`${data.affiliates.active} active · ${data.affiliates.withPortalAccess} with portal access`}
+                hint={`${data.affiliates.active} active · ${data.affiliates.withPortalAccess} portal`}
                 variant="primary"
                 className="hover:border-primary/50 transition-colors"
               />
@@ -132,7 +130,6 @@ export default function AdminDashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle>Quick actions</CardTitle>
-            <CardDescription>Common admin workflows</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
             <Button variant="outline" className="justify-between" asChild>
@@ -162,10 +159,6 @@ export default function AdminDashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle>Sync & integrations</CardTitle>
-            <CardDescription>
-              Data is read from Supabase — SliceWP sync runs on a schedule or
-              manually
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             {isLoading ? (
@@ -217,7 +210,7 @@ export default function AdminDashboardPage() {
       <ConfirmDialog
         open={syncOpen}
         title="Run full sync?"
-        description="Pulls all affiliates and commissions from SliceWP. Large stores may take several minutes. No emails are sent to affiliates."
+        description="May take several minutes. No emails sent."
         confirmLabel="Start sync"
         loading={syncing}
         onConfirm={runSync}

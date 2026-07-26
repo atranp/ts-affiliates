@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { DollarSign, History, Play } from "lucide-react";
 import { PageHeader } from "@/components/admin/PageHeader";
-import { SetupFlowCard } from "@/components/admin/SetupFlowCard";
 import {
   AffiliateSearchCombobox,
   type AffiliateOption,
@@ -18,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -210,12 +208,7 @@ function AdminPayoutsPageContent() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Payouts"
-        description="Step 3 — preview and pay unpaid commissions + team bonuses"
-      />
-
-      <SetupFlowCard />
+      <PageHeader title="Payouts" />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
@@ -224,25 +217,11 @@ function AdminPayoutsPageContent() {
               <DollarSign className="h-5 w-5" />
               Create payout
             </CardTitle>
-            <CardDescription>
-              1. Pick sponsor → 2. Pick team (optional) → 3. Preview → 4. Run
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground space-y-1">
-              <p>
-                <strong className="text-foreground">Team selected:</strong> pays
-                that team&apos;s override bonuses + sponsor&apos;s direct commissions.
-              </p>
-              <p>
-                <strong className="text-foreground">No team:</strong> pays all
-                unpaid entries for the sponsor (every team combined).
-              </p>
-            </div>
-
             <AffiliateSearchCombobox
               id="payout-sponsor"
-              label="Sponsor affiliate (gets paid)"
+              label="Sponsor"
               value={sponsor?.id ?? ""}
               selected={sponsor}
               onChange={(_id, affiliate) => {
@@ -279,7 +258,7 @@ function AdminPayoutsPageContent() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="payout-week">Payout week (due on or before)</Label>
+              <Label htmlFor="payout-week">Payout week</Label>
               <Input
                 id="payout-week"
                 type="date"
@@ -287,12 +266,6 @@ function AdminPayoutsPageContent() {
                 onChange={(e) => setPayoutWeek(e.target.value)}
               />
             </div>
-
-            {!sponsor?.id && (
-              <p className="text-sm text-muted-foreground">
-                Select a sponsor affiliate to preview unpaid entries.
-              </p>
-            )}
 
             {previewError && (
               <ErrorState
@@ -390,9 +363,6 @@ function AdminPayoutsPageContent() {
               <History className="h-5 w-5" />
               Recent payouts
             </CardTitle>
-            <CardDescription>
-              Completed payout batches and totals
-            </CardDescription>
           </CardHeader>
           <CardContent>
             {batchesLoading && <TableSkeleton columns={4} rows={6} />}

@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -39,13 +38,9 @@ export function TeamPanel({
       <Card>
         <CardHeader>
           <CardTitle>Team</CardTitle>
-          <CardDescription>
-            Recruits and downline affiliates you earn team bonuses from
-          </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          No team members yet. Link recruits via deal rules or sync SliceWP
-          Multi-level Affiliates parent data.
+          No team members yet.
         </CardContent>
       </Card>
     );
@@ -55,9 +50,6 @@ export function TeamPanel({
     <Card>
       <CardHeader>
         <CardTitle>Team ({team.length})</CardTitle>
-        <CardDescription>
-          Affiliates under you — deal-rule recruits and SliceWP parent links
-        </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4 sm:grid-cols-2">
         {team.map((member) => {
@@ -86,11 +78,6 @@ export function TeamPanel({
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {member.sources.map((source) => (
-                    <Badge key={source} variant="secondary">
-                      {source === "deal_rule" ? "Deal rule" : "SliceWP parent"}
-                    </Badge>
-                  ))}
                   <Badge variant={member.status === "ACTIVE" ? "paid" : "outline"}>
                     {member.status}
                   </Badge>
@@ -131,14 +118,10 @@ export function TeamPanel({
                     <Badge variant="paid">Milestone reached</Badge>
                   ) : (
                     <p className="text-muted-foreground">
-                      Milestone progress:{" "}
-                      <strong>
-                        {formatCurrency(milestone.current)} /{" "}
-                        {formatCurrency(milestone.threshold ?? 0)}
-                      </strong>
+                      {formatCurrency(milestone.current)} /{" "}
+                      {formatCurrency(milestone.threshold ?? 0)}
                       {" · "}
-                      {formatCurrency(milestone.remaining)} to go — team
-                      bonuses unlock at threshold
+                      {formatCurrency(milestone.remaining)} to go
                     </p>
                   )}
                 </div>

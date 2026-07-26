@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -55,10 +54,7 @@ export default function LoginPage() {
           <p className="text-sm font-semibold uppercase tracking-wide text-brand">
             True Sciences
           </p>
-          <CardTitle>Affiliate Platform</CardTitle>
-          <CardDescription>
-            Sign in to view commissions and team overrides
-          </CardDescription>
+          <CardTitle>Sign in</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

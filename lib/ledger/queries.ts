@@ -188,6 +188,9 @@ export async function getPaginatedLedgerEntries(filters: LedgerFilters) {
       dealRule: {
         select: { id: true, name: true },
       },
+      payoutBatch: {
+        select: { id: true, label: true },
+      },
     },
     orderBy: { createdAt: "desc" },
     skip: (page - 1) * limit,
