@@ -39,6 +39,23 @@ export type AdminLedgerEntry = {
 };
 
 
+function entryDetails(entry: AdminLedgerEntry) {
+  return (
+    entry.description ??
+    entry.sourceAffiliate?.displayName ??
+    entry.sourceAffiliate?.email ??
+    "—"
+  );
+}
+
+function EntryTypeBadge({ type }: { type: string }) {
+  return (
+    <Badge variant={type === "OVERRIDE" ? "unpaid" : "secondary"}>
+      {type === "OVERRIDE" ? "Team bonus" : type}
+    </Badge>
+  );
+}
+
 function formatPayoutWeek(iso: string | null) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-US", {
@@ -46,6 +63,10 @@ function formatPayoutWeek(iso: string | null) {
     month: "short",
     day: "numeric",
   });
+}
+
+function entryPayoutLabel(entry: AdminLedgerEntry) {
+  return entry.payoutBatch?.label ?? formatPayoutWeek(entry.payoutWeek) ?? "—";
 }
 
 type EditForm = {
@@ -226,102 +247,160 @@ export function AdminLedgerTable({
         </div>
       )}
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-10">
-              <input
-                type="checkbox"
-                checked={allSelected}
-                onChange={toggleAll}
-                aria-label="Select all entries"
-                className="h-4 w-4 rounded border-border"
-              />
-            </TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Details</TableHead>
-            <TableHead>Order</TableHead>
-            <TableHead>Sale</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead>Payout</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="w-10" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {entries.map((entry) => (
-            <TableRow key={entry.id}>
-              <TableCell>
+      <div className="hidden md:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-10">
                 <input
                   type="checkbox"
-                  checked={selected.has(entry.id)}
-                  onChange={() => toggleOne(entry.id)}
-                  aria-label={`Select entry ${entry.id}`}
+                  checked={allSelected}
+                  onChange={toggleAll}
+                  aria-label="Select all entries"
                   className="h-4 w-4 rounded border-border"
                 />
-              </TableCell>
-              <TableCell>
-                {new Date(entry.createdAt).toLocaleDateString("en-US")}
-              </TableCell>
-              <TableCell>
-                <Badge
-                  variant={entry.type === "OVERRIDE" ? "unpaid" : "secondary"}
-                >
-                  {entry.type === "OVERRIDE" ? "Team bonus" : entry.type}
-                </Badge>
-              </TableCell>
-              <TableCell className="max-w-xs text-sm text-muted-foreground">
-                {entry.description ??
-                  entry.sourceAffiliate?.displayName ??
-                  entry.sourceAffiliate?.email ??
-                  "—"}
-              </TableCell>
-              <TableCell>
-                {entry.wooOrderId ? `#${entry.wooOrderId}` : "—"}
-              </TableCell>
-              <TableCell>
-                {entry.orderRevenue
-                  ? formatCurrency(entry.orderRevenue)
-                  : "—"}
-              </TableCell>
-              <TableCell className="font-medium text-success">
-                {formatCurrency(entry.amount)}
-              </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
-                {entry.payoutBatch?.label ??
-                  formatPayoutWeek(entry.payoutWeek) ??
-                  "—"}
-              </TableCell>
-              <TableCell>
-                <select
-                  className="select-field min-w-[7rem] text-xs"
-                  value={entry.status}
-                  disabled={loading || saving}
-                  onChange={(e) => quickStatusChange(entry, e.target.value)}
-                >
-                  {LEDGER_STATUSES.map((s) => (
-                    <option key={s.value} value={s.value}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-              </TableCell>
-              <TableCell>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() => openEdit(entry)}
-                  aria-label="Edit entry"
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              </TableCell>
+              </TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Details</TableHead>
+              <TableHead>Order</TableHead>
+              <TableHead>Sale</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Payout</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-10" />
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {entries.map((entry) => (
+              <TableRow key={entry.id}>
+                <TableCell>
+                  <input
+                    type="checkbox"
+                    checked={selected.has(entry.id)}
+                    onChange={() => toggleOne(entry.id)}
+                    aria-label={`Select entry ${entry.id}`}
+                    className="h-4 w-4 rounded border-border"
+                  />
+                </TableCell>
+                <TableCell>
+                  {new Date(entry.createdAt).toLocaleDateString("en-US")}
+                </TableCell>
+                <TableCell>
+                  <EntryTypeBadge type={entry.type} />
+                </TableCell>
+                <TableCell className="max-w-xs text-sm text-muted-foreground">
+                  {entryDetails(entry)}
+                </TableCell>
+                <TableCell>
+                  {entry.wooOrderId ? `#${entry.wooOrderId}` : "—"}
+                </TableCell>
+                <TableCell>
+                  {entry.orderRevenue
+                    ? formatCurrency(entry.orderRevenue)
+                    : "—"}
+                </TableCell>
+                <TableCell className="font-medium text-success">
+                  {formatCurrency(entry.amount)}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {entryPayoutLabel(entry)}
+                </TableCell>
+                <TableCell>
+                  <select
+                    className="select-field min-w-[7rem] text-xs"
+                    value={entry.status}
+                    disabled={loading || saving}
+                    onChange={(e) => quickStatusChange(entry, e.target.value)}
+                  >
+                    {LEDGER_STATUSES.map((s) => (
+                      <option key={s.value} value={s.value}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => openEdit(entry)}
+                    aria-label="Edit entry"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="space-y-3 md:hidden">
+        {entries.map((entry) => (
+          <div
+            key={entry.id}
+            className="rounded-lg border border-border p-3 space-y-3"
+          >
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                checked={selected.has(entry.id)}
+                onChange={() => toggleOne(entry.id)}
+                aria-label={`Select entry ${entry.id}`}
+                className="mt-1 h-4 w-4 shrink-0 rounded border-border"
+              />
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(entry.createdAt).toLocaleDateString("en-US")}
+                    </p>
+                    <EntryTypeBadge type={entry.type} />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium text-success">
+                      {formatCurrency(entry.amount)}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => openEdit(entry)}
+                      aria-label="Edit entry"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground break-words">
+                  {entryDetails(entry)}
+                </p>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                  {entry.wooOrderId && <span>Order #{entry.wooOrderId}</span>}
+                  {entry.orderRevenue && (
+                    <span>Sale {formatCurrency(entry.orderRevenue)}</span>
+                  )}
+                  <span>Payout {entryPayoutLabel(entry)}</span>
+                </div>
+              </div>
+            </div>
+            <select
+              className="select-field w-full text-sm"
+              value={entry.status}
+              disabled={loading || saving}
+              onChange={(e) => quickStatusChange(entry, e.target.value)}
+            >
+              {LEDGER_STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        ))}
+      </div>
 
       {editing && form && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">

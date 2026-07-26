@@ -34,7 +34,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TableSkeleton } from "@/components/admin/TableSkeleton";
 import { useQueryClient } from "@tanstack/react-query";
 import { adminMutate, queryKeys, useAdminAffiliate } from "@/hooks/use-admin-query";
-import { ledgerTabToFilters, useLedger } from "@/hooks/use-ledger";
+import { ledgerTabToFilters, useLedger, type LedgerTab } from "@/hooks/use-ledger";
 import { TeamPanel, useTeam } from "@/components/TeamPanel";
 import { TeamsPanel, useTeams } from "@/components/TeamsPanel";
 import type {
@@ -79,7 +79,7 @@ export default function AdminAffiliateDetailPage() {
   } = useAdminAffiliate(affiliateId);
 
   const [viewTab, setViewTab] = useState<"ledger" | "team" | "rules">("ledger");
-  const [ledgerTab, setLedgerTab] = useState<"all" | "unpaid" | "paid" | "overrides">("all");
+  const [ledgerTab, setLedgerTab] = useState<LedgerTab>("all");
   const [teamFilter, setTeamFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
@@ -165,7 +165,7 @@ export default function AdminAffiliateDetailPage() {
     teamsData?.teams?.length ??
     (teamData?.team?.length ? 1 : 0);
 
-  function focusLedger(status: typeof ledgerTab) {
+  function focusLedger(status: LedgerTab) {
     setViewTab("ledger");
     setLedgerTab(status);
     setPage(1);
@@ -251,7 +251,7 @@ export default function AdminAffiliateDetailPage() {
           </Link>
           <ChevronRight className="h-4 w-4" />
           <span className="font-medium text-foreground">
-            {affiliate ? (affiliate.displayName ?? "Details") : "Loading..."}
+            {affiliate ? displayName : "Loading..."}
           </span>
         </nav>
 
@@ -334,7 +334,7 @@ export default function AdminAffiliateDetailPage() {
             <button
               type="button"
               className="text-left"
-              onClick={() => focusLedger("all")}
+              onClick={() => focusLedger("pending")}
             >
               <StatCard
                 label="Pending"
@@ -495,10 +495,22 @@ export default function AdminAffiliateDetailPage() {
                               setPage(1);
                             }}
                           >
-                          <TabsList>
+                          <TabsList className="h-auto flex-wrap">
                             <TabsTrigger value="all">All</TabsTrigger>
                             <TabsTrigger value="unpaid">Unpaid</TabsTrigger>
                             <TabsTrigger value="paid">Paid</TabsTrigger>
+                            <TabsTrigger value="pending">
+                              Pending
+                              {affiliate.ledger.pendingCount > 0
+                                ? ` (${affiliate.ledger.pendingCount})`
+                                : ""}
+                            </TabsTrigger>
+                            <TabsTrigger value="rejected">
+                              Rejected
+                              {affiliate.ledger.rejectedCount > 0
+                                ? ` (${affiliate.ledger.rejectedCount})`
+                                : ""}
+                            </TabsTrigger>
                             <TabsTrigger value="overrides">Overrides</TabsTrigger>
                           </TabsList>
                           <TabsContent value={ledgerTab} className="space-y-4">

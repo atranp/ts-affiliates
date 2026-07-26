@@ -110,8 +110,16 @@ export function useLedger(options: LedgerQueryOptions = {}) {
   });
 }
 
+export type LedgerTab =
+  | "all"
+  | "unpaid"
+  | "paid"
+  | "pending"
+  | "rejected"
+  | "overrides";
+
 export function ledgerTabToFilters(
-  tab: "all" | "unpaid" | "paid" | "overrides",
+  tab: LedgerTab,
   sourceAffiliateId?: string
 ): Pick<LedgerQueryOptions, "status" | "type" | "sourceAffiliateId"> {
   const filters: Pick<
@@ -121,6 +129,8 @@ export function ledgerTabToFilters(
 
   if (tab === "unpaid") filters.status = "UNPAID";
   if (tab === "paid") filters.status = "PAID";
+  if (tab === "pending") filters.status = "PENDING";
+  if (tab === "rejected") filters.status = "REJECTED";
   if (tab === "overrides") filters.type = "OVERRIDE";
   if (sourceAffiliateId && sourceAffiliateId !== "all") {
     filters.sourceAffiliateId = sourceAffiliateId;
