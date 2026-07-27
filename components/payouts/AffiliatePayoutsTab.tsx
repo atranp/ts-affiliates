@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import {
   ChevronRight,
+  Clock,
   DollarSign,
   Plus,
   UsersRound,
@@ -27,8 +28,9 @@ import {
   type DatePreset,
 } from "@/lib/payouts/dates";
 import type { PayoutBatchListItem } from "@/lib/payouts/types";
-import type { PayoutPreview } from "@/lib/teams/queries";
 import type { TeamSummary } from "@/lib/teams/queries";
+import type { PayoutPreview } from "@/lib/teams/queries";
+import { RecordHistoricalPayoutDialog } from "@/components/payouts/RecordHistoricalPayoutDialog";
 import { formatCurrency } from "@/lib/utils";
 
 type AffiliatePayoutsTabProps = {
@@ -52,6 +54,7 @@ export function AffiliatePayoutsTab({
   const [previewTarget, setPreviewTarget] = useState<PayoutTarget | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [running, setRunning] = useState(false);
+  const [recordOpen, setRecordOpen] = useState(false);
 
   const range = resolveDatePreset(preset);
   const payoutWeek = payoutWeekInput;
@@ -280,7 +283,17 @@ export function AffiliatePayoutsTab({
       )}
 
       <section className="space-y-3">
-        <h2 className="text-sm font-medium">Past payouts</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-medium">Past payouts</h2>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setRecordOpen(true)}
+          >
+            <Clock className="mr-2 h-4 w-4" />
+            Record historical
+          </Button>
+        </div>
         {batchesLoading && (
           <p className="text-sm text-muted-foreground">Loading...</p>
         )}
@@ -353,6 +366,19 @@ export function AffiliatePayoutsTab({
         onConfirm={runPayout}
         onCancel={() => {
           if (!running) setConfirmOpen(false);
+        }}
+      />
+
+      <RecordHistoricalPayoutDialog
+        open={recordOpen}
+        affiliateId={affiliateId}
+        displayName={displayName}
+        teams={teams}
+        onClose={() => setRecordOpen(false)}
+        onRecorded={() => {
+          void refetchBatches();
+          void refetchTeams();
+          onBatchCreated?.();
         }}
       />
     </div>

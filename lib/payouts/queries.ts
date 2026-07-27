@@ -174,7 +174,7 @@ export async function listPayoutBatchesForSponsor(
 ): Promise<PayoutBatchListItem[]> {
   const batches = await prisma.payoutBatch.findMany({
     where: { sponsorAffiliateId },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ processedAt: "desc" }, { createdAt: "desc" }],
     take: limit,
     include: {
       team: { select: { id: true, name: true } },
