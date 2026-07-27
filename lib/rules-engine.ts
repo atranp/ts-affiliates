@@ -15,6 +15,7 @@ import {
   overrideStatusForMilestone,
   promoteMilestoneOverrides,
 } from "./milestone";
+import { getTeamMemberIds } from "./teams/members";
 import { getNextPayoutWeek } from "./payout-schedule";
 import { toNumber } from "./utils";
 
@@ -22,15 +23,38 @@ export async function processDealRulesForCommission(
   commission: Commission,
   revenueByRecruit?: Map<string, number>
 ) {
-  const rules = await prisma.dealRule.findMany({
+  const recruitRules = await prisma.dealRule.findMany({
     where: {
       active: true,
       sourceAffiliateId: commission.affiliateId,
     },
   });
 
-  for (const rule of rules) {
+  for (const rule of recruitRules) {
     await createOverrideEntry(rule, commission, revenueByRecruit);
+  }
+
+  const teamRules = await prisma.dealRule.findMany({
+    where: {
+      active: true,
+      sourceAffiliateId: null,
+      teamId: { not: null },
+    },
+  });
+
+  for (const rule of teamRules) {
+    if (commission.affiliateId === rule.sponsorAffiliateId) continue;
+    if (!rule.teamId) continue;
+
+    const memberIds = await getTeamMemberIds(rule.teamId);
+    if (!memberIds.includes(commission.affiliateId)) continue;
+
+    await createOverrideEntry(
+      rule,
+      commission,
+      revenueByRecruit,
+      commission.affiliateId
+    );
   }
 }
 
@@ -41,7 +65,8 @@ function buildOverrideEntryData(
     "id" | "amount" | "orderRevenue" | "status" | "wooOrderId" | "affiliateId"
   >,
   sourceName: string,
-  cumulativeRevenue: number
+  cumulativeRevenue: number,
+  sourceAffiliateId: string
 ) {
   const amount = calculateOverrideAmount(rule, commission as Commission);
   if (amount <= 0) return null;
@@ -75,7 +100,7 @@ function buildOverrideEntryData(
     description: `${baseDescription}${milestoneDescriptionSuffix(progress)}`,
     wooOrderId: commission.wooOrderId,
     orderRevenue: commission.orderRevenue,
-    sourceAffiliateId: rule.sourceAffiliateId,
+    sourceAffiliateId,
     sourceCommissionId: commission.id,
     dealRuleId: rule.id,
     payoutWeek: getNextPayoutWeek(rule.schedule),
@@ -85,13 +110,16 @@ function buildOverrideEntryData(
 async function createOverrideEntry(
   rule: DealRule,
   commission: Commission,
-  revenueByRecruit?: Map<string, number>
+  revenueByRecruit?: Map<string, number>,
+  sourceAffiliateIdOverride?: string
 ) {
-  if (!rule.sourceAffiliateId) return false;
+  const sourceAffiliateId =
+    sourceAffiliateIdOverride ?? rule.sourceAffiliateId ?? null;
+  if (!sourceAffiliateId) return false;
 
   const cumulativeRevenue =
-    revenueByRecruit?.get(rule.sourceAffiliateId) ??
-    (await getRecruitCumulativeRevenue(rule.sourceAffiliateId));
+    revenueByRecruit?.get(sourceAffiliateId) ??
+    (await getRecruitCumulativeRevenue(sourceAffiliateId));
 
   const existing = await prisma.ledgerEntry.findFirst({
     where: {
@@ -102,7 +130,7 @@ async function createOverrideEntry(
   });
 
   const sourceAffiliate = await prisma.affiliate.findUnique({
-    where: { id: rule.sourceAffiliateId },
+    where: { id: sourceAffiliateId },
     select: { displayName: true, email: true },
   });
 
@@ -113,7 +141,8 @@ async function createOverrideEntry(
     rule,
     commission,
     sourceName,
-    cumulativeRevenue
+    cumulativeRevenue,
+    sourceAffiliateId
   );
   if (!data) return false;
 
@@ -126,6 +155,7 @@ async function createOverrideEntry(
         description: data.description,
         orderRevenue: data.orderRevenue,
         wooOrderId: data.wooOrderId,
+        sourceAffiliateId: data.sourceAffiliateId,
       },
     });
   } else {
@@ -138,7 +168,7 @@ async function createOverrideEntry(
   if (threshold && threshold > 0) {
     await promoteMilestoneOverrides(
       rule.id,
-      rule.sourceAffiliateId,
+      sourceAffiliateId,
       threshold,
       cumulativeRevenue
     );
@@ -147,22 +177,29 @@ async function createOverrideEntry(
   return !existing;
 }
 
-/** Apply a deal rule to all existing commissions from the recruit (source) affiliate. */
+/** Apply a deal rule to all existing commissions it covers. */
 export async function applyDealRuleRetroactively(
   ruleId: string
 ): Promise<number> {
   const rule = await prisma.dealRule.findUnique({
     where: { id: ruleId },
-    include: {
-      sourceAffiliate: {
-        select: { displayName: true, email: true },
-      },
-    },
   });
 
-  if (!rule || !rule.active || !rule.sourceAffiliateId) {
-    return 0;
+  if (!rule || !rule.active) return 0;
+
+  if (rule.sourceAffiliateId) {
+    return applyRecruitRuleRetroactively(rule);
   }
+
+  if (rule.teamId) {
+    return applyTeamRuleRetroactively(rule);
+  }
+
+  return 0;
+}
+
+async function applyRecruitRuleRetroactively(rule: DealRule) {
+  if (!rule.sourceAffiliateId) return 0;
 
   const cumulativeRevenue = await getRecruitCumulativeRevenue(
     rule.sourceAffiliateId
@@ -170,20 +207,48 @@ export async function applyDealRuleRetroactively(
 
   const commissions = await prisma.commission.findMany({
     where: { affiliateId: rule.sourceAffiliateId },
-    select: {
-      id: true,
-      amount: true,
-      orderRevenue: true,
-      status: true,
-      wooOrderId: true,
-      affiliateId: true,
-    },
     orderBy: { dateCreated: "asc" },
   });
 
+  const revenueMap = new Map([[rule.sourceAffiliateId, cumulativeRevenue]]);
+  return applyRuleToCommissions(rule, commissions, revenueMap);
+}
+
+async function applyTeamRuleRetroactively(rule: DealRule) {
+  if (!rule.teamId) return 0;
+
+  const memberIds = await getTeamMemberIds(rule.teamId);
+  if (memberIds.length === 0) return 0;
+
+  const revenueRows = await prisma.commission.groupBy({
+    by: ["affiliateId"],
+    where: {
+      affiliateId: { in: memberIds },
+      orderRevenue: { not: null },
+    },
+    _sum: { orderRevenue: true },
+  });
+
+  const revenueMap = new Map(
+    revenueRows.map((row) => [row.affiliateId, toNumber(row._sum.orderRevenue)])
+  );
+
+  const commissions = await prisma.commission.findMany({
+    where: { affiliateId: { in: memberIds } },
+    orderBy: { dateCreated: "asc" },
+  });
+
+  return applyRuleToCommissions(rule, commissions, revenueMap);
+}
+
+async function applyRuleToCommissions(
+  rule: DealRule,
+  commissions: Commission[],
+  revenueMap: Map<string, number>
+) {
   const existingOverrides = await prisma.ledgerEntry.findMany({
     where: {
-      dealRuleId: ruleId,
+      dealRuleId: rule.id,
       type: LedgerEntryType.OVERRIDE,
     },
     select: { sourceCommissionId: true },
@@ -195,36 +260,57 @@ export async function applyDealRuleRetroactively(
       .filter((id): id is string => !!id)
   );
 
-  const revenueMap = new Map([[rule.sourceAffiliateId, cumulativeRevenue]]);
-
   let created = 0;
   for (const commission of commissions) {
+    const sourceAffiliateId = rule.sourceAffiliateId ?? commission.affiliateId;
+
     if (existingIds.has(commission.id)) {
-      await createOverrideEntry(
-        rule,
-        commission as Commission,
-        revenueMap
-      );
+      await createOverrideEntry(rule, commission, revenueMap, sourceAffiliateId);
       continue;
     }
+
     const didCreate = await createOverrideEntry(
       rule,
-      commission as Commission,
-      revenueMap
+      commission,
+      revenueMap,
+      sourceAffiliateId
     );
     if (didCreate) created += 1;
+
+    const amount = toNumber(commission.orderRevenue);
+    if (amount > 0) {
+      const current = revenueMap.get(sourceAffiliateId) ?? 0;
+      revenueMap.set(sourceAffiliateId, current + amount);
+    }
   }
 
-  const threshold = rule.milestoneRevenueThreshold
-    ? toNumber(rule.milestoneRevenueThreshold)
-    : null;
-  if (threshold && threshold > 0) {
-    await promoteMilestoneOverrides(
-      rule.id,
-      rule.sourceAffiliateId,
-      threshold,
-      cumulativeRevenue
-    );
+  if (rule.sourceAffiliateId) {
+    const threshold = rule.milestoneRevenueThreshold
+      ? toNumber(rule.milestoneRevenueThreshold)
+      : null;
+    if (threshold && threshold > 0) {
+      await promoteMilestoneOverrides(
+        rule.id,
+        rule.sourceAffiliateId,
+        threshold,
+        revenueMap.get(rule.sourceAffiliateId) ?? 0
+      );
+    }
+  } else if (rule.teamId) {
+    const memberIds = await getTeamMemberIds(rule.teamId);
+    const threshold = rule.milestoneRevenueThreshold
+      ? toNumber(rule.milestoneRevenueThreshold)
+      : null;
+    if (threshold && threshold > 0) {
+      for (const memberId of memberIds) {
+        await promoteMilestoneOverrides(
+          rule.id,
+          memberId,
+          threshold,
+          revenueMap.get(memberId) ?? 0
+        );
+      }
+    }
   }
 
   return created;

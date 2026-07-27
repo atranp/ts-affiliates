@@ -14,6 +14,10 @@ import { prisma } from "./prisma";
 import { fetchWooOrderById } from "./woocommerce";
 import { getRecruitRevenueMap } from "./admin/team";
 import {
+  linkOrphanRulesToDownlineTeams,
+  syncTeamsFromSliceWP,
+} from "./teams/slicewp-sync";
+import {
   ensureDirectLedgerEntry,
   processDealRulesForCommission,
 } from "./rules-engine";
@@ -25,6 +29,7 @@ export type SyncResult = {
   commissionsUpserted: number;
   profilesLinked: number;
   overridesCreated: number;
+  teamsSynced: number;
 };
 
 const COMMISSION_CHUNK_SIZE = 25;
@@ -358,6 +363,8 @@ export async function syncCommissionsFromSliceWP(): Promise<number> {
 
 export async function runFullSync(): Promise<SyncResult> {
   const affiliatesUpserted = await syncAffiliatesFromSliceWP();
+  const teamsSynced = await syncTeamsFromSliceWP();
+  await linkOrphanRulesToDownlineTeams();
   await setSyncStep("profiles");
   const profilesLinked = await autoLinkUnlinkedProfiles();
   await setSyncStep("commissions");
@@ -372,6 +379,7 @@ export async function runFullSync(): Promise<SyncResult> {
     commissionsUpserted,
     profilesLinked,
     overridesCreated,
+    teamsSynced,
   };
 }
 

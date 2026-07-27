@@ -611,6 +611,7 @@ function AdminAffiliateDetailPageContent() {
                     <TeamsPanel
                       teams={teamsData.teams}
                       adminView
+                      sponsorAffiliateId={affiliateId}
                       onViewTeamLedger={(teamId) => {
                         setTeamFilter(teamId);
                         focusLedger("overrides");

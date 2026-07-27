@@ -46,6 +46,7 @@ export type SyncResult = {
   commissionsUpserted: number;
   profilesLinked: number;
   overridesCreated: number;
+  teamsSynced?: number;
 };
 
 export type AdminAffiliateProfile = {

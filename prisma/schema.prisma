@@ -123,12 +123,15 @@ model Team {
   sponsorAffiliateId String
   sponsorAffiliate   Affiliate      @relation("SponsorTeams", fields: [sponsorAffiliateId], references: [id], onDelete: Cascade)
   active             Boolean        @default(true)
+  /** Set to "downline" for teams auto-created from SliceWP parent_id tree */
+  slicewpKey         String?
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 
   dealRules     DealRule[]
   payoutBatches PayoutBatch[]
 
+  @@unique([sponsorAffiliateId, slicewpKey])
   @@index([sponsorAffiliateId])
 }
 

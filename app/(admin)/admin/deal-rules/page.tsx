@@ -39,6 +39,19 @@ import {
   type DealRuleListItem,
 } from "@/hooks/use-admin-query";
 import { apiFetch } from "@/lib/api-client";
+import { SLICEWP_DOWNLINE_KEY } from "@/lib/teams/constants";
+
+type RuleScope = "team" | "recruit";
+
+type TeamOption = {
+  id: string;
+  name: string;
+  slicewpKey?: string | null;
+};
+
+function defaultDownlineTeamId(teams: TeamOption[] | undefined) {
+  return teams?.find((team) => team.slicewpKey === SLICEWP_DOWNLINE_KEY)?.id ?? "";
+}
 
 function affiliateFromRule(
   affiliate: { id: string; email: string; displayName: string | null }
@@ -76,6 +89,7 @@ function AdminDealRulesPageContent() {
     ratePercent: "10",
     milestoneRevenueThreshold: "10000",
     teamId: "",
+    scope: "team" as RuleScope,
   });
   const [editingRule, setEditingRule] = useState<DealRuleListItem | null>(null);
   const [editForm, setEditForm] = useState({
@@ -84,6 +98,7 @@ function AdminDealRulesPageContent() {
     milestoneRevenueThreshold: "",
     active: true,
     teamId: "",
+    scope: "recruit" as RuleScope,
   });
   const [editSponsor, setEditSponsor] = useState<AffiliateOption | null>(null);
   const [editRecruit, setEditRecruit] = useState<AffiliateOption | null>(null);
@@ -118,7 +133,7 @@ function AdminDealRulesPageContent() {
           });
         }
         if (teamIdParam) {
-          setForm((f) => ({ ...f, teamId: teamIdParam }));
+          setForm((f) => ({ ...f, teamId: teamIdParam, scope: "team" }));
         }
         if (shouldOpen) setCreateOpen(true);
       } catch {
@@ -139,23 +154,33 @@ function AdminDealRulesPageContent() {
     ? `/api/admin/teams?sponsorAffiliateId=${editSponsor.id}`
     : null;
 
-  const { data: createTeamsData } = useAdminQuery<{ teams: { id: string; name: string }[] }>(
+  const { data: createTeamsData } = useAdminQuery<{ teams: TeamOption[] }>(
     ["admin", "teams", sponsor?.id ?? ""],
     createTeamsUrl
   );
-  const { data: editTeamsData } = useAdminQuery<{ teams: { id: string; name: string }[] }>(
+  const { data: editTeamsData } = useAdminQuery<{ teams: TeamOption[] }>(
     ["admin", "teams", editSponsor?.id ?? ""],
     editTeamsUrl
   );
 
+  useEffect(() => {
+    if (!sponsor?.id || form.scope !== "team" || form.teamId) return;
+    const downlineId = defaultDownlineTeamId(createTeamsData?.teams);
+    if (downlineId) {
+      setForm((current) => ({ ...current, teamId: downlineId }));
+    }
+  }, [sponsor?.id, form.scope, form.teamId, createTeamsData?.teams]);
+
   function openEdit(rule: DealRuleListItem) {
     setEditingRule(rule);
+    const scope: RuleScope = rule.sourceAffiliate ? "recruit" : "team";
     setEditForm({
       name: rule.name,
       ratePercent: rule.ratePercent,
       milestoneRevenueThreshold: rule.milestoneRevenueThreshold ?? "",
       active: rule.active,
       teamId: rule.teamId ?? "",
+      scope,
     });
     setEditSponsor(affiliateFromRule(rule.sponsorAffiliate));
     setEditRecruit(
@@ -174,12 +199,25 @@ function AdminDealRulesPageContent() {
     e.preventDefault();
     if (!editingRule) return;
 
-    if (!editSponsor?.id || !editRecruit?.id) {
-      toast.error("Select both sponsor and recruit");
+    if (!editSponsor?.id) {
+      toast.error("Select a sponsor");
       return;
     }
 
-    if (editSponsor.id === editRecruit.id) {
+    if (editForm.scope === "recruit" && !editRecruit?.id) {
+      toast.error("Select a recruit for recruit-specific rules");
+      return;
+    }
+
+    if (editForm.scope === "team" && !editForm.teamId) {
+      toast.error("Select a team for team-wide rules");
+      return;
+    }
+
+    if (
+      editForm.scope === "recruit" &&
+      editSponsor.id === editRecruit?.id
+    ) {
       toast.error("Sponsor and recruit must be different affiliates");
       return;
     }
@@ -197,7 +235,8 @@ function AdminDealRulesPageContent() {
         body: JSON.stringify({
           name: editForm.name,
           sponsorAffiliateId: editSponsor.id,
-          sourceAffiliateId: editRecruit.id,
+          sourceAffiliateId:
+            editForm.scope === "recruit" ? editRecruit?.id ?? null : null,
           ratePercent: Number(editForm.ratePercent),
           milestoneRevenueThreshold: editForm.milestoneRevenueThreshold
             ? Number(editForm.milestoneRevenueThreshold)
@@ -254,12 +293,22 @@ function AdminDealRulesPageContent() {
   async function createRule(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!sponsor?.id || !recruit?.id) {
-      toast.error("Select both sponsor and recruit");
+    if (!sponsor?.id) {
+      toast.error("Select a sponsor");
       return;
     }
 
-    if (sponsor.id === recruit.id) {
+    if (form.scope === "recruit" && !recruit?.id) {
+      toast.error("Select a recruit for recruit-specific rules");
+      return;
+    }
+
+    if (form.scope === "team" && !form.teamId) {
+      toast.error("Select a team for team-wide rules");
+      return;
+    }
+
+    if (form.scope === "recruit" && sponsor.id === recruit?.id) {
       toast.error("Sponsor and recruit must be different affiliates");
       return;
     }
@@ -277,7 +326,8 @@ function AdminDealRulesPageContent() {
             name: form.name,
             type: "REVENUE_OVERRIDE",
             sponsorAffiliateId: sponsor.id,
-            sourceAffiliateId: recruit.id,
+            sourceAffiliateId:
+              form.scope === "recruit" ? recruit?.id ?? null : null,
             ratePercent: Number(form.ratePercent),
             basis: "ORDER_REVENUE",
             milestoneRevenueThreshold: form.milestoneRevenueThreshold
@@ -293,7 +343,13 @@ function AdminDealRulesPageContent() {
             ? `Backfilled ${body.overridesCreated} entries`
             : undefined,
       });
-      setForm({ name: "", ratePercent: "10", milestoneRevenueThreshold: "10000", teamId: "" });
+      setForm({
+        name: "",
+        ratePercent: "10",
+        milestoneRevenueThreshold: "10000",
+        teamId: "",
+        scope: "team",
+      });
       setSponsor(null);
       setRecruit(null);
       setCreateOpen(false);
@@ -339,7 +395,7 @@ function AdminDealRulesPageContent() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Sponsor</TableHead>
-                  <TableHead>Recruit</TableHead>
+                  <TableHead>Applies to</TableHead>
                   <TableHead>Team</TableHead>
                   <TableHead>Rate</TableHead>
                   <TableHead>Milestone</TableHead>
@@ -358,7 +414,7 @@ function AdminDealRulesPageContent() {
                     <TableCell>
                       {rule.sourceAffiliate?.displayName ??
                         rule.sourceAffiliate?.email ??
-                        "—"}
+                        (rule.team ? `Entire team · ${rule.team.name}` : "Entire team")}
                     </TableCell>
                     <TableCell>
                       {rule.team?.name ?? (
@@ -433,6 +489,44 @@ function AdminDealRulesPageContent() {
                     disabled={submitting}
                   />
                 </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Scope</Label>
+                  <div className="flex flex-wrap gap-4">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="radio"
+                        name="create-scope"
+                        checked={form.scope === "team"}
+                        onChange={() => {
+                          setRecruit(null);
+                          setForm((current) => ({
+                            ...current,
+                            scope: "team",
+                            teamId: defaultDownlineTeamId(createTeamsData?.teams),
+                          }));
+                        }}
+                        disabled={submitting}
+                      />
+                      Entire team
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="radio"
+                        name="create-scope"
+                        checked={form.scope === "recruit"}
+                        onChange={() =>
+                          setForm((current) => ({
+                            ...current,
+                            scope: "recruit",
+                            teamId: "",
+                          }))
+                        }
+                        disabled={submitting}
+                      />
+                      Single recruit
+                    </label>
+                  </div>
+                </div>
                 <AffiliateSearchCombobox
                   id="sponsor"
                   label="Sponsor"
@@ -440,39 +534,69 @@ function AdminDealRulesPageContent() {
                   selected={sponsor}
                   onChange={(_id, affiliate) => {
                     setSponsor(affiliate);
-                    setForm((f) => ({ ...f, teamId: "" }));
+                    setForm((f) => ({
+                      ...f,
+                      teamId:
+                        f.scope === "team"
+                          ? ""
+                          : f.teamId,
+                    }));
                   }}
                   excludeId={recruit?.id}
                   disabled={submitting}
                 />
-                <AffiliateSearchCombobox
-                  id="source"
-                  label="Recruit"
-                  value={recruit?.id ?? ""}
-                  selected={recruit}
-                  onChange={(_id, affiliate) => setRecruit(affiliate)}
-                  excludeId={sponsor?.id}
-                  disabled={submitting}
-                />
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="create-team">Team (optional)</Label>
-                  <select
-                    id="create-team"
-                    className="select-field w-full"
-                    value={form.teamId}
-                    disabled={!sponsor?.id || submitting}
-                    onChange={(e) =>
-                      setForm({ ...form, teamId: e.target.value })
-                    }
-                  >
-                    <option value="">No team — unassigned</option>
-                    {createTeamsData?.teams.map((team) => (
-                      <option key={team.id} value={team.id}>
-                        {team.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {form.scope === "recruit" ? (
+                  <AffiliateSearchCombobox
+                    id="source"
+                    label="Recruit"
+                    value={recruit?.id ?? ""}
+                    selected={recruit}
+                    onChange={(_id, affiliate) => setRecruit(affiliate)}
+                    excludeId={sponsor?.id}
+                    disabled={submitting}
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="create-team">Team</Label>
+                    <select
+                      id="create-team"
+                      className="select-field w-full"
+                      value={form.teamId}
+                      disabled={!sponsor?.id || submitting}
+                      onChange={(e) =>
+                        setForm({ ...form, teamId: e.target.value })
+                      }
+                    >
+                      <option value="">Select team</option>
+                      {createTeamsData?.teams.map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {form.scope === "recruit" && (
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="create-team-optional">Team (optional)</Label>
+                    <select
+                      id="create-team-optional"
+                      className="select-field w-full"
+                      value={form.teamId}
+                      disabled={!sponsor?.id || submitting}
+                      onChange={(e) =>
+                        setForm({ ...form, teamId: e.target.value })
+                      }
+                    >
+                      <option value="">No team — unassigned</option>
+                      {createTeamsData?.teams.map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="rate">Rate (%)</Label>
                   <Input
@@ -555,6 +679,42 @@ function AdminDealRulesPageContent() {
                     disabled={savingEdit}
                   />
                 </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Scope</Label>
+                  <div className="flex flex-wrap gap-4">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="radio"
+                        name="edit-scope"
+                        checked={editForm.scope === "team"}
+                        onChange={() => {
+                          setEditRecruit(null);
+                          setEditForm((current) => ({
+                            ...current,
+                            scope: "team",
+                            teamId:
+                              current.teamId ||
+                              defaultDownlineTeamId(editTeamsData?.teams),
+                          }));
+                        }}
+                        disabled={savingEdit}
+                      />
+                      Entire team
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="radio"
+                        name="edit-scope"
+                        checked={editForm.scope === "recruit"}
+                        onChange={() =>
+                          setEditForm((current) => ({ ...current, scope: "recruit" }))
+                        }
+                        disabled={savingEdit}
+                      />
+                      Single recruit
+                    </label>
+                  </div>
+                </div>
                 <AffiliateSearchCombobox
                   id="edit-sponsor"
                   label="Sponsor"
@@ -562,39 +722,69 @@ function AdminDealRulesPageContent() {
                   selected={editSponsor}
                   onChange={(_id, affiliate) => {
                     setEditSponsor(affiliate);
-                    setEditForm((f) => ({ ...f, teamId: "" }));
+                    setEditForm((f) => ({
+                      ...f,
+                      teamId:
+                        f.scope === "team"
+                          ? ""
+                          : f.teamId,
+                    }));
                   }}
                   excludeId={editRecruit?.id}
                   disabled={savingEdit}
                 />
-                <AffiliateSearchCombobox
-                  id="edit-recruit"
-                  label="Recruit"
-                  value={editRecruit?.id ?? ""}
-                  selected={editRecruit}
-                  onChange={(_id, affiliate) => setEditRecruit(affiliate)}
-                  excludeId={editSponsor?.id}
-                  disabled={savingEdit}
-                />
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="edit-team">Team (optional)</Label>
-                  <select
-                    id="edit-team"
-                    className="select-field w-full"
-                    value={editForm.teamId}
-                    disabled={!editSponsor?.id || savingEdit}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, teamId: e.target.value })
-                    }
-                  >
-                    <option value="">No team — unassigned</option>
-                    {editTeamsData?.teams.map((team) => (
-                      <option key={team.id} value={team.id}>
-                        {team.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {editForm.scope === "recruit" ? (
+                  <AffiliateSearchCombobox
+                    id="edit-recruit"
+                    label="Recruit"
+                    value={editRecruit?.id ?? ""}
+                    selected={editRecruit}
+                    onChange={(_id, affiliate) => setEditRecruit(affiliate)}
+                    excludeId={editSponsor?.id}
+                    disabled={savingEdit}
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-team">Team</Label>
+                    <select
+                      id="edit-team"
+                      className="select-field w-full"
+                      value={editForm.teamId}
+                      disabled={!editSponsor?.id || savingEdit}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, teamId: e.target.value })
+                      }
+                    >
+                      <option value="">Select team</option>
+                      {editTeamsData?.teams.map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {editForm.scope === "recruit" && (
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="edit-team-optional">Team (optional)</Label>
+                    <select
+                      id="edit-team-optional"
+                      className="select-field w-full"
+                      value={editForm.teamId}
+                      disabled={!editSponsor?.id || savingEdit}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, teamId: e.target.value })
+                      }
+                    >
+                      <option value="">No team — unassigned</option>
+                      {editTeamsData?.teams.map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="edit-rate">Rate (%)</Label>
                   <Input

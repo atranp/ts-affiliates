@@ -58,6 +58,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
+  const resolvedSourceId = sourceAffiliateId || null;
+  if (!resolvedSourceId && !teamId) {
+    return NextResponse.json(
+      { error: "Select a recruit or a team for team-wide rules" },
+      { status: 400 }
+    );
+  }
+
+  if (resolvedSourceId && resolvedSourceId === sponsorAffiliateId) {
+    return NextResponse.json(
+      { error: "Sponsor and recruit must be different affiliates" },
+      { status: 400 }
+    );
+  }
+
   if (teamId) {
     const team = await prisma.team.findFirst({
       where: { id: teamId, sponsorAffiliateId },
@@ -75,7 +90,7 @@ export async function POST(request: Request) {
       name,
       type,
       sponsorAffiliateId,
-      sourceAffiliateId: sourceAffiliateId || null,
+      sourceAffiliateId: resolvedSourceId,
       teamId: teamId || null,
       ratePercent,
       basis,
@@ -98,7 +113,7 @@ export async function POST(request: Request) {
   });
 
   const overridesCreated =
-    rule.sourceAffiliateId && rule.active
+    rule.active && (rule.sourceAffiliateId || rule.teamId)
       ? await applyDealRuleRetroactively(rule.id)
       : 0;
 

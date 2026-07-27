@@ -4,6 +4,7 @@ import { buildPayoutEntryWhere } from "../payouts/scope";
 import type { PayoutRecruitLine, PayoutScope } from "../payouts/types";
 import { prisma } from "../prisma";
 import { toNumber } from "../utils";
+import { ensureSponsorDownlineTeam, getTeamMembers } from "./members";
 
 export type TeamRuleSummary = {
   id: string;
@@ -45,6 +46,7 @@ export type TeamSummary = {
   description: string | null;
   active: boolean;
   sponsorAffiliateId: string;
+  slicewpKey?: string | null;
   memberCount: number;
   ruleCount: number;
   stats: {
@@ -182,34 +184,47 @@ function mapRule(rule: {
   };
 }
 
+function assignRulesToMembers(
+  memberIds: string[],
+  mappedRules: TeamRuleSummary[]
+): Map<string, TeamRuleSummary[]> {
+  const teamWideRules = mappedRules.filter((rule) => !rule.recruit);
+  const rulesByRecruit = new Map<string, TeamRuleSummary[]>();
+
+  for (const rule of mappedRules) {
+    if (!rule.recruit) continue;
+    const existing = rulesByRecruit.get(rule.recruit.id) ?? [];
+    existing.push(rule);
+    rulesByRecruit.set(rule.recruit.id, existing);
+  }
+
+  for (const memberId of memberIds) {
+    const existing = rulesByRecruit.get(memberId) ?? [];
+    rulesByRecruit.set(memberId, [...existing, ...teamWideRules]);
+  }
+
+  return rulesByRecruit;
+}
+
 export async function getTeamsForSponsor(
   sponsorAffiliateId: string,
   period?: { from: Date; to: Date }
 ): Promise<TeamSummary[]> {
+  await ensureSponsorDownlineTeamIfNeeded(sponsorAffiliateId);
+
   const teams = await prisma.team.findMany({
     where: { sponsorAffiliateId },
     orderBy: { name: "asc" },
-    include: {
-      dealRules: {
-        where: { sourceAffiliateId: { not: null } },
-        select: { sourceAffiliateId: true },
-      },
-    },
   });
 
   const summaries: TeamSummary[] = [];
 
   for (const team of teams) {
-    const memberIds = Array.from(
-      new Set(
-        team.dealRules
-          .map((rule) => rule.sourceAffiliateId)
-          .filter((id): id is string => !!id)
-      )
-    );
+    const members = await getTeamMembers(team.id);
+    const memberIds = members.map((member) => member.id);
 
     const rules = await prisma.dealRule.findMany({
-      where: { teamId: team.id, sourceAffiliateId: { not: null } },
+      where: { teamId: team.id, active: true },
       include: {
         sourceAffiliate: {
           select: { id: true, displayName: true, email: true },
@@ -217,14 +232,8 @@ export async function getTeamsForSponsor(
       },
     });
 
-    const rulesByRecruit = new Map<string, TeamRuleSummary[]>();
-    for (const rule of rules) {
-      if (!rule.sourceAffiliate) continue;
-      const mapped = mapRule(rule);
-      const existing = rulesByRecruit.get(rule.sourceAffiliate.id) ?? [];
-      existing.push(mapped);
-      rulesByRecruit.set(rule.sourceAffiliate.id, existing);
-    }
+    const mappedRules = rules.map(mapRule);
+    const rulesByRecruit = assignRulesToMembers(memberIds, mappedRules);
 
     const memberStats = await buildMemberStats(
       sponsorAffiliateId,
@@ -251,8 +260,9 @@ export async function getTeamsForSponsor(
       description: team.description,
       active: team.active,
       sponsorAffiliateId: team.sponsorAffiliateId,
+      slicewpKey: team.slicewpKey,
       memberCount: memberIds.length,
-      ruleCount: rules.length,
+      ruleCount: mappedRules.length,
       stats: {
         totalRevenue,
         unpaidTeamBonus,
@@ -263,6 +273,15 @@ export async function getTeamsForSponsor(
   }
 
   return summaries;
+}
+
+async function ensureSponsorDownlineTeamIfNeeded(sponsorAffiliateId: string) {
+  const recruitCount = await prisma.affiliate.count({
+    where: { parentAffiliateId: sponsorAffiliateId },
+  });
+  if (recruitCount > 0) {
+    await ensureSponsorDownlineTeam(sponsorAffiliateId);
+  }
 }
 
 export async function getTeamDetail(
@@ -277,6 +296,8 @@ export async function getTeamDetail(
   });
 
   if (!team) return null;
+
+  const membersRaw = await getTeamMembers(team.id);
 
   const rules = await prisma.dealRule.findMany({
     where: { teamId: team.id },
@@ -295,54 +316,31 @@ export async function getTeamDetail(
   });
 
   const mappedRules = rules.map(mapRule);
-  const rulesByRecruit = new Map<string, TeamRuleSummary[]>();
-  const memberMeta = new Map<
-    string,
-    {
-      id: string;
-      displayName: string | null;
-      email: string;
-      status: string;
-      slicewpId: number;
-    }
-  >();
+  const memberIds = membersRaw.map((member) => member.id);
+  const rulesByRecruit = assignRulesToMembers(memberIds, mappedRules);
 
-  for (const rule of rules) {
-    if (!rule.sourceAffiliate) continue;
-    const recruit = rule.sourceAffiliate;
-    memberMeta.set(recruit.id, recruit);
-    const mapped = mapRule(rule);
-    const existing = rulesByRecruit.get(recruit.id) ?? [];
-    existing.push(mapped);
-    rulesByRecruit.set(recruit.id, existing);
-  }
-
-  const memberIds = Array.from(memberMeta.keys());
   const memberStats = await buildMemberStats(
     team.sponsorAffiliateId,
     memberIds,
     rulesByRecruit
   );
 
-  const members: TeamMemberSummary[] = memberIds
-    .map((id) => {
-      const meta = memberMeta.get(id)!;
-      return {
-        id: meta.id,
-        displayName: meta.displayName,
-        email: meta.email,
-        status: meta.status,
-        slicewpId: meta.slicewpId,
-        rules: rulesByRecruit.get(id) ?? [],
-        stats: memberStats.get(id) ?? {
-          totalRevenue: 0,
-          unpaidTeamBonus: 0,
-          pendingTeamBonus: 0,
-          paidTeamBonus: 0,
-          milestone: null,
-        },
-      };
-    })
+  const members: TeamMemberSummary[] = membersRaw
+    .map((meta) => ({
+      id: meta.id,
+      displayName: meta.displayName,
+      email: meta.email,
+      status: meta.status,
+      slicewpId: meta.slicewpId,
+      rules: rulesByRecruit.get(meta.id) ?? [],
+      stats: memberStats.get(meta.id) ?? {
+        totalRevenue: 0,
+        unpaidTeamBonus: 0,
+        pendingTeamBonus: 0,
+        paidTeamBonus: 0,
+        milestone: null,
+      },
+    }))
     .sort((a, b) =>
       (a.displayName ?? a.email).localeCompare(b.displayName ?? b.email)
     );

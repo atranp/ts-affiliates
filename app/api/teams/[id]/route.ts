@@ -4,11 +4,13 @@ import { jsonCached } from "@/lib/api-cache";
 import { getTeamDetail } from "@/lib/teams/queries";
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await requireAuth();
   if ("error" in auth) return auth.error;
+
+  const { id } = await params;
 
   const sponsorFilter =
     auth.user.role === "ADMIN" ? undefined : auth.user.affiliateId ?? undefined;
@@ -20,7 +22,7 @@ export async function GET(
     );
   }
 
-  const team = await getTeamDetail(params.id, sponsorFilter);
+  const team = await getTeamDetail(id, sponsorFilter);
 
   if (!team) {
     return NextResponse.json({ error: "Team not found" }, { status: 404 });

@@ -88,9 +88,17 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
   }
 
+  if (!nextSourceId && !nextTeamId) {
+    return NextResponse.json(
+      { error: "Select a recruit or a team for team-wide rules" },
+      { status: 400 }
+    );
+  }
+
   const affiliateChanged =
     nextSponsorId !== existing.sponsorAffiliateId ||
-    nextSourceId !== existing.sourceAffiliateId;
+    nextSourceId !== existing.sourceAffiliateId ||
+    nextTeamId !== existing.teamId;
 
   const reactivated = active === true && !existing.active;
 
@@ -116,7 +124,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   let overridesUpdated = 0;
-  if (rule.active && rule.sourceAffiliateId) {
+  if (rule.active && (rule.sourceAffiliateId || rule.teamId)) {
     overridesUpdated = await applyDealRuleRetroactively(rule.id);
   }
 

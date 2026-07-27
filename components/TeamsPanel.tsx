@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { apiFetch } from "@/lib/api-client";
 import type { TeamDetail, TeamSummary } from "@/lib/teams/queries";
@@ -125,6 +126,8 @@ function TeamCard({
   onToggle,
   onViewLedger,
   onViewTeamLedger,
+  adminView = false,
+  sponsorAffiliateId,
 }: {
   team: TeamSummary;
   expanded: boolean;
@@ -132,6 +135,7 @@ function TeamCard({
   onViewLedger?: (recruitId: string) => void;
   onViewTeamLedger?: (teamId: string) => void;
   adminView?: boolean;
+  sponsorAffiliateId?: string;
 }) {
   const { data, isLoading } = useTeamDetail(team.id, expanded);
 
@@ -146,7 +150,17 @@ function TeamCard({
               ) : (
                 <ChevronRight className="h-4 w-4 shrink-0" />
               )}
-              {team.name}
+              {adminView && sponsorAffiliateId ? (
+                <Link
+                  href={`/admin/affiliates/${sponsorAffiliateId}/teams/${team.id}`}
+                  className="hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {team.name}
+                </Link>
+              ) : (
+                team.name
+              )}
               {!team.active && (
                 <Badge variant="secondary" className="ml-1">
                   Inactive
@@ -198,6 +212,19 @@ function TeamCard({
           </div>
         </div>
 
+        {adminView && sponsorAffiliateId && (
+          <div className="mt-3 flex justify-end">
+            <Link
+              href={`/admin/affiliates/${sponsorAffiliateId}/teams/${team.id}`}
+              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Open team
+              <ExternalLink className="h-3 w-3" />
+            </Link>
+          </div>
+        )}
+
         {onViewTeamLedger && team.stats.unpaidTeamBonus > 0 && (
           <div className="mt-3 flex justify-end">
             <button
@@ -240,11 +267,13 @@ export function TeamsPanel({
   onViewLedger,
   onViewTeamLedger,
   adminView = false,
+  sponsorAffiliateId,
 }: {
   teams: TeamSummary[];
   onViewLedger?: (recruitId: string) => void;
   onViewTeamLedger?: (teamId: string) => void;
   adminView?: boolean;
+  sponsorAffiliateId?: string;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(
     teams.length === 1 ? teams[0]?.id ?? null : null
@@ -273,6 +302,7 @@ export function TeamsPanel({
           onViewLedger={onViewLedger}
           onViewTeamLedger={onViewTeamLedger}
           adminView={adminView}
+          sponsorAffiliateId={sponsorAffiliateId}
         />
       ))}
     </div>

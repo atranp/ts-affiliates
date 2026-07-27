@@ -42,6 +42,7 @@ export async function GET(request: Request) {
       active: team.active,
       sponsorAffiliateId: team.sponsorAffiliateId,
       sponsorAffiliate: team.sponsorAffiliate,
+      slicewpKey: team.slicewpKey,
       ruleCount: team._count.dealRules,
     })),
   });
