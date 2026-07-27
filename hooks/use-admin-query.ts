@@ -93,13 +93,6 @@ export function useAdminSettings() {
   );
 }
 
-export function useSyncStatus() {
-  return useAdminQuery<SettingsResponse>(
-    queryKeys.admin.syncStatus,
-    "/api/sync"
-  );
-}
-
 export function useAdminMutation<T>(
   invalidateKeys: readonly (readonly unknown[])[] = []
 ) {

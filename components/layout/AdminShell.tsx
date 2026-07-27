@@ -2,6 +2,9 @@
 
 import { LayoutDashboard, Settings, Users, GitBranch, UsersRound, DollarSign } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
+import { SyncAutoStart } from "@/components/admin/SyncAutoStart";
+import { SyncStatusBanner } from "@/components/admin/SyncStatusBanner";
+import { useSyncStatus } from "@/hooks/use-sync-status";
 
 const navItems = [
   {
@@ -18,12 +21,18 @@ const navItems = [
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
+  useSyncStatus();
+
   return (
     <AppShell
       homeHref="/admin"
       portalLabel="Admin Console"
       navItems={navItems}
     >
+      <SyncAutoStart />
+      <div className="mb-6">
+        <SyncStatusBanner />
+      </div>
       {children}
     </AppShell>
   );

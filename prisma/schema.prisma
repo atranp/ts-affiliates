@@ -224,6 +224,11 @@ model Settings {
   slicewpConsumerSecretEncrypted String?
   lastAffiliateSyncAt            DateTime?
   lastCommissionSyncAt           DateTime?
+  syncRunning                    Boolean  @default(false)
+  syncStep                       String?
+  syncStartedAt                  DateTime?
+  lastSyncError                  String?
+  lastSyncResult                 Json?
   updatedAt                      DateTime @updatedAt
 }
 

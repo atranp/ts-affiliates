@@ -39,11 +39,12 @@ npm run dev
 ## First-run checklist
 
 1. Log in as admin (`anthony@true-sciences.com` / `changeme123` after seed)
-2. Go to **Admin → Integration Settings** and save WooCommerce + SliceWP keys
-3. Run **Full Sync** on the Admin page
+2. Go to **Admin → Integrations** and save WooCommerce + SliceWP keys
+3. Set **`CRON_SECRET`** in Vercel env (see Cron sync below) — sync then runs automatically every 6 hours
 4. Create a deal rule (e.g. Trin 10% of Blair revenue)
-5. Run sync again to generate override ledger entries
-6. Affiliates log in and view unpaid/paid ledger on Dashboard
+5. Affiliates log in and view unpaid/paid ledger on Dashboard
+
+Sync is automatic: Vercel cron every 6h, plus a background sync when an admin opens the console if data is older than 6 hours. Use **Sync now** in the banner only when you need immediate updates.
 
 ## Deal rules
 
@@ -65,16 +66,30 @@ Rules are evaluated on every commission sync. Override entries appear in the spo
 | `POST /api/admin/deal-rules` | Create deal rule |
 | `POST /api/admin/payouts/run` | Mark due unpaid entries as paid |
 
-## Cron sync (optional)
+## Cron sync (automated)
 
-Set `SYNC_CRON_SECRET` in Vercel env. A Vercel cron runs `GET /api/sync` every 6 hours (see `vercel.json`). Manual trigger:
+Set **`CRON_SECRET`** in Vercel project environment variables (Settings → Environment Variables). Generate a long random string.
+
+Vercel cron invokes `GET /api/sync` every 6 hours (`vercel.json`). Vercel sends `Authorization: Bearer <CRON_SECRET>` automatically when `CRON_SECRET` is set.
+
+After deploy, verify in Vercel → Logs → filter path `/api/sync` — you should see `200` with `{ "status": "started" }`, not `401`.
+
+Optional: set the same value as `SYNC_CRON_SECRET` for manual curl triggers:
 
 ```bash
 curl -X POST https://your-app.vercel.app/api/sync \
-  -H "Authorization: Bearer $SYNC_CRON_SECRET"
+  -H "Authorization: Bearer $CRON_SECRET"
 ```
 
-Page loads read from Supabase/Postgres — SliceWP is only hit during sync jobs.
+### Database migration
+
+After pulling these changes, apply the new Settings columns:
+
+```bash
+npm run db:push
+```
+
+Page loads read from Supabase/Postgres — SliceWP is only hit during background sync jobs.
 
 ## Client caching
 

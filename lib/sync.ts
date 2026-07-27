@@ -1,4 +1,8 @@
-import { prisma } from "./prisma";
+import {
+  completeSync,
+  failSync,
+  setSyncStep,
+} from "./sync-state";
 import { getSettings } from "./settings";
 import {
   fetchAllSliceWPAffiliates,
@@ -6,6 +10,7 @@ import {
   mapSliceWPCommissionStatus,
   mapSliceWPStatus,
 } from "./slicewp";
+import { prisma } from "./prisma";
 import { fetchWooOrderById } from "./woocommerce";
 import { getRecruitRevenueMap } from "./admin/team";
 import {
@@ -353,7 +358,9 @@ export async function syncCommissionsFromSliceWP(): Promise<number> {
 
 export async function runFullSync(): Promise<SyncResult> {
   const affiliatesUpserted = await syncAffiliatesFromSliceWP();
+  await setSyncStep("profiles");
   const profilesLinked = await autoLinkUnlinkedProfiles();
+  await setSyncStep("commissions");
   const commissionsUpserted = await syncCommissionsFromSliceWP();
 
   const overridesCreated = await prisma.ledgerEntry.count({
@@ -366,6 +373,16 @@ export async function runFullSync(): Promise<SyncResult> {
     profilesLinked,
     overridesCreated,
   };
+}
+
+export async function runFullSyncJob() {
+  try {
+    const result = await runFullSync();
+    await completeSync(result);
+  } catch (error) {
+    await failSync(error);
+    throw error;
+  }
 }
 
 export async function linkProfileToAffiliateByEmail(
