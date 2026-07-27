@@ -56,14 +56,7 @@ export function AffiliatePayoutsTab({
   const range = resolveDatePreset(preset);
   const payoutWeek = payoutWeekInput;
 
-  const teamsUrl = (() => {
-    const params = new URLSearchParams({ sponsorAffiliateId: affiliateId });
-    if (range.from && range.to) {
-      params.set("from", range.from.toISOString());
-      params.set("to", range.to.toISOString());
-    }
-    return `/api/admin/teams?${params.toString()}`;
-  })();
+  const teamsUrl = `/api/admin/teams?sponsorAffiliateId=${affiliateId}`;
   const {
     data: teamsData,
     isLoading: teamsLoading,
@@ -150,10 +143,18 @@ export function AffiliatePayoutsTab({
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-3">
-          <DatePresetPills value={preset} onChange={setPreset} />
+          <DatePresetPills
+            value={preset}
+            onChange={(next) => {
+              setPreset(next);
+              setPayoutWeekInput(
+                resolveDatePreset(next).payoutWeek.toISOString().slice(0, 10)
+              );
+            }}
+          />
           <p className="text-xs text-muted-foreground">
-            Team stats for {range.label.toLowerCase()} · Payout includes all
-            unpaid through cutoff date
+            Pay through {range.label.toLowerCase()} · Team bonus totals are
+            all-time
           </p>
         </div>
         <div className="space-y-1.5 sm:w-44">
@@ -194,7 +195,7 @@ export function AffiliatePayoutsTab({
         <p className="text-sm text-muted-foreground">Loading teams...</p>
       )}
 
-      {!teamsLoading && teams.length === 0 && (
+      {!teamsLoading && !teamsError && teams.length === 0 && (
         <EmptyState
           title="No teams yet"
           description="Create a team to run per-team payouts and track recruit performance."
@@ -209,7 +210,7 @@ export function AffiliatePayoutsTab({
         />
       )}
 
-      {!teamsLoading && teams.length > 0 && (
+      {!teamsLoading && !teamsError && teams.length > 0 && (
         <section className="space-y-3">
           <h2 className="text-sm font-medium">Teams</h2>
           <div className="grid gap-3">
@@ -262,7 +263,7 @@ export function AffiliatePayoutsTab({
         </section>
       )}
 
-      {!teamsLoading && teams.length === 0 && unpaidDirectTotal > 0 && (
+      {!teamsLoading && !teamsError && teams.length === 0 && unpaidDirectTotal > 0 && (
         <div className="flex justify-end">
           <Button
             onClick={() =>
@@ -371,7 +372,12 @@ function TeamPayoutCard({
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <UsersRound className="h-4 w-4 text-muted-foreground" />
-            <p className="font-medium">{team.name}</p>
+            <Link
+              href={`/admin/affiliates/${team.sponsorAffiliateId}/teams/${team.id}`}
+              className="font-medium hover:underline"
+            >
+              {team.name}
+            </Link>
             {!team.active && (
               <Badge variant="secondary" className="text-xs">
                 Inactive

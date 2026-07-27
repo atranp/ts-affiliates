@@ -75,7 +75,7 @@ async function buildMemberStats(
     affiliateId: { in: memberIds },
     orderRevenue: { not: null },
     ...(period
-      ? { createdAt: { gte: period.from, lte: period.to } }
+      ? { dateCreated: { gte: period.from, lte: period.to } }
       : {}),
   };
 

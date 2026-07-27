@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import {
-  applyDealRuleRetroactively,
   deleteNonPaidOverridesForRule,
 } from "@/lib/rules-engine";
+import { scheduleDealRuleBackfill } from "@/lib/deal-rules/schedule-backfill";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -123,15 +123,15 @@ export async function PATCH(request: Request, context: RouteContext) {
     include: ruleInclude,
   });
 
-  let overridesUpdated = 0;
-  if (rule.active && (rule.sourceAffiliateId || rule.teamId)) {
-    overridesUpdated = await applyDealRuleRetroactively(rule.id);
+  const shouldBackfill = rule.active && !!(rule.sourceAffiliateId || rule.teamId);
+  if (shouldBackfill) {
+    scheduleDealRuleBackfill(rule.id);
   }
 
   return NextResponse.json({
     ...rule,
     overridesRemoved,
-    overridesUpdated,
+    backfillStarted: shouldBackfill,
   });
 }
 

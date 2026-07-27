@@ -53,6 +53,17 @@ function defaultDownlineTeamId(teams: TeamOption[] | undefined) {
   return teams?.find((team) => team.slicewpKey === SLICEWP_DOWNLINE_KEY)?.id ?? "";
 }
 
+function backfillToastDescription(backfillStarted?: boolean, extra?: string) {
+  const parts: string[] = [];
+  if (extra) parts.push(extra);
+  if (backfillStarted) {
+    parts.push(
+      "Ledger backfill running in background — entries appear within a minute"
+    );
+  }
+  return parts.length > 0 ? parts.join(" · ") : undefined;
+}
+
 function affiliateFromRule(
   affiliate: { id: string; email: string; displayName: string | null }
 ): AffiliateOption {
@@ -227,7 +238,7 @@ function AdminDealRulesPageContent() {
       const body = await adminMutate<
         DealRuleListItem & {
           overridesRemoved?: number;
-          overridesUpdated?: number;
+          backfillStarted?: boolean;
         }
       >(`/api/admin/deal-rules/${editingRule.id}`, {
         method: "PATCH",
@@ -250,15 +261,15 @@ function AdminDealRulesPageContent() {
       if (body.overridesRemoved) {
         parts.push(`removed ${body.overridesRemoved} pending/unpaid lines`);
       }
-      if (body.overridesUpdated) {
-        parts.push(`updated ${body.overridesUpdated} ledger entries`);
-      }
 
       toast.success(`Updated: ${body.name}`, {
-        description: parts.length > 0 ? parts.join(" · ") : undefined,
+        description: backfillToastDescription(
+          body.backfillStarted,
+          parts.length > 0 ? parts.join(" · ") : undefined
+        ),
       });
       closeEdit();
-      await refetchRules();
+      void refetchRules();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to update rule");
     } finally {
@@ -282,7 +293,7 @@ function AdminDealRulesPageContent() {
             : undefined,
       });
       setDeletingRule(null);
-      await refetchRules();
+      void refetchRules();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete rule");
     } finally {
@@ -316,7 +327,7 @@ function AdminDealRulesPageContent() {
     setSubmitting(true);
     try {
       const body = await adminMutate<
-        DealRuleListItem & { overridesCreated?: number }
+        DealRuleListItem & { backfillStarted?: boolean }
       >(
         "/api/admin/deal-rules",
         {
@@ -338,10 +349,7 @@ function AdminDealRulesPageContent() {
         }
       );
       toast.success(`Created: ${body.name}`, {
-        description:
-          body.overridesCreated != null && body.overridesCreated > 0
-            ? `Backfilled ${body.overridesCreated} entries`
-            : undefined,
+        description: backfillToastDescription(body.backfillStarted),
       });
       setForm({
         name: "",
@@ -353,7 +361,7 @@ function AdminDealRulesPageContent() {
       setSponsor(null);
       setRecruit(null);
       setCreateOpen(false);
-      await refetchRules();
+      void refetchRules();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create rule");
     } finally {
@@ -475,6 +483,12 @@ function AdminDealRulesPageContent() {
           <Card className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-lg">
             <CardHeader>
               <CardTitle>Create rule</CardTitle>
+              {submitting && (
+                <CardDescription>
+                  Saving rule… ledger backfill runs in the background after this
+                  closes.
+                </CardDescription>
+              )}
             </CardHeader>
             <CardContent>
               <form onSubmit={createRule} className="grid gap-4 md:grid-cols-2">
@@ -640,7 +654,7 @@ function AdminDealRulesPageContent() {
                     Cancel
                   </Button>
                   <Button type="submit" disabled={submitting}>
-                    {submitting ? "Creating…" : "Create rule"}
+                    {submitting ? "Saving…" : "Create rule"}
                   </Button>
                 </div>
               </form>
@@ -661,8 +675,9 @@ function AdminDealRulesPageContent() {
             <CardHeader>
               <CardTitle>Edit rule</CardTitle>
               <CardDescription>
-                Changing sponsor, recruit, rate, or milestone recalculates bonus
-                lines.
+                {savingEdit
+                  ? "Saving… ledger backfill runs in the background after this closes."
+                  : "Changing sponsor, recruit, rate, or milestone recalculates bonus lines."}
               </CardDescription>
             </CardHeader>
             <CardContent>

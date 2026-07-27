@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-auth";
 import { jsonCached } from "@/lib/api-cache";
 import { prisma } from "@/lib/prisma";
-import { applyDealRuleRetroactively } from "@/lib/rules-engine";
+import { scheduleDealRuleBackfill } from "@/lib/deal-rules/schedule-backfill";
 
 export async function GET() {
   const auth = await requireAdmin();
@@ -112,10 +112,12 @@ export async function POST(request: Request) {
     },
   });
 
-  const overridesCreated =
-    rule.active && (rule.sourceAffiliateId || rule.teamId)
-      ? await applyDealRuleRetroactively(rule.id)
-      : 0;
+  if (rule.active && (rule.sourceAffiliateId || rule.teamId)) {
+    scheduleDealRuleBackfill(rule.id);
+  }
 
-  return NextResponse.json({ ...rule, overridesCreated }, { status: 201 });
+  return NextResponse.json(
+    { ...rule, backfillStarted: rule.active && !!(rule.sourceAffiliateId || rule.teamId) },
+    { status: 201 }
+  );
 }
