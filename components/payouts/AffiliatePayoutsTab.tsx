@@ -10,7 +10,7 @@ import {
   Plus,
   UsersRound,
 } from "lucide-react";
-import { DatePresetPills } from "@/components/payouts/DatePresetPills";
+import { PayoutDateRangeFields } from "@/components/payouts/PayoutDateRangeFields";
 import {
   PayoutPreviewSheet,
   type PayoutTarget,
@@ -20,12 +20,12 @@ import { EmptyState } from "@/components/admin/EmptyState";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { adminMutate, useAdminQuery } from "@/hooks/use-admin-query";
 import {
-  resolveDatePreset,
-  type DatePreset,
+  defaultPayoutPeriodEnd,
+  defaultPayoutPeriodStart,
+  formatPeriodLabel,
+  toDateInputValue,
 } from "@/lib/payouts/dates";
 import type { PayoutBatchListItem } from "@/lib/payouts/types";
 import type { TeamSummary } from "@/lib/teams/queries";
@@ -46,9 +46,11 @@ export function AffiliatePayoutsTab({
   unpaidDirectTotal,
   onBatchCreated,
 }: AffiliatePayoutsTabProps) {
-  const [preset, setPreset] = useState<DatePreset>("this_week");
-  const [payoutWeekInput, setPayoutWeekInput] = useState(
-    () => resolveDatePreset("this_week").payoutWeek.toISOString().slice(0, 10)
+  const [periodStartInput, setPeriodStartInput] = useState(() =>
+    toDateInputValue(defaultPayoutPeriodStart())
+  );
+  const [periodEndInput, setPeriodEndInput] = useState(() =>
+    toDateInputValue(defaultPayoutPeriodEnd())
   );
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTarget, setPreviewTarget] = useState<PayoutTarget | null>(null);
@@ -56,8 +58,10 @@ export function AffiliatePayoutsTab({
   const [running, setRunning] = useState(false);
   const [recordOpen, setRecordOpen] = useState(false);
 
-  const range = resolveDatePreset(preset);
-  const payoutWeek = payoutWeekInput;
+  const periodInvalid =
+    periodStartInput &&
+    periodEndInput &&
+    new Date(periodStartInput) > new Date(periodEndInput);
 
   const teamsUrl = `/api/admin/teams?sponsorAffiliateId=${affiliateId}`;
   const {
@@ -66,7 +70,7 @@ export function AffiliatePayoutsTab({
     error: teamsError,
     refetch: refetchTeams,
   } = useAdminQuery<{ teams: TeamSummary[] }>(
-    ["admin", "teams", affiliateId, preset],
+    ["admin", "teams", affiliateId],
     teamsUrl
   );
 
@@ -80,10 +84,11 @@ export function AffiliatePayoutsTab({
   );
 
   const previewUrl =
-    previewTarget && previewOpen
+    previewTarget && previewOpen && !periodInvalid
       ? buildPreviewUrl({
           affiliateId,
-          payoutWeek,
+          periodStart: periodStartInput,
+          periodEnd: periodEndInput,
           target: previewTarget,
         })
       : null;
@@ -92,9 +97,16 @@ export function AffiliatePayoutsTab({
     data: preview,
     isLoading: previewLoading,
   } = useAdminQuery<PayoutPreview>(
-    ["admin", "payout-preview", affiliateId, payoutWeek, previewTarget],
+    [
+      "admin",
+      "payout-preview",
+      affiliateId,
+      periodStartInput,
+      periodEndInput,
+      previewTarget,
+    ],
     previewUrl,
-    { enabled: previewOpen && !!previewTarget }
+    { enabled: previewOpen && !!previewTarget && !periodInvalid }
   );
 
   function openPreview(target: PayoutTarget) {
@@ -114,7 +126,8 @@ export function AffiliatePayoutsTab({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          payoutWeek,
+          periodStart: periodStartInput,
+          periodEnd: periodEndInput,
           sponsorAffiliateId: affiliateId,
           teamId: previewTarget.teamId,
           scope: previewTarget.scope,
@@ -144,34 +157,13 @@ export function AffiliatePayoutsTab({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-3">
-          <DatePresetPills
-            value={preset}
-            onChange={(next) => {
-              setPreset(next);
-              setPayoutWeekInput(
-                resolveDatePreset(next).payoutWeek.toISOString().slice(0, 10)
-              );
-            }}
-          />
-          <p className="text-xs text-muted-foreground">
-            Pay through {range.label.toLowerCase()} · Team bonus totals are
-            all-time
-          </p>
-        </div>
-        <div className="space-y-1.5 sm:w-44">
-          <Label htmlFor="payout-cutoff" className="text-xs">
-            Pay through
-          </Label>
-          <Input
-            id="payout-cutoff"
-            type="date"
-            value={payoutWeekInput}
-            onChange={(e) => setPayoutWeekInput(e.target.value)}
-          />
-        </div>
-      </div>
+      <PayoutDateRangeFields
+        startValue={periodStartInput}
+        endValue={periodEndInput}
+        onStartChange={setPeriodStartInput}
+        onEndChange={setPeriodEndInput}
+        hint="Team bonus totals above are all-time · payout includes unpaid entries in this date range"
+      />
 
       <div className="grid gap-3 sm:grid-cols-3">
         <StatTile
@@ -346,8 +338,14 @@ export function AffiliatePayoutsTab({
         title={previewTarget ? `Review · ${previewTarget.label}` : "Review payout"}
         description={
           previewTarget?.teamName
-            ? `${previewTarget.teamName} · through ${new Date(payoutWeek).toLocaleDateString("en-US")}`
-            : `Through ${new Date(payoutWeek).toLocaleDateString("en-US")}`
+            ? `${previewTarget.teamName} · ${formatPeriodLabel(
+                new Date(periodStartInput),
+                new Date(periodEndInput)
+              )}`
+            : formatPeriodLabel(
+                new Date(periodStartInput),
+                new Date(periodEndInput)
+              )
         }
         onConfirm={() => setConfirmOpen(true)}
         confirming={running}
@@ -516,15 +514,18 @@ function MiniStat({
 
 function buildPreviewUrl({
   affiliateId,
-  payoutWeek,
+  periodStart,
+  periodEnd,
   target,
 }: {
   affiliateId: string;
-  payoutWeek: string;
+  periodStart: string;
+  periodEnd: string;
   target: PayoutTarget;
 }) {
   const params = new URLSearchParams({
-    payoutWeek,
+    periodStart,
+    periodEnd,
     sponsorAffiliateId: affiliateId,
     scope: target.scope,
   });

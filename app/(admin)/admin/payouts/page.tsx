@@ -21,7 +21,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Table,
@@ -31,8 +30,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PayoutDateRangeFields } from "@/components/payouts/PayoutDateRangeFields";
 import { adminMutate, useAdminQuery } from "@/hooks/use-admin-query";
 import { apiFetch } from "@/lib/api-client";
+import {
+  defaultPayoutPeriodEnd,
+  defaultPayoutPeriodStart,
+  toDateInputValue,
+} from "@/lib/payouts/dates";
 import type { PayoutPreview } from "@/lib/teams/queries";
 import { formatCurrency } from "@/lib/utils";
 
@@ -63,7 +68,11 @@ type PayoutBatchListItem = {
 };
 
 function todayInputValue() {
-  return new Date().toISOString().slice(0, 10);
+  return toDateInputValue(defaultPayoutPeriodEnd());
+}
+
+function weekStartInputValue() {
+  return toDateInputValue(defaultPayoutPeriodStart());
 }
 
 export default function AdminPayoutsPage() {
@@ -78,7 +87,8 @@ function AdminPayoutsPageContent() {
   const searchParams = useSearchParams();
   const [sponsor, setSponsor] = useState<AffiliateOption | null>(null);
   const [teamId, setTeamId] = useState("");
-  const [payoutWeek, setPayoutWeek] = useState(todayInputValue());
+  const [periodStart, setPeriodStart] = useState(weekStartInputValue);
+  const [periodEnd, setPeriodEnd] = useState(todayInputValue);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [running, setRunning] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
@@ -148,9 +158,12 @@ function AdminPayoutsPageContent() {
     teams: AdminTeamOption[];
   }>(["admin", "teams", sponsor?.id ?? ""], teamsUrl);
 
+  const periodInvalid =
+    periodStart && periodEnd && new Date(periodStart) > new Date(periodEnd);
+
   const previewUrl =
-    sponsor?.id || teamId
-      ? `/api/admin/payouts/preview?payoutWeek=${payoutWeek}${
+    (sponsor?.id || teamId) && !periodInvalid
+      ? `/api/admin/payouts/preview?periodStart=${periodStart}&periodEnd=${periodEnd}${
           teamId ? `&teamId=${teamId}` : ""
         }${sponsor?.id ? `&sponsorAffiliateId=${sponsor.id}` : ""}`
       : null;
@@ -161,9 +174,9 @@ function AdminPayoutsPageContent() {
     error: previewError,
     refetch: refetchPreview,
   } = useAdminQuery<PayoutPreview>(
-    ["admin", "payout-preview", teamId, sponsor?.id, payoutWeek],
+    ["admin", "payout-preview", teamId, sponsor?.id, periodStart, periodEnd],
     previewUrl,
-    { enabled: !!(teamId || sponsor?.id) }
+    { enabled: !!(teamId || sponsor?.id) && !periodInvalid }
   );
 
   const {
@@ -186,7 +199,8 @@ function AdminPayoutsPageContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          payoutWeek,
+          periodStart,
+          periodEnd,
           teamId: teamId || undefined,
           sponsorAffiliateId: sponsor?.id,
         }),
@@ -258,15 +272,12 @@ function AdminPayoutsPageContent() {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="payout-week">Payout week</Label>
-              <Input
-                id="payout-week"
-                type="date"
-                value={payoutWeek}
-                onChange={(e) => setPayoutWeek(e.target.value)}
-              />
-            </div>
+            <PayoutDateRangeFields
+              startValue={periodStart}
+              endValue={periodEnd}
+              onStartChange={setPeriodStart}
+              onEndChange={setPeriodEnd}
+            />
 
             {previewError && (
               <ErrorState

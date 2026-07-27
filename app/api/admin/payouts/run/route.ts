@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { startOfDay } from "date-fns";
 import { requireAdmin } from "@/lib/api-auth";
+import { formatPeriodLabel } from "@/lib/payouts/dates";
+import { resolvePayoutPeriodFromRequest } from "@/lib/payouts/parse-period";
 import { prisma } from "@/lib/prisma";
 import { buildPayoutEntryWhere } from "@/lib/payouts/scope";
 import type { PayoutScope } from "@/lib/payouts/types";
@@ -11,12 +12,24 @@ export async function POST(request: Request) {
   if ("error" in auth) return auth.error;
 
   const body = await request.json();
-  const payoutWeek = body.payoutWeek
-    ? startOfDay(new Date(body.payoutWeek))
-    : startOfDay(new Date());
   const teamId: string | undefined = body.teamId;
   const sponsorAffiliateId: string | undefined = body.sponsorAffiliateId;
   const scope: PayoutScope = body.scope ?? (teamId ? "team" : "all");
+
+  let periodStart: Date;
+  let periodEnd: Date;
+  try {
+    ({ periodStart, periodEnd } = resolvePayoutPeriodFromRequest({
+      periodStart: body.periodStart,
+      periodEnd: body.periodEnd,
+      payoutWeek: body.payoutWeek,
+    }));
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Invalid date range" },
+      { status: 400 }
+    );
+  }
 
   let team: { id: string; name: string; sponsorAffiliateId: string } | null =
     null;
@@ -34,7 +47,8 @@ export async function POST(request: Request) {
   const resolvedSponsorId = team?.sponsorAffiliateId ?? sponsorAffiliateId;
 
   const where = buildPayoutEntryWhere({
-    payoutWeek,
+    periodStart,
+    periodEnd,
     teamId,
     sponsorAffiliateId: resolvedSponsorId,
     scope,
@@ -56,7 +70,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const dateLabel = payoutWeek.toLocaleDateString("en-US");
+  const dateLabel = formatPeriodLabel(periodStart, periodEnd);
   const label = team
     ? `${team.name} · ${dateLabel}`
     : scope === "direct"
@@ -69,8 +83,8 @@ export async function POST(request: Request) {
     const createdBatch = await tx.payoutBatch.create({
       data: {
         label,
-        periodStart: payoutWeek,
-        periodEnd: payoutWeek,
+        periodStart,
+        periodEnd,
         status: "COMPLETED",
         processedAt: new Date(),
         teamId: team?.id ?? null,

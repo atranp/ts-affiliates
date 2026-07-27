@@ -68,3 +68,29 @@ export function formatPeriodLabel(from: Date | null, to: Date | null) {
   });
   return `${fromStr} – ${toStr}`;
 }
+
+export function toDateInputValue(date: Date) {
+  return startOfDay(date).toISOString().slice(0, 10);
+}
+
+export function defaultPayoutPeriodStart(now = new Date()) {
+  return startOfWeek(startOfDay(now), { weekStartsOn: 1 });
+}
+
+export function defaultPayoutPeriodEnd(now = new Date()) {
+  return startOfDay(now);
+}
+
+export function parsePayoutPeriod(startInput: string, endInput: string) {
+  const periodStart = startOfDay(new Date(startInput));
+  const periodEnd = endOfDay(new Date(endInput));
+
+  if (Number.isNaN(periodStart.getTime()) || Number.isNaN(periodEnd.getTime())) {
+    throw new Error("Invalid date range");
+  }
+  if (periodStart > periodEnd) {
+    throw new Error("Start date must be on or before end date");
+  }
+
+  return { periodStart, periodEnd };
+}

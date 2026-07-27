@@ -1,6 +1,7 @@
 import {
   completeSync,
   failSync,
+  formatSyncError,
   setSyncStep,
 } from "./sync-state";
 import { getSettings } from "./settings";
@@ -18,8 +19,8 @@ import {
   syncTeamsFromSliceWP,
 } from "./teams/slicewp-sync";
 import {
+  createSyncDealRuleProcessor,
   ensureDirectLedgerEntry,
-  processDealRulesForCommission,
 } from "./rules-engine";
 import { toNumber } from "./utils";
 import type { Affiliate, Commission } from "@prisma/client";
@@ -303,7 +304,11 @@ export async function syncCommissionsFromSliceWP(): Promise<number> {
         .filter((id): id is string => !!id)
     )
   );
-  const revenueByRecruit = await getRecruitRevenueMap(activeSourceIds);
+  const dealRuleProcessor = await createSyncDealRuleProcessor();
+  const revenueSourceIds = Array.from(
+    new Set([...activeSourceIds, ...dealRuleProcessor.teamMemberIds])
+  );
+  const revenueByRecruit = await getRecruitRevenueMap(revenueSourceIds);
 
   for (let i = 0; i < remoteCommissions.length; i += COMMISSION_CHUNK_SIZE) {
     const chunk = remoteCommissions.slice(i, i + COMMISSION_CHUNK_SIZE);
@@ -330,7 +335,7 @@ export async function syncCommissionsFromSliceWP(): Promise<number> {
 
     for (const commission of commissions) {
       await ensureDirectLedgerEntry(commission);
-      await processDealRulesForCommission(commission, revenueByRecruit);
+      await dealRuleProcessor.process(commission, revenueByRecruit);
       if (commission.orderRevenue != null) {
         const current = revenueByRecruit.get(commission.affiliateId) ?? 0;
         revenueByRecruit.set(
@@ -362,9 +367,23 @@ export async function syncCommissionsFromSliceWP(): Promise<number> {
 }
 
 export async function runFullSync(): Promise<SyncResult> {
+  await setSyncStep("affiliates");
   const affiliatesUpserted = await syncAffiliatesFromSliceWP();
-  const teamsSynced = await syncTeamsFromSliceWP();
-  await linkOrphanRulesToDownlineTeams();
+
+  let teamsSynced = 0;
+  try {
+    teamsSynced = await syncTeamsFromSliceWP();
+    await linkOrphanRulesToDownlineTeams();
+  } catch (error) {
+    const message = formatSyncError(error);
+    if (/slicewpKey|column.*Team|Unknown field/i.test(message)) {
+      throw new Error(
+        `Team sync failed — production database needs migration (npm run db:push). Details: ${message}`
+      );
+    }
+    throw error;
+  }
+
   await setSyncStep("profiles");
   const profilesLinked = await autoLinkUnlinkedProfiles();
   await setSyncStep("commissions");

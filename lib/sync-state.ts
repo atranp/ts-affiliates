@@ -16,6 +16,22 @@ export type SyncStatus = {
 };
 
 const STALE_MS = 6 * 60 * 60 * 1000;
+/** Slightly longer than route maxDuration (300s) so crashed jobs unlock for retry. */
+const STALE_LOCK_MS = 6 * 60 * 1000;
+
+export function formatSyncError(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error &&
+    typeof (error as { message: unknown }).message === "string"
+  ) {
+    return (error as { message: string }).message;
+  }
+  return "Sync failed unexpectedly";
+}
 
 export function isSyncStale(lastCommissionSyncAt: Date | null | undefined) {
   if (!lastCommissionSyncAt) return true;
@@ -100,8 +116,7 @@ export async function completeSync(result: SyncResult) {
 }
 
 export async function failSync(error: unknown) {
-  const message =
-    error instanceof Error ? error.message : "Sync failed unexpectedly";
+  const message = formatSyncError(error);
 
   await prisma.settings.update({
     where: { id: "default" },
@@ -128,7 +143,11 @@ export async function clearStaleSyncLock() {
   if (!settings?.syncRunning || !settings.syncStartedAt) return;
 
   const ageMs = Date.now() - settings.syncStartedAt.getTime();
-  if (ageMs < 15 * 60 * 1000) return;
+  if (ageMs < STALE_LOCK_MS) return;
 
-  await failSync("Sync timed out or was interrupted. Try again.");
+  await failSync(
+    new Error(
+      "Sync timed out or was interrupted (server limit ~5 min). Try again — large backfills may need multiple runs."
+    )
+  );
 }

@@ -74,13 +74,22 @@ export function SyncStatusBanner() {
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm">
-      <div className="text-muted-foreground">
-        Last sync{" "}
-        <span className="font-medium text-foreground">
-          {formatSyncTime(status.lastCommissionSyncAt)}
-        </span>
+      <div className="min-w-0">
+        <p className="text-muted-foreground">
+          Last sync{" "}
+          <span className="font-medium text-foreground">
+            {formatSyncTime(status.lastCommissionSyncAt)}
+          </span>
+        </p>
         {status.lastSyncError && (
-          <span className="ml-2 text-destructive">· {status.lastSyncError}</span>
+          <p className="mt-1 text-destructive text-xs leading-relaxed">
+            {status.lastSyncError}
+          </p>
+        )}
+        {!status.hasSliceWP && (
+          <p className="mt-1 text-warning text-xs">
+            SliceWP credentials not configured — add them in Settings.
+          </p>
         )}
       </div>
       <Button

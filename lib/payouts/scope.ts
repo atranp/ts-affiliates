@@ -1,18 +1,34 @@
+import { endOfDay, startOfDay } from "date-fns";
 import { CommissionStatus, LedgerEntryType, Prisma } from "@prisma/client";
 import type { PayoutScope } from "./types";
 
 export function buildPayoutEntryWhere(options: {
-  payoutWeek: Date;
+  periodStart?: Date;
+  periodEnd: Date;
+  /** @deprecated use periodEnd */
+  payoutWeek?: Date;
   teamId?: string;
   sponsorAffiliateId?: string;
   scope?: PayoutScope;
 }): Prisma.LedgerEntryWhereInput {
-  const { payoutWeek, teamId, sponsorAffiliateId, scope = teamId ? "team" : "all" } =
-    options;
+  const {
+    periodStart,
+    periodEnd,
+    payoutWeek,
+    teamId,
+    sponsorAffiliateId,
+    scope = teamId ? "team" : "all",
+  } = options;
+
+  const resolvedEnd = endOfDay(periodEnd ?? payoutWeek!);
+  const payoutWeekFilter: Prisma.DateTimeNullableFilter = { lte: resolvedEnd };
+  if (periodStart) {
+    payoutWeekFilter.gte = startOfDay(periodStart);
+  }
 
   const base = {
     status: CommissionStatus.UNPAID,
-    payoutWeek: { lte: payoutWeek },
+    payoutWeek: payoutWeekFilter,
   };
 
   if (scope === "direct" && sponsorAffiliateId) {

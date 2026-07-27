@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/api-auth";
 import { runFullSyncJob } from "@/lib/sync";
 import {
   clearStaleSyncLock,
+  failSync,
   getSyncStatus,
   isSyncStale,
   tryBeginSync,
@@ -30,9 +31,20 @@ async function startBackgroundSync() {
     return NextResponse.json({ status: "already_running" });
   }
 
+  if (!getCronSecret()) {
+    console.warn(
+      "CRON_SECRET is not set — Vercel cron requests to /api/sync will not authenticate."
+    );
+  }
+
   waitUntil(
-    runFullSyncJob().catch((error) => {
+    runFullSyncJob().catch(async (error) => {
       console.error("Background sync failed:", error);
+      try {
+        await failSync(error);
+      } catch (failError) {
+        console.error("Could not persist sync failure:", failError);
+      }
     })
   );
 

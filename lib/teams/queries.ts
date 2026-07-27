@@ -389,7 +389,8 @@ export type PayoutPreviewLine = {
 };
 
 export type PayoutPreview = {
-  payoutWeek: string;
+  periodStart: string;
+  periodEnd: string;
   teamId: string | null;
   teamName: string | null;
   sponsorAffiliateId: string | null;
@@ -406,7 +407,8 @@ export type PayoutPreview = {
 };
 
 export async function getPayoutPreview(options: {
-  payoutWeek: Date;
+  periodStart: Date;
+  periodEnd: Date;
   teamId?: string;
   sponsorAffiliateId?: string;
   scope?: PayoutScope;
@@ -425,7 +427,8 @@ export async function getPayoutPreview(options: {
     options.scope ?? (options.teamId ? "team" : "all");
 
   const where = buildPayoutEntryWhere({
-    payoutWeek: options.payoutWeek,
+    periodStart: options.periodStart,
+    periodEnd: options.periodEnd,
     teamId: options.teamId,
     sponsorAffiliateId,
     scope,
@@ -506,7 +509,8 @@ export async function getPayoutPreview(options: {
   );
 
   return {
-    payoutWeek: options.payoutWeek.toISOString(),
+    periodStart: options.periodStart.toISOString(),
+    periodEnd: options.periodEnd.toISOString(),
     teamId: team?.id ?? options.teamId ?? null,
     teamName: team?.name ?? null,
     sponsorAffiliateId: sponsorAffiliateId ?? null,

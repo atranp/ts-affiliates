@@ -19,6 +19,60 @@ import { getTeamMemberIds } from "./teams/members";
 import { getNextPayoutWeek } from "./payout-schedule";
 import { toNumber } from "./utils";
 
+export async function createSyncDealRuleProcessor() {
+  const recruitRulesByAffiliate = new Map<string, DealRule[]>();
+  const allRecruitRules = await prisma.dealRule.findMany({
+    where: { active: true, sourceAffiliateId: { not: null } },
+  });
+
+  for (const rule of allRecruitRules) {
+    if (!rule.sourceAffiliateId) continue;
+    const existing = recruitRulesByAffiliate.get(rule.sourceAffiliateId) ?? [];
+    existing.push(rule);
+    recruitRulesByAffiliate.set(rule.sourceAffiliateId, existing);
+  }
+
+  const teamRules = await prisma.dealRule.findMany({
+    where: {
+      active: true,
+      sourceAffiliateId: null,
+      teamId: { not: null },
+    },
+  });
+
+  const teamMembersByTeamId = new Map<string, string[]>();
+  for (const rule of teamRules) {
+    if (!rule.teamId || teamMembersByTeamId.has(rule.teamId)) continue;
+    teamMembersByTeamId.set(rule.teamId, await getTeamMemberIds(rule.teamId));
+  }
+
+  return {
+    teamMemberIds: Array.from(
+      new Set(Array.from(teamMembersByTeamId.values()).flat())
+    ),
+    async process(commission: Commission, revenueByRecruit?: Map<string, number>) {
+      const recruitRules =
+        recruitRulesByAffiliate.get(commission.affiliateId) ?? [];
+      for (const rule of recruitRules) {
+        await createOverrideEntry(rule, commission, revenueByRecruit);
+      }
+
+      for (const rule of teamRules) {
+        if (commission.affiliateId === rule.sponsorAffiliateId) continue;
+        if (!rule.teamId) continue;
+        const memberIds = teamMembersByTeamId.get(rule.teamId) ?? [];
+        if (!memberIds.includes(commission.affiliateId)) continue;
+        await createOverrideEntry(
+          rule,
+          commission,
+          revenueByRecruit,
+          commission.affiliateId
+        );
+      }
+    },
+  };
+}
+
 export async function processDealRulesForCommission(
   commission: Commission,
   revenueByRecruit?: Map<string, number>
