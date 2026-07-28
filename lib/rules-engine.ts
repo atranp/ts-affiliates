@@ -161,6 +161,23 @@ function buildOverrideEntryData(
   };
 }
 
+function resolveOverrideStatusOnSync(
+  existing: {
+    status: CommissionStatus;
+    payoutBatchId: string | null;
+    paidAt: Date | null;
+  },
+  computed: CommissionStatus
+): CommissionStatus {
+  if (
+    existing.status === CommissionStatus.PAID &&
+    (existing.payoutBatchId || existing.paidAt)
+  ) {
+    return CommissionStatus.PAID;
+  }
+  return computed;
+}
+
 async function createOverrideEntry(
   rule: DealRule,
   commission: Commission,
@@ -180,6 +197,12 @@ async function createOverrideEntry(
       dealRuleId: rule.id,
       sourceCommissionId: commission.id,
       type: LedgerEntryType.OVERRIDE,
+    },
+    select: {
+      id: true,
+      status: true,
+      payoutBatchId: true,
+      paidAt: true,
     },
   });
 
@@ -201,11 +224,12 @@ async function createOverrideEntry(
   if (!data) return false;
 
   if (existing) {
+    const status = resolveOverrideStatusOnSync(existing, data.status);
     await prisma.ledgerEntry.update({
       where: { id: existing.id },
       data: {
         amount: data.amount,
-        status: data.status,
+        status,
         description: data.description,
         orderRevenue: data.orderRevenue,
         wooOrderId: data.wooOrderId,

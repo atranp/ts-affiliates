@@ -39,15 +39,15 @@ export function getMilestoneProgress(
   };
 }
 
+/** Team bonus status: PENDING until milestone met, then UNPAID until platform payout. */
 export function overrideStatusForMilestone(
-  commissionStatus: CommissionStatus,
+  sourceCommissionStatus: CommissionStatus,
   cumulativeRevenue: number,
   milestoneThreshold: number | null | undefined
 ): CommissionStatus {
   const progress = getMilestoneProgress(cumulativeRevenue, milestoneThreshold);
   if (!progress || progress.met) {
-    if (commissionStatus === CommissionStatus.PAID) return CommissionStatus.PAID;
-    if (commissionStatus === CommissionStatus.REJECTED) {
+    if (sourceCommissionStatus === CommissionStatus.REJECTED) {
       return CommissionStatus.REJECTED;
     }
     return CommissionStatus.UNPAID;
