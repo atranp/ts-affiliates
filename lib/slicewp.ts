@@ -1,12 +1,18 @@
 import {
   appendWpAuthParams,
-  buildBasicAuthHeader,
   normalizeStoreUrl,
   readApiError,
   sanitizeCredential,
 } from "./wordpress-auth";
 
 function formatSliceWPAuthError(status: number, detail: string): string {
+  if (detail.includes("invalid_username")) {
+    return [
+      "SliceWP auth failed: WordPress rejected the request as a user login.",
+      "SliceWP keys must be sent as query params only (ck_/cs_ keys), not Basic Auth.",
+      "Re-save the SliceWP Consumer Key and Secret from SliceWP → Tools → API Keys.",
+    ].join(" ");
+  }
   if (status === 401 || detail.includes("rest_forbidden")) {
     return [
       "SliceWP rejected the API credentials (401).",
@@ -43,10 +49,7 @@ async function slicewpFetch<T>(
   const response = await fetch(
     `${baseUrl}/wp-json/slicewp/v1${path}?${search.toString()}`,
     {
-      headers: {
-        Accept: "application/json",
-        Authorization: buildBasicAuthHeader(key, secret),
-      },
+      headers: { Accept: "application/json" },
       cache: "no-store",
     }
   );

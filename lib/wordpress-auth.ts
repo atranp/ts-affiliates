@@ -6,15 +6,6 @@ export function sanitizeCredential(value: string): string {
   return value.trim().replace(/^["']|["']$/g, "");
 }
 
-export function buildBasicAuthHeader(
-  consumerKey: string,
-  consumerSecret: string
-): string {
-  const key = sanitizeCredential(consumerKey);
-  const secret = sanitizeCredential(consumerSecret);
-  return `Basic ${Buffer.from(`${key}:${secret}`).toString("base64")}`;
-}
-
 export function appendWpAuthParams(
   params: URLSearchParams,
   consumerKey: string,
