@@ -4,9 +4,9 @@ import Link from "next/link";
 import {
   DollarSign,
   ExternalLink,
+  Eye,
   GitBranch,
   MoreHorizontal,
-  UserPlus,
   UsersRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,14 +21,16 @@ import {
 type AffiliateQuickActionsProps = {
   affiliateId: string;
   hasPortalAccess: boolean;
-  onInvite?: () => void;
+  portalDisabled?: boolean;
+  onViewAsAffiliate?: () => void;
   onGoToPayouts?: () => void;
 };
 
 export function AffiliateQuickActions({
   affiliateId,
   hasPortalAccess,
-  onInvite,
+  portalDisabled = false,
+  onViewAsAffiliate,
   onGoToPayouts,
 }: AffiliateQuickActionsProps) {
   return (
@@ -70,12 +72,12 @@ export function AffiliateQuickActions({
             Create team
           </Link>
         </DropdownMenuItem>
-        {!hasPortalAccess && onInvite && (
+        {hasPortalAccess && !portalDisabled && onViewAsAffiliate && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onInvite}>
-              <UserPlus />
-              Portal access
+            <DropdownMenuItem onClick={onViewAsAffiliate}>
+              <Eye />
+              View as affiliate
             </DropdownMenuItem>
           </>
         )}

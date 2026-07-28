@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const ROLE_COOKIE = "ts-role";
+export const MUST_CHANGE_PASSWORD_COOKIE = "ts-must-change-password";
 
 /** Profile.role is the source of truth — keep Supabase JWT + routing cookie in sync. */
 export async function resolveProfileRole(userId: string): Promise<Role | null> {
@@ -55,6 +56,20 @@ export function clearRoleCookie(response: NextResponse) {
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: 0,
+  });
+  return response;
+}
+
+export function applyMustChangePasswordCookie(
+  response: NextResponse,
+  mustChange: boolean
+) {
+  response.cookies.set(MUST_CHANGE_PASSWORD_COOKIE, mustChange ? "1" : "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: mustChange ? 60 * 60 * 24 * 30 : 0,
   });
   return response;
 }

@@ -1,10 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
-import { ROLE_COOKIE, roleFromRequest } from "@/lib/auth-role";
+import {
+  IMPERSONATE_COOKIE,
+} from "@/lib/auth-impersonation";
+import {
+  MUST_CHANGE_PASSWORD_COOKIE,
+  ROLE_COOKIE,
+  roleFromRequest,
+} from "@/lib/auth-role";
 import { homePathForRole } from "@/lib/routes";
 
 const adminPaths = ["/admin"];
-const affiliatePaths = ["/dashboard"];
+const affiliatePaths = ["/dashboard", "/account"];
 
 export async function middleware(request: NextRequest) {
   const { supabaseResponse, user } = await updateSession(request);
@@ -13,6 +20,9 @@ export async function middleware(request: NextRequest) {
     request.cookies.get(ROLE_COOKIE)?.value,
     user?.app_metadata?.role as string | undefined
   );
+  const impersonating = !!request.cookies.get(IMPERSONATE_COOKIE)?.value;
+  const mustChangePassword =
+    request.cookies.get(MUST_CHANGE_PASSWORD_COOKIE)?.value === "1";
 
   if (pathname.startsWith("/login") || pathname.startsWith("/auth")) {
     if (user) {
@@ -35,6 +45,16 @@ export async function middleware(request: NextRequest) {
   }
 
   if (
+    mustChangePassword &&
+    role === "AFFILIATE" &&
+    !pathname.startsWith("/account/change-password")
+  ) {
+    return NextResponse.redirect(
+      new URL("/account/change-password", request.url)
+    );
+  }
+
+  if (
     adminPaths.some((path) => pathname.startsWith(path)) &&
     role !== "ADMIN"
   ) {
@@ -43,7 +63,8 @@ export async function middleware(request: NextRequest) {
 
   if (
     affiliatePaths.some((path) => pathname.startsWith(path)) &&
-    role === "ADMIN"
+    role === "ADMIN" &&
+    !impersonating
   ) {
     return NextResponse.redirect(new URL("/admin", request.url));
   }
@@ -52,5 +73,12 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/dashboard/:path*", "/admin/:path*", "/login", "/auth/:path*"],
+  matcher: [
+    "/",
+    "/dashboard/:path*",
+    "/account/:path*",
+    "/admin/:path*",
+    "/login",
+    "/auth/:path*",
+  ],
 };

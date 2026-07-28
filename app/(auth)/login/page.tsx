@@ -1,8 +1,8 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
+const blockMessages: Record<string, string> = {
+  NO_PROFILE: "Your account is not set up. Contact an administrator.",
+  PORTAL_DISABLED: "Portal access has been disabled. Contact an administrator.",
+  AFFILIATE_INACTIVE:
+    "Your affiliate account is not active. Contact an administrator.",
+};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -31,20 +38,40 @@ export default function LoginPage() {
       password,
     });
 
-    setLoading(false);
-
     if (authError) {
+      setLoading(false);
       setError("Invalid email or password");
       return;
     }
 
     const meRes = await fetch("/api/me");
-    if (meRes.ok) {
-      await supabase.auth.refreshSession();
+    const me = meRes.ok
+      ? await meRes.json()
+      : ((await meRes.json().catch(() => ({}))) as {
+          error?: string;
+          code?: string;
+        });
+
+    if (!meRes.ok) {
+      await supabase.auth.signOut();
+      setLoading(false);
+      setError(
+        (me as { error?: string }).error ??
+          blockMessages[(me as { code?: string }).code ?? ""] ??
+          "Unable to sign in"
+      );
+      return;
     }
-    const me = meRes.ok ? await meRes.json() : null;
-    router.push(me?.role === "ADMIN" ? "/admin" : "/dashboard");
+
+    await supabase.auth.refreshSession();
+
+    if (me?.mustChangePassword) {
+      router.push("/account/change-password");
+    } else {
+      router.push(me?.role === "ADMIN" ? "/admin" : "/dashboard");
+    }
     router.refresh();
+    setLoading(false);
   };
 
   return (

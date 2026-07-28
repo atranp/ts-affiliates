@@ -11,7 +11,7 @@ export async function POST(_request: Request, context: RouteContext) {
   const { id } = await context.params;
 
   try {
-    const result = await inviteAffiliateToPortal(id);
+    const result = await inviteAffiliateToPortal(id, auth.user.id);
     return NextResponse.json(result);
   } catch (error) {
     console.error("Affiliate invite failed:", error);

@@ -5,13 +5,12 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { UserPlus, FileText, Users, Share2, ChevronRight, DollarSign } from "lucide-react";
+import { FileText, Users, Share2, ChevronRight, DollarSign } from "lucide-react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { AffiliateQuickActions } from "@/components/admin/AffiliateQuickActions";
 import { StatCard, StatCardSkeleton } from "@/components/admin/StatCard";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { EmptyState } from "@/components/admin/EmptyState";
-import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { AdminLedgerTable } from "@/components/admin/AdminLedgerTable";
 import { AddAdjustmentDialog } from "@/components/admin/AddAdjustmentDialog";
 import { Input } from "@/components/ui/input";
@@ -40,8 +39,8 @@ import { TeamPanel, useTeam } from "@/components/TeamPanel";
 import { TeamsPanel, useTeams } from "@/components/TeamsPanel";
 import type {
   AdminAffiliateDetail,
-  InviteAffiliateResult,
 } from "@/lib/admin/types";
+import { AffiliatePortalPanel } from "@/components/admin/AffiliatePortalPanel";
 import { AffiliatePayoutsTab } from "@/components/payouts/AffiliatePayoutsTab";
 import { formatCurrency } from "@/lib/utils";
 
@@ -97,8 +96,6 @@ function AdminAffiliateDetailPageContent() {
   const [adjustmentOpen, setAdjustmentOpen] = useState(false);
   const [ledgerSaving, setLedgerSaving] = useState(false);
   const [debouncedQ, setDebouncedQ] = useState("");
-  const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviting, setInviting] = useState(false);
 
   const {
     data: affiliate,
@@ -142,34 +139,23 @@ function AdminAffiliateDetailPageContent() {
     !!affiliateId
   );
 
-  async function handleInvite() {
-    setInviting(true);
+  async function refreshAffiliate() {
+    await queryClient.invalidateQueries({
+      queryKey: ["admin", "affiliate", affiliateId],
+    });
+    await refetchAffiliate();
+  }
+
+  async function handleViewAsAffiliate() {
     try {
-      const result = await adminMutate<InviteAffiliateResult>(
-        `/api/admin/affiliates/${affiliateId}/invite`,
-        { method: "POST" }
-      );
-
-      if (result.created && result.temporaryPassword) {
-        toast.success("Portal login created", {
-          description: `Temp password: ${result.temporaryPassword} — no email sent. Share manually.`,
-          duration: 15000,
-        });
-      } else if (result.linked) {
-        toast.success("Portal access linked", {
-          description: `${result.email} can sign in to the affiliate dashboard.`,
-        });
-      }
-
-      setInviteOpen(false);
-      await queryClient.invalidateQueries({
-        queryKey: ["admin", "affiliate", affiliateId],
+      await adminMutate<{ redirectTo: string }>("/api/admin/impersonate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ affiliateId }),
       });
-      await refetchAffiliate();
+      window.location.href = "/dashboard";
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Invite failed");
-    } finally {
-      setInviting(false);
+      toast.error(err instanceof Error ? err.message : "Could not start preview");
     }
   }
 
@@ -294,8 +280,13 @@ function AdminAffiliateDetailPageContent() {
                 )}
                 <AffiliateQuickActions
                   affiliateId={affiliate.id}
-                  hasPortalAccess={!!affiliate.profile}
-                  onInvite={() => setInviteOpen(true)}
+                  hasPortalAccess={affiliate.portal.hasAccess}
+                  portalDisabled={affiliate.portal.disabled}
+                  onViewAsAffiliate={
+                    affiliate.portal.hasAccess && !affiliate.portal.disabled
+                      ? handleViewAsAffiliate
+                      : undefined
+                  }
                   onGoToPayouts={() => setViewTab("payouts")}
                 />
               </div>
@@ -401,36 +392,17 @@ function AdminAffiliateDetailPageContent() {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Portal access</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                  {affiliate.profile ? (
-                    <>
-                      <div className="flex justify-between gap-4">
-                        <span className="text-muted-foreground">User</span>
-                        <span className="font-medium">{affiliate.profile.name}</span>
-                      </div>
-                      <div className="flex justify-between gap-4">
-                        <span className="text-muted-foreground">Login email</span>
-                        <span className="font-medium">{affiliate.profile.email}</span>
-                      </div>
-                      <div className="flex justify-between gap-4 border-t pt-3">
-                        <span className="text-muted-foreground">Role</span>
-                        <span className="font-medium">{affiliate.profile.role}</span>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="space-y-3">
-                      <Button variant="secondary" className="w-full" onClick={() => setInviteOpen(true)}>
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        Create login
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <AffiliatePortalPanel
+                affiliateId={affiliate.id}
+                affiliateName={displayName}
+                portal={affiliate.portal}
+                onUpdated={refreshAffiliate}
+                onViewAsAffiliate={
+                  affiliate.portal.hasAccess && !affiliate.portal.disabled
+                    ? handleViewAsAffiliate
+                    : undefined
+                }
+              />
             </div>
 
             {/* Main Content */}
@@ -683,16 +655,6 @@ function AdminAffiliateDetailPageContent() {
           </div>
         </>
       )}
-
-      <ConfirmDialog
-        open={inviteOpen}
-        title="Create portal login?"
-        description={`Temp password for ${affiliate?.email ?? "this affiliate"}. No email sent.`}
-        confirmLabel="Create login"
-        loading={inviting}
-        onConfirm={handleInvite}
-        onCancel={() => setInviteOpen(false)}
-      />
 
       <AddAdjustmentDialog
         open={adjustmentOpen}

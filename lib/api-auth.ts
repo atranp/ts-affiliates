@@ -1,6 +1,6 @@
 import { Role } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { getAuthUser, isAdmin } from "./auth";
+import { getAuthUser, getRealAuthUser, isAdmin } from "./auth";
 
 export async function requireAuth() {
   try {
@@ -23,14 +23,28 @@ export async function requireAuth() {
 }
 
 export async function requireAdmin() {
-  const result = await requireAuth();
-  if ("error" in result) return result;
-  if (!isAdmin(result.user.role)) {
+  try {
+    const user = await getRealAuthUser();
+    if (!user) {
+      return {
+        error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+      };
+    }
+    if (!isAdmin(user.role)) {
+      return {
+        error: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
+      };
+    }
+    return { user };
+  } catch (error) {
+    console.error("Admin auth check failed:", error);
     return {
-      error: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
+      error: NextResponse.json(
+        { error: "Database unavailable. Try again in a moment." },
+        { status: 503 }
+      ),
     };
   }
-  return result;
 }
 
 export { isAdmin, Role };

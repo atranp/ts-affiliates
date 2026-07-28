@@ -1,12 +1,21 @@
 import { NextResponse } from "next/server";
 import { jsonCached } from "@/lib/api-cache";
 import {
+  applyMustChangePasswordCookie,
   applyRoleCookie,
   ensureAuthRoleConsistency,
 } from "@/lib/auth-role";
-import { getAuthUser } from "@/lib/auth";
+import { getAuthBlockReason, getAuthUser } from "@/lib/auth";
+import { touchAffiliateLastSignIn } from "@/lib/admin/affiliate-portal";
 import { linkProfileToAffiliateByEmail } from "@/lib/sync";
 import { createClient } from "@/lib/supabase/server";
+
+const blockMessages: Record<string, string> = {
+  NO_PROFILE: "Your account is not set up. Contact an administrator.",
+  PORTAL_DISABLED: "Portal access has been disabled. Contact an administrator.",
+  AFFILIATE_INACTIVE:
+    "Your affiliate account is not active. Contact an administrator.",
+};
 
 export async function GET() {
   const supabase = await createClient();
@@ -24,11 +33,29 @@ export async function GET() {
     user.app_metadata?.role as string | undefined
   );
 
+  const blockReason = await getAuthBlockReason(user.id);
+  if (blockReason) {
+    await supabase.auth.signOut();
+    return NextResponse.json(
+      {
+        error: blockMessages[blockReason],
+        code: blockReason,
+      },
+      { status: 403 }
+    );
+  }
+
   const authUser = await getAuthUser();
   if (!authUser) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  if (!authUser.impersonating && authUser.role === "AFFILIATE") {
+    await touchAffiliateLastSignIn(authUser.id);
+  }
+
   const response = jsonCached(authUser);
-  return applyRoleCookie(response, authUser.role);
+  applyRoleCookie(response, authUser.role);
+  applyMustChangePasswordCookie(response, !!authUser.mustChangePassword);
+  return response;
 }

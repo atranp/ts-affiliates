@@ -54,7 +54,18 @@ export type AdminAffiliateProfile = {
   email: string;
   name: string;
   role: string;
+  mustChangePassword: boolean;
+  portalDisabledAt: string | null;
+  lastSignInAt: string | null;
 } | null;
+
+export type AdminAffiliatePortal = {
+  hasAccess: boolean;
+  disabled: boolean;
+  mustChangePassword: boolean;
+  lastSignInAt: string | null;
+  loginEmail: string | null;
+};
 
 export type InviteAffiliateResult = {
   created: boolean;
@@ -62,6 +73,13 @@ export type InviteAffiliateResult = {
   email: string;
   temporaryPassword?: string;
   profileId: string;
+  inviteMessage?: string;
+};
+
+export type PortalActionResult = {
+  email: string;
+  temporaryPassword?: string;
+  inviteMessage?: string;
 };
 
 export type AdminAffiliateDealRule = {
@@ -89,6 +107,7 @@ export type AdminAffiliateDetail = {
   commissionRate: string | null;
   syncedAt: string | null;
   profile: AdminAffiliateProfile;
+  portal: AdminAffiliatePortal;
   ledger: {
     unpaidTotal: number;
     unpaidCount: number;

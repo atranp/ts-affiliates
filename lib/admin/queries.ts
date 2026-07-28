@@ -231,7 +231,15 @@ export async function getAffiliateDetail(
     where: { id },
     include: {
       profile: {
-        select: { id: true, email: true, name: true, role: true },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          mustChangePassword: true,
+          portalDisabledAt: true,
+          lastSignInAt: true,
+        },
       },
     },
   });
@@ -284,7 +292,21 @@ export async function getAffiliateDetail(
     status: affiliate.status,
     commissionRate: affiliate.commissionRate?.toString() ?? null,
     syncedAt: affiliate.syncedAt?.toISOString() ?? null,
-    profile: affiliate.profile,
+    profile: affiliate.profile
+      ? {
+          ...affiliate.profile,
+          portalDisabledAt:
+            affiliate.profile.portalDisabledAt?.toISOString() ?? null,
+          lastSignInAt: affiliate.profile.lastSignInAt?.toISOString() ?? null,
+        }
+      : null,
+    portal: {
+      hasAccess: !!affiliate.profile,
+      disabled: !!affiliate.profile?.portalDisabledAt,
+      mustChangePassword: affiliate.profile?.mustChangePassword ?? false,
+      lastSignInAt: affiliate.profile?.lastSignInAt?.toISOString() ?? null,
+      loginEmail: affiliate.profile?.email ?? null,
+    },
     ledger: {
       unpaidTotal: ledgerSummary.unpaidTotal,
       unpaidCount: ledgerSummary.unpaidCount,

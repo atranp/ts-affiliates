@@ -19,6 +19,10 @@ export type AuthUser = {
   role: Role;
   affiliateId: string | null;
   affiliateName: string | null;
+  mustChangePassword?: boolean;
+  impersonating?: boolean;
+  realUserId?: string;
+  realUserName?: string;
 };
 
 type AuthContextValue = {
