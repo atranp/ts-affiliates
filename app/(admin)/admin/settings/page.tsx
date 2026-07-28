@@ -33,6 +33,7 @@ export default function AdminSettingsPage() {
   const [slicewpConsumerKey, setSlicewpConsumerKey] = useState("");
   const [slicewpConsumerSecret, setSlicewpConsumerSecret] = useState("");
   const [saving, setSaving] = useState(false);
+  const [testingSliceWP, setTestingSliceWP] = useState(false);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -62,6 +63,20 @@ export default function AdminSettingsPage() {
       toast.error(err instanceof Error ? err.message : "Failed to save settings");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleTestSliceWP() {
+    setTestingSliceWP(true);
+    try {
+      await adminMutate<{ ok: true }>("/api/admin/integrations/test-slicewp", {
+        method: "POST",
+      });
+      toast.success("SliceWP connection OK");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Connection failed");
+    } finally {
+      setTestingSliceWP(false);
     }
   }
 
@@ -177,6 +192,11 @@ export default function AdminSettingsPage() {
               </>
             ) : (
               <>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Keys come from WordPress: SliceWP → Settings → Tools → API
+                  Keys. Use Read permission and an Administrator user. These are
+                  not the same as WooCommerce REST keys.
+                </p>
                 <div className="space-y-2">
                   <Label htmlFor="slicewpConsumerKey">Consumer Key</Label>
                   <Input
@@ -196,6 +216,14 @@ export default function AdminSettingsPage() {
                     placeholder={settings?.hasSliceWP ? "••••••••" : "Leave blank to keep existing"}
                   />
                 </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={testingSliceWP || !settings?.hasSliceWP}
+                  onClick={handleTestSliceWP}
+                >
+                  {testingSliceWP ? "Testing…" : "Test SliceWP connection"}
+                </Button>
               </>
             )}
           </CardContent>

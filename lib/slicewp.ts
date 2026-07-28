@@ -1,8 +1,25 @@
 import {
   appendWpAuthParams,
+  buildBasicAuthHeader,
   normalizeStoreUrl,
   readApiError,
+  sanitizeCredential,
 } from "./wordpress-auth";
+
+function formatSliceWPAuthError(status: number, detail: string): string {
+  if (status === 401 || detail.includes("rest_forbidden")) {
+    return [
+      "SliceWP rejected the API credentials (401).",
+      "Use keys from WordPress: SliceWP → Settings → Tools → API Keys.",
+      "Create Read (or Read/Write) keys tied to an Administrator — not WooCommerce keys.",
+      "Re-save both key and secret in Admin → Integrations.",
+      detail ? `(${detail})` : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }
+  return `SliceWP API error: ${status} — ${detail}`;
+}
 
 async function slicewpFetch<T>(
   storeUrl: string,
@@ -12,26 +29,49 @@ async function slicewpFetch<T>(
   params: Record<string, string> = {}
 ): Promise<T> {
   const baseUrl = normalizeStoreUrl(storeUrl);
-  const search = appendWpAuthParams(
-    new URLSearchParams(params),
-    consumerKey,
-    consumerSecret
-  );
+  const key = sanitizeCredential(consumerKey);
+  const secret = sanitizeCredential(consumerSecret);
+
+  if (!key || !secret) {
+    throw new Error(
+      "SliceWP credentials are missing. Add them in Admin → Integrations."
+    );
+  }
+
+  const search = appendWpAuthParams(new URLSearchParams(params), key, secret);
 
   const response = await fetch(
     `${baseUrl}/wp-json/slicewp/v1${path}?${search.toString()}`,
     {
-      headers: { Accept: "application/json" },
+      headers: {
+        Accept: "application/json",
+        Authorization: buildBasicAuthHeader(key, secret),
+      },
       cache: "no-store",
     }
   );
 
   if (!response.ok) {
     const detail = await readApiError(response);
-    throw new Error(`SliceWP API error: ${response.status} — ${detail}`);
+    throw new Error(formatSliceWPAuthError(response.status, detail));
   }
 
   return response.json() as Promise<T>;
+}
+
+export async function testSliceWPConnection(
+  storeUrl: string,
+  consumerKey: string,
+  consumerSecret: string
+): Promise<{ ok: true; affiliateCount: number }> {
+  const affiliates = await fetchSliceWPAffiliates(
+    storeUrl,
+    consumerKey,
+    consumerSecret,
+    0,
+    1
+  );
+  return { ok: true, affiliateCount: affiliates.length >= 0 ? 1 : 0 };
 }
 
 export interface SliceWPAffiliate {
