@@ -140,19 +140,23 @@ async function linkAffiliateParents(
     affiliates.map((affiliate) => [affiliate.slicewpId, affiliate.id])
   );
 
-  for (const { remote, slicewpId } of validRemotes) {
+  const updates = validRemotes.map(({ remote, slicewpId }) => {
     const parentSlicewpId = getParentSlicewpId(remote);
     const parentAffiliateId = parentSlicewpId
       ? bySlicewpId.get(parentSlicewpId)
       : undefined;
 
-    await prisma.affiliate.update({
+    return prisma.affiliate.update({
       where: { slicewpId },
       data: {
         parentSlicewpId: parentSlicewpId ?? null,
         parentAffiliateId: parentAffiliateId ?? null,
       },
     });
+  });
+
+  for (let i = 0; i < updates.length; i += COMMISSION_CHUNK_SIZE) {
+    await prisma.$transaction(updates.slice(i, i + COMMISSION_CHUNK_SIZE));
   }
 }
 
@@ -190,7 +194,8 @@ async function upsertRemoteCommission(
   affiliate: Affiliate,
   settings: Awaited<ReturnType<typeof getSettings>>,
   wooCache: Map<number, number | null>,
-  existingBySlicewpId: Map<number, Commission>
+  existingBySlicewpId: Map<number, Commission>,
+  options: { skipWooRevenue?: boolean } = {}
 ): Promise<Commission | null> {
   const slicewpId = Number(remote.id);
   if (!Number.isFinite(slicewpId)) return null;
@@ -203,6 +208,7 @@ async function upsertRemoteCommission(
     : null;
 
   if (
+    !options.skipWooRevenue &&
     wooOrderId &&
     Number.isFinite(wooOrderId) &&
     orderRevenue == null
@@ -251,7 +257,9 @@ async function upsertRemoteCommission(
   return commission;
 }
 
-export async function syncCommissionsFromSliceWP(): Promise<number> {
+export async function syncCommissionsFromSliceWP(options?: {
+  skipWooRevenue?: boolean;
+}): Promise<number> {
   const settings = await getSettings();
   if (!settings.slicewpConsumerKey || !settings.slicewpConsumerSecret) {
     throw new Error("SliceWP credentials are not configured");
@@ -327,7 +335,8 @@ export async function syncCommissionsFromSliceWP(): Promise<number> {
             affiliate,
             settings,
             wooCache,
-            existingBySlicewpId
+            existingBySlicewpId,
+            { skipWooRevenue: options?.skipWooRevenue }
           );
         })
       )
@@ -387,7 +396,10 @@ export async function runFullSync(): Promise<SyncResult> {
   await setSyncStep("profiles");
   const profilesLinked = await autoLinkUnlinkedProfiles();
   await setSyncStep("commissions");
-  const commissionsUpserted = await syncCommissionsFromSliceWP();
+  const commissionsUpserted = await syncCommissionsFromSliceWP({
+    // Woo order lookups are slow (1 HTTP req/order) — skip during bulk sync.
+    skipWooRevenue: true,
+  });
 
   const overridesCreated = await prisma.ledgerEntry.count({
     where: { type: "OVERRIDE" },
@@ -450,15 +462,22 @@ export async function autoLinkUnlinkedProfiles(): Promise<number> {
   );
 
   let linked = 0;
+  const linkUpdates = [];
   for (const profile of profiles) {
     const affiliateId = affiliateByEmail.get(profile.email.toLowerCase());
     if (!affiliateId) continue;
 
-    await prisma.profile.update({
-      where: { id: profile.id },
-      data: { affiliateId },
-    });
+    linkUpdates.push(
+      prisma.profile.update({
+        where: { id: profile.id },
+        data: { affiliateId },
+      })
+    );
     linked += 1;
+  }
+
+  for (let i = 0; i < linkUpdates.length; i += COMMISSION_CHUNK_SIZE) {
+    await prisma.$transaction(linkUpdates.slice(i, i + COMMISSION_CHUNK_SIZE));
   }
 
   return linked;

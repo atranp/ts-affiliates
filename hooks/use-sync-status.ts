@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api-client";
@@ -18,7 +18,8 @@ export type SyncStatus = {
   hasSliceWP: boolean;
 };
 
-const POLL_MS = 2000;
+const POLL_RUNNING_MS = 4000;
+const POLL_IDLE_MS = 30000;
 
 export function syncStepLabel(step: SyncStatus["step"]) {
   switch (step) {
@@ -33,49 +34,6 @@ export function syncStepLabel(step: SyncStatus["step"]) {
   }
 }
 
-export function useSyncStatus(options?: { poll?: boolean }) {
-  const queryClient = useQueryClient();
-  const wasRunning = useRef(false);
-  const poll = options?.poll ?? true;
-
-  useEffect(() => {
-    if (!poll) return;
-
-    let cancelled = false;
-
-    async function tick() {
-      try {
-        const status = await apiFetch<SyncStatus>("/api/sync");
-        if (cancelled) return;
-
-        if (wasRunning.current && !status.running) {
-          if (status.lastSyncError) {
-            toast.error(status.lastSyncError);
-          } else if (status.lastSyncResult) {
-            const r = status.lastSyncResult;
-            toast.success(
-              `Sync complete — ${r.affiliatesUpserted} affiliates, ${r.commissionsUpserted} commissions`
-            );
-          }
-          await queryClient.invalidateQueries({ queryKey: ["admin"] });
-          await queryClient.invalidateQueries({ queryKey: ["ledger"] });
-        }
-
-        wasRunning.current = status.running;
-      } catch {
-        // ignore transient poll errors
-      }
-    }
-
-    tick();
-    const id = window.setInterval(tick, POLL_MS);
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
-  }, [poll, queryClient]);
-}
-
 export async function startSync(options?: { auto?: boolean }) {
   return apiFetch<{ status: string }>("/api/sync", {
     method: "POST",
@@ -86,4 +44,76 @@ export async function startSync(options?: { auto?: boolean }) {
 
 export async function fetchSyncStatus() {
   return apiFetch<SyncStatus>("/api/sync");
+}
+
+export function useSyncStatus(options?: { poll?: boolean }) {
+  const queryClient = useQueryClient();
+  const wasRunning = useRef(false);
+  const poll = options?.poll ?? true;
+  const [status, setStatus] = useState<SyncStatus | null>(null);
+  const [starting, setStarting] = useState(false);
+
+  const refresh = useCallback(async () => {
+    const next = await fetchSyncStatus();
+    setStatus(next);
+    return next;
+  }, []);
+
+  useEffect(() => {
+    if (!poll) return;
+
+    let cancelled = false;
+    let timeoutId: number;
+
+    async function tick() {
+      try {
+        const next = await fetchSyncStatus();
+        if (cancelled) return;
+
+        setStatus(next);
+
+        if (wasRunning.current && !next.running) {
+          if (next.lastSyncError) {
+            toast.error(next.lastSyncError);
+          } else if (next.lastSyncResult) {
+            const r = next.lastSyncResult;
+            toast.success(
+              `Sync complete — ${r.affiliatesUpserted} affiliates, ${r.commissionsUpserted} commissions`
+            );
+          }
+          await queryClient.invalidateQueries({ queryKey: ["admin"] });
+          await queryClient.invalidateQueries({ queryKey: ["ledger"] });
+        }
+
+        wasRunning.current = next.running;
+        const delay = next.running ? POLL_RUNNING_MS : POLL_IDLE_MS;
+        timeoutId = window.setTimeout(tick, delay);
+      } catch {
+        if (!cancelled) {
+          timeoutId = window.setTimeout(tick, POLL_IDLE_MS);
+        }
+      }
+    }
+
+    tick();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [poll, queryClient]);
+
+  const startManualSync = useCallback(async () => {
+    setStarting(true);
+    try {
+      await startSync({ auto: false });
+      setStatus((prev) =>
+        prev ? { ...prev, running: true, step: "affiliates" } : prev
+      );
+      wasRunning.current = true;
+    } finally {
+      setStarting(false);
+    }
+  }, []);
+
+  return { status, starting, refresh, startManualSync };
 }

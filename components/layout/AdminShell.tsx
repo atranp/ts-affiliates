@@ -21,7 +21,7 @@ const navItems = [
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
-  useSyncStatus();
+  const { status, starting, startManualSync } = useSyncStatus();
 
   return (
     <AppShell
@@ -31,7 +31,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     >
       <SyncAutoStart />
       <div className="mb-6">
-        <SyncStatusBanner />
+        <SyncStatusBanner
+          status={status}
+          starting={starting}
+          onSync={startManualSync}
+        />
       </div>
       {children}
     </AppShell>

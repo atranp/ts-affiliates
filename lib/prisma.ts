@@ -19,7 +19,8 @@ function resolveDatabaseUrl(): string {
   }
 
   if (!parsed.searchParams.has("connection_limit")) {
-    parsed.searchParams.set("connection_limit", "1");
+    const limit = process.env.DATABASE_CONNECTION_LIMIT ?? "5";
+    parsed.searchParams.set("connection_limit", limit);
   }
 
   if (!parsed.searchParams.has("pool_timeout")) {

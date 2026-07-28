@@ -37,7 +37,7 @@ async function startBackgroundSync() {
     );
   }
 
-  waitUntil(
+  const runJob = () =>
     runFullSyncJob().catch(async (error) => {
       console.error("Background sync failed:", error);
       try {
@@ -45,18 +45,30 @@ async function startBackgroundSync() {
       } catch (failError) {
         console.error("Could not persist sync failure:", failError);
       }
-    })
-  );
+    });
+
+  // waitUntil is unreliable in local dev — fire-and-forget in-process instead.
+  if (process.env.NODE_ENV === "development") {
+    void runJob();
+    return NextResponse.json({ status: "started" });
+  }
+
+  waitUntil(runJob());
 
   return NextResponse.json({ status: "started" });
 }
 
 export async function GET(request: Request) {
-  await clearStaleSyncLock();
   const status = await getSyncStatus();
 
+  if (status.running) {
+    await clearStaleSyncLock();
+  }
+
+  const current = status.running ? await getSyncStatus() : status;
+
   if (authorizeCron(request)) {
-    if (status.running) {
+    if (current.running) {
       return NextResponse.json({ status: "already_running" });
     }
     return startBackgroundSync();
@@ -65,7 +77,7 @@ export async function GET(request: Request) {
   const auth = await requireAdmin();
   if ("error" in auth) return auth.error;
 
-  return NextResponse.json(status);
+  return NextResponse.json(current);
 }
 
 export async function POST(request: Request) {

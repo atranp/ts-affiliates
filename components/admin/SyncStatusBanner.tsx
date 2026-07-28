@@ -1,11 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  fetchSyncStatus,
-  startSync,
   syncStepLabel,
   type SyncStatus,
 } from "@/hooks/use-sync-status";
@@ -18,42 +15,17 @@ function formatSyncTime(iso: string | null) {
   });
 }
 
-export function SyncStatusBanner() {
-  const [status, setStatus] = useState<SyncStatus | null>(null);
-  const [starting, setStarting] = useState(false);
+type SyncStatusBannerProps = {
+  status: SyncStatus | null;
+  starting: boolean;
+  onSync: () => void;
+};
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const next = await fetchSyncStatus();
-        if (!cancelled) setStatus(next);
-      } catch {
-        // ignore
-      }
-    }
-
-    load();
-    const id = window.setInterval(load, 2000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
-  }, []);
-
-  async function handleManualSync() {
-    setStarting(true);
-    try {
-      await startSync({ auto: false });
-      setStatus((prev) =>
-        prev ? { ...prev, running: true, step: "affiliates" } : prev
-      );
-    } finally {
-      setStarting(false);
-    }
-  }
-
+export function SyncStatusBanner({
+  status,
+  starting,
+  onSync,
+}: SyncStatusBannerProps) {
   if (!status) return null;
 
   if (status.running) {
@@ -96,7 +68,7 @@ export function SyncStatusBanner() {
         variant="outline"
         size="sm"
         disabled={starting || !status.hasSliceWP}
-        onClick={handleManualSync}
+        onClick={onSync}
       >
         <RefreshCw className="mr-2 h-4 w-4" />
         Sync now
