@@ -1,6 +1,11 @@
 "use client";
 
-import { formatCurrency } from "@/lib/utils";
+import {
+  formatCommissionStatus,
+  formatCommissionType,
+  AFFILIATE_COPY,
+} from "@/lib/affiliate/copy";
+import { formatCurrency, cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -38,6 +43,13 @@ function statusVariant(
   return "secondary";
 }
 
+function amountClass(status: string): string {
+  if (status === "PAID") return "text-success";
+  if (status === "PENDING") return "text-warning";
+  if (status === "UNPAID") return "text-primary";
+  return "text-foreground";
+}
+
 function formatPayoutWeek(iso: string | null) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-US", {
@@ -50,76 +62,116 @@ function formatPayoutWeek(iso: string | null) {
 export function LedgerTable({
   entries,
   showDetails = false,
+  affiliateView = false,
 }: {
   entries: LedgerEntry[];
   showDetails?: boolean;
+  affiliateView?: boolean;
 }) {
   if (entries.length === 0) {
-    return <p className="text-sm text-muted-foreground">No entries yet.</p>;
+    return (
+      <p className="text-sm text-muted-foreground">
+        {affiliateView ? AFFILIATE_COPY.commissions.empty : "No entries yet."}
+      </p>
+    );
   }
 
+  const cols = affiliateView ? AFFILIATE_COPY.commissions.columns : null;
+
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Date</TableHead>
-          <TableHead>Type</TableHead>
-          {showDetails && <TableHead>Details</TableHead>}
-          {!showDetails && <TableHead>Source</TableHead>}
-          <TableHead>Order</TableHead>
-          <TableHead>Sale</TableHead>
-          <TableHead>Amount</TableHead>
-          {showDetails && <TableHead>Payout week</TableHead>}
-          <TableHead>Status</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {entries.map((entry) => (
-          <TableRow key={entry.id}>
-            <TableCell>
-              {new Date(entry.createdAt).toLocaleDateString("en-US")}
-            </TableCell>
-            <TableCell>
-              <Badge variant={entry.type === "OVERRIDE" ? "unpaid" : "secondary"}>
-                {entry.type === "OVERRIDE" ? "Team bonus" : entry.type}
-              </Badge>
-            </TableCell>
-            {showDetails ? (
-              <TableCell className="max-w-xs text-sm text-muted-foreground">
-                {entry.description ??
-                  entry.sourceAffiliate?.displayName ??
-                  entry.sourceAffiliate?.email ??
-                  "—"}
-              </TableCell>
-            ) : (
-              <TableCell>
-                {entry.sourceAffiliate?.displayName ??
-                  entry.sourceAffiliate?.email ??
-                  "—"}
-              </TableCell>
-            )}
-            <TableCell>
-              {entry.wooOrderId ? `#${entry.wooOrderId}` : "—"}
-            </TableCell>
-            <TableCell>
-              {entry.orderRevenue
-                ? formatCurrency(entry.orderRevenue)
-                : "—"}
-            </TableCell>
-            <TableCell className="font-medium text-success">
-              {formatCurrency(entry.amount)}
-            </TableCell>
+    <div className="overflow-x-auto rounded-lg border border-border">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/40 hover:bg-muted/40">
+            <TableHead>{cols?.date ?? "Date"}</TableHead>
+            <TableHead>{cols?.type ?? "Type"}</TableHead>
             {showDetails && (
-              <TableCell className="text-sm text-muted-foreground">
-                {formatPayoutWeek(entry.payoutWeek)}
-              </TableCell>
+              <TableHead>{cols?.details ?? "Details"}</TableHead>
             )}
-            <TableCell>
-              <Badge variant={statusVariant(entry.status)}>{entry.status}</Badge>
-            </TableCell>
+            {!showDetails && <TableHead>Source</TableHead>}
+            <TableHead>{cols?.order ?? "Order"}</TableHead>
+            <TableHead>{cols?.sale ?? "Sale"}</TableHead>
+            <TableHead className="text-right">
+              {cols?.amount ?? "Amount"}
+            </TableHead>
+            {showDetails && (
+              <TableHead>{cols?.payout ?? "Payout week"}</TableHead>
+            )}
+            <TableHead>{cols?.status ?? "Status"}</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {entries.map((entry) => (
+            <TableRow key={entry.id}>
+              <TableCell className="whitespace-nowrap text-muted-foreground">
+                {new Date(entry.createdAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </TableCell>
+              <TableCell>
+                <Badge
+                  variant={
+                    entry.type === "OVERRIDE" ? "unpaid" : "secondary"
+                  }
+                  className="font-normal"
+                >
+                  {affiliateView
+                    ? formatCommissionType(entry.type)
+                    : entry.type === "OVERRIDE"
+                      ? "Team bonus"
+                      : entry.type}
+                </Badge>
+              </TableCell>
+              {showDetails ? (
+                <TableCell className="max-w-xs text-sm text-muted-foreground">
+                  {entry.description ??
+                    entry.sourceAffiliate?.displayName ??
+                    entry.sourceAffiliate?.email ??
+                    "—"}
+                </TableCell>
+              ) : (
+                <TableCell>
+                  {entry.sourceAffiliate?.displayName ??
+                    entry.sourceAffiliate?.email ??
+                    "—"}
+                </TableCell>
+              )}
+              <TableCell className="text-muted-foreground">
+                {entry.wooOrderId ? `#${entry.wooOrderId}` : "—"}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {entry.orderRevenue
+                  ? formatCurrency(entry.orderRevenue)
+                  : "—"}
+              </TableCell>
+              <TableCell
+                className={cn(
+                  "text-right font-medium tabular-nums",
+                  affiliateView
+                    ? amountClass(entry.status)
+                    : "text-success"
+                )}
+              >
+                {formatCurrency(entry.amount)}
+              </TableCell>
+              {showDetails && (
+                <TableCell className="text-sm text-muted-foreground">
+                  {formatPayoutWeek(entry.payoutWeek)}
+                </TableCell>
+              )}
+              <TableCell>
+                <Badge variant={statusVariant(entry.status)}>
+                  {affiliateView
+                    ? formatCommissionStatus(entry.status)
+                    : entry.status}
+                </Badge>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }

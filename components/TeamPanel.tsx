@@ -2,7 +2,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { MilestoneProgress } from "@/components/affiliate/MilestoneProgress";
 import { apiFetch } from "@/lib/api-client";
+import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
 import type { TeamMember } from "@/lib/admin/team";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -33,14 +35,16 @@ export function TeamPanel({
   team: TeamMember[];
   adminView?: boolean;
 }) {
+  const affiliateView = !adminView;
+
   if (team.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Team</CardTitle>
+          <CardTitle>{AFFILIATE_COPY.team.title}</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          No team members yet.
+          {AFFILIATE_COPY.team.empty}
         </CardContent>
       </Card>
     );
@@ -49,7 +53,9 @@ export function TeamPanel({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Team ({team.length})</CardTitle>
+        <CardTitle>
+          {AFFILIATE_COPY.team.title} ({team.length})
+        </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4 sm:grid-cols-2">
         {team.map((member) => {
@@ -59,73 +65,82 @@ export function TeamPanel({
           return (
             <div
               key={member.id}
-              className="rounded-md border border-border bg-card p-4 space-y-3 shadow-sm"
+              className="rounded-lg border border-border bg-card p-4 space-y-3"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
+                <div className="min-w-0">
                   {adminView ? (
                     <Link
                       href={`/admin/affiliates/${member.id}`}
-                      className="font-medium text-primary hover:underline"
+                      className="font-medium text-primary hover:underline truncate block"
                     >
                       {name}
                     </Link>
                   ) : (
-                    <p className="font-medium">{name}</p>
+                    <p className="font-medium truncate">{name}</p>
                   )}
-                  <p className="text-xs text-muted-foreground">
-                    {member.email} · SliceWP #{member.slicewpId}
+                  <p className="text-xs text-muted-foreground truncate">
+                    {affiliateView
+                      ? member.email
+                      : `${member.email} · SliceWP #${member.slicewpId}`}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-1">
-                  <Badge variant={member.status === "ACTIVE" ? "paid" : "outline"}>
+                {!affiliateView && (
+                  <Badge
+                    variant={member.status === "ACTIVE" ? "paid" : "outline"}
+                  >
                     {member.status}
                   </Badge>
-                </div>
+                )}
               </div>
 
               {member.dealRule && (
-                <p className="text-sm text-muted-foreground">
-                  Rule: {member.dealRule.name} · {member.dealRule.ratePercent}%
-                  {member.dealRule.milestoneRevenueThreshold
-                    ? ` · Milestone ${formatCurrency(Number(member.dealRule.milestoneRevenueThreshold))}`
-                    : ""}
+                <p className="text-xs text-muted-foreground">
+                  {affiliateView
+                    ? `${member.dealRule.ratePercent}% team earnings${
+                        member.dealRule.milestoneRevenueThreshold
+                          ? ` · ${formatCurrency(Number(member.dealRule.milestoneRevenueThreshold))} sales goal`
+                          : ""
+                      }`
+                    : `Rule: ${member.dealRule.name} · ${member.dealRule.ratePercent}%${
+                        member.dealRule.milestoneRevenueThreshold
+                          ? ` · Milestone ${formatCurrency(Number(member.dealRule.milestoneRevenueThreshold))}`
+                          : ""
+                      }`}
                 </p>
               )}
 
-              <div className="flex flex-wrap gap-3 text-sm">
-                <span>
-                  Revenue:{" "}
-                  <strong>{formatCurrency(member.stats.totalRevenue)}</strong>
+              {milestone && (
+                <MilestoneProgress
+                  current={milestone.current}
+                  threshold={milestone.threshold}
+                  remaining={milestone.remaining}
+                  met={milestone.met}
+                />
+              )}
+
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                <span className="text-muted-foreground">
+                  {AFFILIATE_COPY.home.salesLabel}{" "}
+                  <strong className="text-foreground">
+                    {formatCurrency(member.stats.totalRevenue)}
+                  </strong>
                 </span>
-                <span>
-                  Unpaid bonus:{" "}
+                <span className="text-muted-foreground">
+                  {AFFILIATE_COPY.team.owed}{" "}
                   <strong className="text-primary">
                     {formatCurrency(member.stats.unpaidTeamBonus)}
                   </strong>
                 </span>
-                <span>
-                  Pending:{" "}
-                  <strong className="text-warning">
-                    {formatCurrency(member.stats.pendingTeamBonus)}
-                  </strong>
-                </span>
+                {member.stats.pendingTeamBonus > 0 && (
+                  <span className="text-muted-foreground">
+                    {AFFILIATE_COPY.team.pending}{" "}
+                    <strong className="text-warning">
+                      {formatCurrency(member.stats.pendingTeamBonus)}
+                    </strong>
+                  </span>
+                )}
               </div>
-
-              {milestone && (
-                <div className="text-sm">
-                  {milestone.met ? (
-                    <Badge variant="paid">Milestone reached</Badge>
-                  ) : (
-                    <p className="text-muted-foreground">
-                      {formatCurrency(milestone.current)} /{" "}
-                      {formatCurrency(milestone.threshold ?? 0)}
-                      {" · "}
-                      {formatCurrency(milestone.remaining)} to go
-                    </p>
-                  )}
-                </div>
-              )}
             </div>
           );
         })}

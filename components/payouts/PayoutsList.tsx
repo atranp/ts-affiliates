@@ -4,13 +4,16 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api-client";
+import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
 import type { PayoutBatchListItem } from "@/lib/payouts/types";
 import { formatCurrency } from "@/lib/utils";
 
 export function PayoutsList({
   detailHrefPrefix,
+  affiliateView = false,
 }: {
   detailHrefPrefix: string;
+  affiliateView?: boolean;
 }) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["payouts"],
@@ -33,7 +36,9 @@ export function PayoutsList({
   if (!data?.batches.length) {
     return (
       <p className="text-sm text-muted-foreground">
-        No payouts yet. When admin runs a payout, it will appear here.
+        {affiliateView
+          ? AFFILIATE_COPY.payouts.empty
+          : "No payouts yet. When admin runs a payout, it will appear here."}
       </p>
     );
   }
@@ -50,7 +55,7 @@ export function PayoutsList({
             <p className="font-medium truncate">{batch.label}</p>
             <p className="text-xs text-muted-foreground">
               {batch.teamName ?? "Payout"} · {batch.entryCount}{" "}
-              {batch.entryCount === 1 ? "entry" : "entries"} ·{" "}
+              {batch.entryCount === 1 ? "commission" : "commissions"} ·{" "}
               {new Date(batch.processedAt ?? batch.createdAt).toLocaleDateString(
                 "en-US",
                 { month: "short", day: "numeric", year: "numeric" }
