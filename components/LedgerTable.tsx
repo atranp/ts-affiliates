@@ -44,8 +44,8 @@ function statusVariant(
 }
 
 function amountClass(status: string): string {
-  if (status === "PAID") return "text-success";
-  if (status === "PENDING") return "text-warning";
+  if (status === "PAID") return "text-emerald-700";
+  if (status === "PENDING") return "text-amber-700";
   if (status === "UNPAID") return "text-primary";
   return "text-foreground";
 }
@@ -70,7 +70,7 @@ export function LedgerTable({
 }) {
   if (entries.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="py-8 text-center text-sm text-muted-foreground">
         {affiliateView ? AFFILIATE_COPY.commissions.empty : "No entries yet."}
       </p>
     );
@@ -79,10 +79,10 @@ export function LedgerTable({
   const cols = affiliateView ? AFFILIATE_COPY.commissions.columns : null;
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
+    <div className="overflow-x-auto">
       <Table>
         <TableHeader>
-          <TableRow className="bg-muted/40 hover:bg-muted/40">
+          <TableRow className="ts-table-header hover:bg-muted">
             <TableHead>{cols?.date ?? "Date"}</TableHead>
             <TableHead>{cols?.type ?? "Type"}</TableHead>
             {showDetails && (
@@ -102,8 +102,11 @@ export function LedgerTable({
         </TableHeader>
         <TableBody>
           {entries.map((entry) => (
-            <TableRow key={entry.id}>
-              <TableCell className="whitespace-nowrap text-muted-foreground">
+            <TableRow
+              key={entry.id}
+              className="text-xs hover:bg-muted/80"
+            >
+              <TableCell className="whitespace-nowrap font-medium">
                 {new Date(entry.createdAt).toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",
@@ -111,25 +114,39 @@ export function LedgerTable({
                 })}
               </TableCell>
               <TableCell>
-                <Badge
-                  variant={
-                    entry.type === "OVERRIDE" ? "unpaid" : "secondary"
-                  }
-                  className="font-normal"
-                >
-                  {affiliateView
-                    ? formatCommissionType(entry.type)
-                    : entry.type === "OVERRIDE"
-                      ? "Team bonus"
-                      : entry.type}
-                </Badge>
+                {affiliateView ? (
+                  <span
+                    className={
+                      entry.type === "OVERRIDE"
+                        ? "ts-type-team"
+                        : "ts-type-direct"
+                    }
+                  >
+                    {formatCommissionType(entry.type)}
+                  </span>
+                ) : (
+                  <Badge
+                    variant={
+                      entry.type === "OVERRIDE" ? "unpaid" : "secondary"
+                    }
+                  >
+                    {entry.type === "OVERRIDE" ? "Team bonus" : entry.type}
+                  </Badge>
+                )}
               </TableCell>
               {showDetails ? (
-                <TableCell className="max-w-xs text-sm text-muted-foreground">
+                <TableCell className="max-w-xs font-semibold text-brand-dark">
                   {entry.description ??
                     entry.sourceAffiliate?.displayName ??
                     entry.sourceAffiliate?.email ??
                     "—"}
+                  {entry.sourceAffiliate && affiliateView && (
+                    <div className="text-[11px] font-normal text-muted-foreground">
+                      Referred by:{" "}
+                      {entry.sourceAffiliate.displayName ??
+                        entry.sourceAffiliate.email}
+                    </div>
+                  )}
                 </TableCell>
               ) : (
                 <TableCell>
@@ -138,26 +155,26 @@ export function LedgerTable({
                     "—"}
                 </TableCell>
               )}
-              <TableCell className="text-muted-foreground">
+              <TableCell className="font-mono font-medium text-muted-foreground">
                 {entry.wooOrderId ? `#${entry.wooOrderId}` : "—"}
               </TableCell>
-              <TableCell className="text-muted-foreground">
+              <TableCell className="font-medium text-muted-foreground">
                 {entry.orderRevenue
                   ? formatCurrency(entry.orderRevenue)
                   : "—"}
               </TableCell>
               <TableCell
                 className={cn(
-                  "text-right font-medium tabular-nums",
+                  "text-right text-sm font-bold tabular-nums",
                   affiliateView
                     ? amountClass(entry.status)
-                    : "text-success"
+                    : "text-emerald-700"
                 )}
               >
                 {formatCurrency(entry.amount)}
               </TableCell>
               {showDetails && (
-                <TableCell className="text-sm text-muted-foreground">
+                <TableCell className="text-muted-foreground">
                   {formatPayoutWeek(entry.payoutWeek)}
                 </TableCell>
               )}

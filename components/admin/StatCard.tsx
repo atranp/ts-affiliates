@@ -1,5 +1,5 @@
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type StatCardProps = {
@@ -7,14 +7,30 @@ type StatCardProps = {
   value: string;
   hint?: string;
   variant?: "default" | "success" | "warning" | "primary";
+  icon?: LucideIcon;
+  footer?: React.ReactNode;
   className?: string;
 };
 
 const valueStyles = {
-  default: "text-foreground",
-  success: "text-success",
-  warning: "text-warning",
+  default: "text-brand-dark",
+  success: "text-emerald-700",
+  warning: "text-amber-700",
   primary: "text-primary",
+};
+
+const iconStyles = {
+  default: "bg-primary/10 text-primary",
+  success: "bg-emerald-50 text-emerald-700",
+  warning: "bg-amber-50 text-amber-700",
+  primary: "bg-primary/10 text-primary",
+};
+
+const hoverBorder = {
+  default: "hover:border-primary",
+  success: "hover:border-emerald-500",
+  warning: "hover:border-amber-500",
+  primary: "hover:border-primary",
 };
 
 export function StatCard({
@@ -22,35 +38,50 @@ export function StatCard({
   value,
   hint,
   variant = "default",
+  icon: Icon,
+  footer,
   className,
 }: StatCardProps) {
   return (
-    <Card className={className}>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {label}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className={cn("text-2xl font-semibold tracking-tight", valueStyles[variant])}>
-          {value}
-        </p>
-        {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
-      </CardContent>
-    </Card>
+    <div
+      className={cn(
+        "ts-stat-card group",
+        hoverBorder[variant],
+        className
+      )}
+    >
+      <div className="flex items-start justify-between">
+        <div>
+          <span className="ts-stat-label">{label}</span>
+          <p className={cn("stat-value mt-1", valueStyles[variant])}>{value}</p>
+        </div>
+        {Icon && (
+          <div className={cn("ts-icon-box", iconStyles[variant])}>
+            <Icon className="h-5 w-5" />
+          </div>
+        )}
+      </div>
+      {(hint || footer) && (
+        <div className="flex items-center justify-between border-t border-border/60 pt-2 text-xs text-muted-foreground">
+          {hint && <span>{hint}</span>}
+          {footer}
+        </div>
+      )}
+    </div>
   );
 }
 
 export function StatCardSkeleton() {
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <Skeleton className="h-4 w-24" />
-      </CardHeader>
-      <CardContent>
-        <Skeleton className="h-8 w-32" />
-        <Skeleton className="mt-2 h-3 w-20" />
-      </CardContent>
-    </Card>
+    <div className="ts-stat-card space-y-3">
+      <div className="flex items-start justify-between">
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-8 w-32" />
+        </div>
+        <Skeleton className="h-10 w-10 rounded-lg" />
+      </div>
+      <Skeleton className="h-3 w-full" />
+    </div>
   );
 }

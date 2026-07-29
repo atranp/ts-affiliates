@@ -10,12 +10,17 @@ import { LedgerTable } from "@/components/LedgerTable";
 import { TeamsPanel, useTeams } from "@/components/TeamsPanel";
 import { TeamPanel, useTeam } from "@/components/TeamPanel";
 import { ErrorState } from "@/components/admin/ErrorState";
+import { PartnerTabRail } from "@/components/layout/PartnerTabRail";
 import {
-  Home,
-  FileText,
-  Users,
-  DollarSign,
+  CheckCircle2,
   ChevronRight,
+  Clock,
+  CreditCard,
+  DollarSign,
+  LayoutDashboard,
+  Receipt,
+  Search,
+  Users,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -26,7 +31,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ledgerTabToFilters, useLedger } from "@/hooks/use-ledger";
 import { PayoutsList } from "@/components/payouts/PayoutsList";
 import {
@@ -137,13 +142,6 @@ function DashboardPageContent() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="page-title">
-          {displayName ? `Welcome, ${displayName}` : "Welcome"}
-        </h1>
-        <p className="page-description">{AFFILIATE_COPY.home.subtitle}</p>
-      </div>
-
       {error && (
         <ErrorState message={error.message} onRetry={() => refetch()} />
       )}
@@ -153,59 +151,72 @@ function DashboardPageContent() {
           value={viewTab}
           onValueChange={(v) => setViewTab(v as DashboardTab)}
         >
-          <TabsList className="mb-2 h-auto flex-wrap justify-start gap-1 bg-transparent p-0">
-            <TabsTrigger
-              value="overview"
-              className="gap-2 rounded-full border border-transparent px-4 py-2 data-[state=active]:border-border data-[state=active]:bg-card data-[state=active]:shadow-sm"
-            >
-              <Home className="h-4 w-4" />
-              {AFFILIATE_COPY.tabs.home}
-            </TabsTrigger>
-            <TabsTrigger
-              value="ledger"
-              className="gap-2 rounded-full border border-transparent px-4 py-2 data-[state=active]:border-border data-[state=active]:bg-card data-[state=active]:shadow-sm"
-            >
-              <FileText className="h-4 w-4" />
-              {AFFILIATE_COPY.tabs.commissions}
-            </TabsTrigger>
-            <TabsTrigger
-              value="teams"
-              className="gap-2 rounded-full border border-transparent px-4 py-2 data-[state=active]:border-border data-[state=active]:bg-card data-[state=active]:shadow-sm"
-            >
-              <Users className="h-4 w-4" />
-              {AFFILIATE_COPY.tabs.team}
-              {teamsData?.teams && teamsData.teams.length > 0
-                ? ` · ${teamsData.teams.length}`
-                : ""}
-            </TabsTrigger>
-            <TabsTrigger
-              value="payouts"
-              className="gap-2 rounded-full border border-transparent px-4 py-2 data-[state=active]:border-border data-[state=active]:bg-card data-[state=active]:shadow-sm"
-            >
-              <DollarSign className="h-4 w-4" />
-              {AFFILIATE_COPY.tabs.payouts}
-            </TabsTrigger>
-          </TabsList>
+          <PartnerTabRail
+            activeTab={viewTab}
+            onTabChange={(v) => setViewTab(v as DashboardTab)}
+            tabs={[
+              {
+                id: "overview",
+                label: AFFILIATE_COPY.tabs.home,
+                icon: LayoutDashboard,
+              },
+              {
+                id: "ledger",
+                label: AFFILIATE_COPY.tabs.commissions,
+                icon: Receipt,
+              },
+              {
+                id: "teams",
+                label: AFFILIATE_COPY.tabs.team,
+                icon: Users,
+                suffix:
+                  teamsData?.teams && teamsData.teams.length > 0
+                    ? ` · ${teamsData.teams.length}`
+                    : undefined,
+              },
+              {
+                id: "payouts",
+                label: AFFILIATE_COPY.tabs.payouts,
+                icon: CreditCard,
+              },
+            ]}
+          />
 
-          <TabsContent value="overview" className="mt-4 space-y-6">
-            <div className="grid gap-4 sm:grid-cols-3">
+          <TabsContent value="overview" className="mt-6 space-y-6">
+            <div>
+              <h1 className="page-title">
+                {displayName ? `Welcome, ${displayName}` : "Welcome"}
+              </h1>
+              <p className="page-description">{AFFILIATE_COPY.home.subtitle}</p>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-3">
               <AffiliateStatCard
                 label={AFFILIATE_COPY.stats.owed.label}
                 hint={AFFILIATE_COPY.stats.owed.hint}
                 value={data.summary.unpaidTotal}
                 tone="primary"
+                icon={DollarSign}
+                actionLabel="View"
+                onAction={() => setViewTab("ledger")}
               />
               <AffiliateStatCard
                 label={AFFILIATE_COPY.stats.paid.label}
                 hint={AFFILIATE_COPY.stats.paid.hint}
                 value={data.summary.paidTotal}
                 tone="success"
+                icon={CheckCircle2}
+                actionLabel="Payouts"
+                onAction={() => setViewTab("payouts")}
               />
               <AffiliateStatCard
                 label={AFFILIATE_COPY.stats.pending.label}
                 hint={AFFILIATE_COPY.stats.pending.hint}
                 value={data.summary.pendingTotal}
                 tone="warning"
+                icon={Clock}
+                actionLabel="Team"
+                onAction={() => setViewTab("teams")}
               />
             </div>
 
@@ -364,82 +375,102 @@ function DashboardPageContent() {
             ) : null}
           </TabsContent>
 
-          <TabsContent value="ledger" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  {AFFILIATE_COPY.commissions.title}
-                </CardTitle>
-                <CardDescription>
-                  {AFFILIATE_COPY.commissions.description}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <Input
-                    placeholder={AFFILIATE_COPY.commissions.searchPlaceholder}
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    className="sm:max-w-sm bg-background"
-                  />
-                  {teamsData?.teams && teamsData.teams.length > 0 && (
-                    <select
-                      className="select-field w-full sm:max-w-xs"
-                      value={teamFilter}
-                      onChange={(e) => handleTeamFilter(e.target.value)}
-                    >
-                      <option value="all">
-                        {AFFILIATE_COPY.commissions.allTeams}
-                      </option>
-                      {teamsData.teams.map((team) => (
-                        <option key={team.id} value={team.id}>
-                          {team.name}
+          <TabsContent value="ledger" className="mt-6 space-y-6">
+            <div>
+              <h1 className="page-title">Commissions Ledger</h1>
+              <p className="page-description">
+                {AFFILIATE_COPY.commissions.description}
+              </p>
+            </div>
+
+            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
+              <div className="ts-table-toolbar">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="relative min-w-[220px] flex-1">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder={
+                        AFFILIATE_COPY.commissions.searchPlaceholder
+                      }
+                      value={q}
+                      onChange={(e) => setQ(e.target.value)}
+                      className="rounded-lg bg-card pl-9"
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {teamsData?.teams && teamsData.teams.length > 0 && (
+                      <select
+                        className="select-field w-full sm:max-w-xs"
+                        value={teamFilter}
+                        onChange={(e) => handleTeamFilter(e.target.value)}
+                      >
+                        <option value="all">
+                          {AFFILIATE_COPY.commissions.allTeams}
                         </option>
-                      ))}
-                    </select>
-                  )}
-                  {data.sourceAffiliates.length > 0 && (
-                    <select
-                      className="select-field w-full sm:max-w-xs"
-                      value={sourceFilter}
-                      onChange={(e) => handleSourceFilter(e.target.value)}
-                    >
-                      <option value="all">
-                        {AFFILIATE_COPY.commissions.allMembers}
-                      </option>
-                      {data.sourceAffiliates.map((affiliate) => (
-                        <option key={affiliate.id} value={affiliate.id}>
-                          {affiliate.displayName ?? affiliate.email}
+                        {teamsData.teams.map((team) => (
+                          <option key={team.id} value={team.id}>
+                            {team.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {data.sourceAffiliates.length > 0 && (
+                      <select
+                        className="select-field w-full sm:max-w-xs"
+                        value={sourceFilter}
+                        onChange={(e) =>
+                          handleSourceFilter(e.target.value)
+                        }
+                      >
+                        <option value="all">
+                          {AFFILIATE_COPY.commissions.allMembers}
                         </option>
-                      ))}
-                    </select>
-                  )}
+                        {data.sourceAffiliates.map((affiliate) => (
+                          <option key={affiliate.id} value={affiliate.id}>
+                            {affiliate.displayName ?? affiliate.email}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
                 </div>
 
                 <Tabs value={ledgerTab} onValueChange={handleTabChange}>
-                  <TabsList className="h-auto flex-wrap">
-                    <TabsTrigger value="all">
-                      {AFFILIATE_COPY.commissions.tabs.all}
-                    </TabsTrigger>
-                    <TabsTrigger value="unpaid">
-                      {AFFILIATE_COPY.commissions.tabs.owed}
-                    </TabsTrigger>
-                    <TabsTrigger value="paid">
-                      {AFFILIATE_COPY.commissions.tabs.paid}
-                    </TabsTrigger>
-                    <TabsTrigger value="overrides">
-                      {AFFILIATE_COPY.commissions.tabs.teamEarnings}
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value={ledgerTab} className="space-y-4 pt-2">
+                  <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
+                    {(
+                      [
+                        ["all", AFFILIATE_COPY.commissions.tabs.all],
+                        ["unpaid", AFFILIATE_COPY.commissions.tabs.owed],
+                        ["paid", AFFILIATE_COPY.commissions.tabs.paid],
+                        [
+                          "overrides",
+                          AFFILIATE_COPY.commissions.tabs.teamEarnings,
+                        ],
+                      ] as const
+                    ).map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => handleTabChange(value)}
+                        className={
+                          ledgerTab === value
+                            ? "filter-pill filter-pill-active"
+                            : "filter-pill filter-pill-inactive"
+                        }
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <TabsContent value={ledgerTab} className="mt-0">
                     <LedgerTable
                       entries={data.entries}
                       showDetails
                       affiliateView
                     />
                     {data.totalPages > 1 && (
-                      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                        <p className="text-sm text-muted-foreground">
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/50 p-4 text-xs text-muted-foreground">
+                        <p>
                           Page {data.page} of {data.totalPages} · {data.total}{" "}
                           {data.total === 1 ? "entry" : "entries"}
                           {isFetching ? " · updating…" : ""}
@@ -466,11 +497,18 @@ function DashboardPageContent() {
                     )}
                   </TabsContent>
                 </Tabs>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </TabsContent>
 
-          <TabsContent value="teams" className="mt-4 space-y-4">
+          <TabsContent value="teams" className="mt-6 space-y-6">
+            <div>
+              <h1 className="page-title">Your Team Roster</h1>
+              <p className="page-description">
+                Manage sponsored affiliates, track milestone sales goals, and
+                monitor team earnings.
+              </p>
+            </div>
             {teamsLoading ? (
               <p className="text-sm text-muted-foreground">
                 {AFFILIATE_COPY.team.loading}
@@ -497,23 +535,17 @@ function DashboardPageContent() {
             )}
           </TabsContent>
 
-          <TabsContent value="payouts" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  {AFFILIATE_COPY.payouts.title}
-                </CardTitle>
-                <CardDescription>
-                  {AFFILIATE_COPY.payouts.description}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <PayoutsList
-                  detailHrefPrefix="/dashboard/payouts"
-                  affiliateView
-                />
-              </CardContent>
-            </Card>
+          <TabsContent value="payouts" className="mt-6 space-y-6">
+            <div>
+              <h1 className="page-title">Payout History</h1>
+              <p className="page-description">
+                {AFFILIATE_COPY.payouts.description}
+              </p>
+            </div>
+            <PayoutsList
+              detailHrefPrefix="/dashboard/payouts"
+              affiliateView
+            />
           </TabsContent>
         </Tabs>
       )}

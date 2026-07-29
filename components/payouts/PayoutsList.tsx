@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { Calendar, ChevronRight, CreditCard } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api-client";
 import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
@@ -35,41 +35,81 @@ export function PayoutsList({
 
   if (!data?.batches.length) {
     return (
-      <p className="text-sm text-muted-foreground">
-        {affiliateView
-          ? AFFILIATE_COPY.payouts.empty
-          : "No payouts yet. When admin runs a payout, it will appear here."}
-      </p>
+      <div className="rounded-xl border border-border bg-card px-6 py-12 text-center shadow-xs">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+          <CreditCard className="h-6 w-6" />
+        </div>
+        <h2 className="text-base font-bold text-brand-dark">No payouts yet</h2>
+        <p className="mx-auto mt-2 max-w-md text-xs text-muted-foreground">
+          {affiliateView
+            ? AFFILIATE_COPY.payouts.empty
+            : "No payouts yet. When admin runs a payout, it will appear here."}
+        </p>
+      </div>
     );
   }
 
   return (
-    <div className="divide-y divide-border rounded-lg border border-border">
-      {data.batches.map((batch) => (
-        <Link
-          key={batch.id}
-          href={`${detailHrefPrefix}/${batch.id}`}
-          className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-muted/50"
-        >
-          <div className="min-w-0">
-            <p className="font-medium truncate">{batch.label}</p>
-            <p className="text-xs text-muted-foreground">
-              {batch.teamName ?? "Payout"} · {batch.entryCount}{" "}
-              {batch.entryCount === 1 ? "commission" : "commissions"} ·{" "}
-              {new Date(batch.processedAt ?? batch.createdAt).toLocaleDateString(
-                "en-US",
-                { month: "short", day: "numeric", year: "numeric" }
-              )}
-            </p>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <span className="font-semibold text-success">
-              {formatCurrency(batch.totalAmount)}
-            </span>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          </div>
-        </Link>
-      ))}
+    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
+      <div className="flex items-center justify-between border-b border-border bg-muted px-4 py-3">
+        <span className="text-xs font-semibold uppercase tracking-wider text-brand-dark">
+          Disbursed Payout Runs
+        </span>
+      </div>
+
+      <div className="divide-y divide-border">
+        {data.batches.map((batch) => (
+          <Link
+            key={batch.id}
+            href={`${detailHrefPrefix}/${batch.id}`}
+            className="flex items-center justify-between gap-4 p-5 transition-colors hover:bg-muted/50"
+          >
+            <div className="flex min-w-0 items-center gap-4">
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-emerald-700">
+                <CreditCard className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="truncate text-sm font-bold text-brand-dark">
+                    {batch.label}
+                  </p>
+                  <span className="rounded border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                    {batch.status}
+                  </span>
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-3.5 w-3.5" />
+                    {new Date(
+                      batch.processedAt ?? batch.createdAt
+                    ).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
+                  <span>•</span>
+                  <span>
+                    {batch.entryCount}{" "}
+                    {batch.entryCount === 1 ? "commission" : "commissions"}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-4">
+              <div className="text-right">
+                <span className="block text-[10px] font-semibold uppercase text-muted-foreground">
+                  Amount
+                </span>
+                <span className="text-lg font-bold text-emerald-700">
+                  {formatCurrency(batch.totalAmount)}
+                </span>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </div>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }

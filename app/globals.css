@@ -4,22 +4,21 @@
 
 @layer base {
   :root {
-    /* True Sciences light dashboard tokens (from global-base.css) */
-    --background: 0 0% 99%;
-    --foreground: 220 25% 10%;
+    --background: 220 18% 97%;
+    --foreground: 222 32% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 25% 10%;
+    --card-foreground: 222 32% 12%;
 
     --muted: 220 16% 96%;
-    --muted-foreground: 220 12% 45%;
+    --muted-foreground: 220 10% 38%;
 
     --primary: 215 50% 25%;
     --primary-foreground: 0 0% 100%;
     --primary-soft: 215 24% 96%;
 
     --secondary: 220 14% 96%;
-    --secondary-foreground: 220 25% 10%;
+    --secondary-foreground: 222 32% 12%;
 
     --accent: 215 50% 25%;
     --accent-foreground: 0 0% 100%;
@@ -35,13 +34,12 @@
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 12% 92%;
-    --input: 220 12% 90%;
+    --border: 220 14% 86%;
+    --input: 220 14% 86%;
     --ring: 215 50% 25%;
 
-    --radius: 0.375rem;
+    --radius: 0.75rem;
 
-    /* TS brand hex reference */
     --brand: #002c50;
     --brand-dark: #001830;
     --brand-mid: #003868;
@@ -67,30 +65,100 @@
 
 @layer components {
   .select-field {
-    @apply flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring;
+    @apply flex h-9 w-full rounded-lg border border-input bg-card px-3 py-1 text-sm text-foreground shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
   }
 
   .page-title {
-    @apply text-xl font-semibold tracking-tight sm:text-2xl;
+    @apply text-2xl font-bold tracking-tight text-brand-dark;
   }
 
   .page-description {
-    @apply text-sm text-muted-foreground mt-1;
+    @apply mt-0.5 text-sm text-muted-foreground;
   }
 
   .stat-value {
-    @apply text-2xl font-semibold;
+    @apply text-2xl font-bold tracking-tight;
   }
 
   .filter-pill {
-    @apply rounded-full px-3 py-1 text-xs font-medium transition-colors;
+    @apply rounded-lg px-3 py-1.5 text-xs font-semibold transition-all;
   }
 
   .filter-pill-active {
-    @apply bg-primary/10 text-primary;
+    @apply bg-primary text-primary-foreground shadow-xs;
   }
 
   .filter-pill-inactive {
-    @apply bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground;
+    @apply border border-border bg-card text-muted-foreground hover:text-foreground;
+  }
+
+  .ts-card {
+    @apply rounded-xl border border-border bg-card shadow-xs;
+  }
+
+  .ts-table-header {
+    @apply bg-muted text-xs font-semibold uppercase tracking-wider text-muted-foreground;
+  }
+
+  .ts-nav-rail {
+    @apply flex items-center gap-1.5 rounded-xl border border-border bg-muted p-1;
+  }
+
+  .ts-nav-pill {
+    @apply flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition-all;
+  }
+
+  .ts-nav-pill-active {
+    @apply bg-primary text-primary-foreground shadow-xs;
+  }
+
+  .ts-nav-pill-inactive {
+    @apply text-muted-foreground hover:bg-card hover:text-foreground;
+  }
+
+  .ts-stat-card {
+    @apply ts-card flex flex-col justify-between space-y-3 p-5 transition-colors;
+  }
+
+  .ts-stat-label {
+    @apply block text-xs font-semibold uppercase tracking-wider text-muted-foreground;
+  }
+
+  .ts-icon-box {
+    @apply rounded-lg p-2.5;
+  }
+
+  .ts-table-toolbar {
+    @apply space-y-4 border-b border-border bg-muted/50 p-4;
+  }
+
+  .ts-status-badge {
+    @apply inline-flex items-center rounded-md border px-2.5 py-1 text-[11px] font-bold;
+  }
+
+  .ts-status-paid {
+    @apply ts-status-badge border-emerald-300 bg-emerald-50 text-emerald-800;
+  }
+
+  .ts-status-owed {
+    @apply ts-status-badge border-primary/20 bg-primary/10 text-primary;
+  }
+
+  .ts-status-pending {
+    @apply ts-status-badge border-amber-300 bg-amber-50 text-amber-800;
+  }
+
+  .ts-type-direct {
+    @apply rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary;
+  }
+
+  .ts-type-team {
+    @apply rounded-full border border-purple-200 bg-purple-50 px-2.5 py-1 text-[11px] font-semibold text-purple-800;
+  }
+}
+
+@layer utilities {
+  .shadow-xs {
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.04);
   }
 }

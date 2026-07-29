@@ -16,7 +16,7 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-start justify-between gap-3",
+        "flex flex-wrap items-start justify-between gap-4",
         className
       )}
     >

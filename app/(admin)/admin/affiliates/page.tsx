@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { Check, Minus } from "lucide-react";
+import { Check, Minus, Search } from "lucide-react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { TableSkeleton } from "@/components/admin/TableSkeleton";
 import { EmptyState } from "@/components/admin/EmptyState";
@@ -10,13 +10,6 @@ import { ErrorState } from "@/components/admin/ErrorState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -75,40 +68,51 @@ export default function AdminAffiliatesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Affiliates" />
+      <PageHeader
+        title="Affiliate Partners Directory"
+        description="Manage partner profiles, portal access permissions, ledger adjustments, and team sponsors."
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Directory</CardTitle>
-          {data && (
-            <CardDescription>
-              {data.total} affiliate{data.total === 1 ? "" : "s"}
-            </CardDescription>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Input
-              placeholder="Search name, email, or SliceWP ID..."
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              className="sm:max-w-sm"
-            />
-            <select
-              className="select-field sm:w-44"
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
-                setPage(1);
-              }}
-            >
-              {STATUS_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option === "all" ? "All statuses" : option}
-                </option>
-              ))}
-            </select>
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
+        <div className="ts-table-toolbar">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="relative min-w-[240px] flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search affiliate name, email, or team..."
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                className="rounded-lg bg-card pl-9"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {STATUS_OPTIONS.map((option) => {
+                const label =
+                  option === "all" ? "All" : option.charAt(0) + option.slice(1).toLowerCase();
+                const isActive = status === option;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => {
+                      setStatus(option);
+                      setPage(1);
+                    }}
+                    className={
+                      isActive
+                        ? "filter-pill filter-pill-active"
+                        : "filter-pill filter-pill-inactive"
+                    }
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
+        </div>
+
+        <div className="p-4 space-y-4">
 
           {error && (
             <ErrorState message={error.message} onRetry={() => refetch()} />
@@ -135,7 +139,7 @@ export default function AdminAffiliatesPage() {
             <>
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="ts-table-header hover:bg-muted">
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>SliceWP ID</TableHead>
@@ -148,10 +152,10 @@ export default function AdminAffiliatesPage() {
                   {data.items.map((affiliate) => (
                     <TableRow 
                       key={affiliate.id} 
-                      className="cursor-pointer hover:bg-muted/50"
+                      className="cursor-pointer hover:bg-muted/80"
                       onClick={() => router.push(`/admin/affiliates/${affiliate.id}`)}
                     >
-                      <TableCell className="font-medium text-primary">
+                      <TableCell className="font-bold text-brand-dark">
                         {affiliate.displayName ?? "—"}
                       </TableCell>
                       <TableCell>
@@ -209,8 +213,8 @@ export default function AdminAffiliatesPage() {
               </div>
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

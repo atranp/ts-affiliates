@@ -1,17 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Users } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Clock,
+  DollarSign,
+  Scale,
+  Shield,
+  ShoppingBag,
+  SlidersHorizontal,
+  Users,
+} from "lucide-react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { StatCard, StatCardSkeleton } from "@/components/admin/StatCard";
 import { ErrorState } from "@/components/admin/ErrorState";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { useAdminStats } from "@/hooks/use-admin-query";
 import { formatCurrency } from "@/lib/utils";
 
@@ -28,140 +31,217 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Overview" />
+      <PageHeader
+        title="Admin Operations Console"
+        description="Internal management dashboard for True Sciences affiliate partner network and custom payout rules."
+      />
 
       {error && (
         <ErrorState message={error.message} onRetry={() => refetch()} />
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
         ) : data ? (
           <>
-            <Link href="/admin/affiliates" className="block focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-xl">
+            <Link
+              href="/admin/affiliates"
+              className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
               <StatCard
-                label="Affiliates"
+                label="Total Affiliates"
                 value={String(data.affiliates.total)}
-                hint={`${data.affiliates.active} active · ${data.affiliates.withPortalAccess} portal`}
+                hint={`${data.affiliates.active} active partners`}
                 variant="primary"
-                className="hover:border-primary/50 transition-colors"
+                icon={Users}
+                footer={
+                  <ArrowRight className="h-4 w-4 text-primary transition-transform group-hover:translate-x-1" />
+                }
               />
             </Link>
-            <Link href="/admin/affiliates?status=ACTIVE" className="block focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-xl">
+            <Link
+              href="/admin/payouts"
+              className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
               <StatCard
-                label="Unpaid"
+                label="Unpaid Total"
                 value={formatCurrency(data.ledger.unpaidTotal)}
-                hint={`${data.ledger.unpaidCount} ledger entries`}
+                hint="Ready for payout run"
                 variant="primary"
-                className="hover:border-primary/50 transition-colors"
+                icon={DollarSign}
+                footer={
+                  <ArrowRight className="h-4 w-4 text-primary transition-transform group-hover:translate-x-1" />
+                }
               />
             </Link>
-            <Link href="/admin/affiliates?status=ACTIVE" className="block focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-xl">
+            <Link
+              href="/admin/payouts"
+              className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
               <StatCard
-                label="Paid"
+                label="Paid Total"
                 value={formatCurrency(data.ledger.paidTotal)}
-                hint={`${data.ledger.paidCount} entries paid`}
+                hint="Lifetime disbursements"
                 variant="success"
-                className="hover:border-primary/50 transition-colors"
+                icon={CheckCircle2}
+                footer={
+                  <ArrowRight className="h-4 w-4 text-emerald-700 transition-transform group-hover:translate-x-1" />
+                }
               />
             </Link>
-            <Link href="/admin/deal-rules" className="block focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-xl">
+            <Link
+              href="/admin/affiliates"
+              className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
               <StatCard
-                label="Pending review"
+                label="Pending Review"
                 value={formatCurrency(data.ledger.pendingTotal)}
-                hint={`${data.dealRules.active} active deal rules`}
+                hint="Pending sales milestones"
                 variant="warning"
-                className="hover:border-warning/50 transition-colors"
+                icon={Clock}
+                footer={
+                  <ArrowRight className="h-4 w-4 text-amber-700 transition-transform group-hover:translate-x-1" />
+                }
               />
             </Link>
           </>
         ) : null}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick actions</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            <Button variant="outline" className="justify-between" asChild>
-              <Link href="/admin/affiliates">
-                <span className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Browse affiliates
-                </span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-            <Button variant="outline" className="justify-between" asChild>
-              <Link href="/admin/deal-rules">
-                <span>Manage deal rules</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-            <Button variant="outline" className="justify-between" asChild>
-              <Link href="/admin/settings">
-                <span>Integration settings</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="ts-card space-y-4 p-5">
+          <div className="border-b border-border pb-3">
+            <h2 className="text-base font-bold text-brand-dark">
+              Operations Quick Actions
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Shortcuts for internal admin workflows
+            </p>
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Integrations</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            {isLoading ? (
-              <p className="text-muted-foreground">Loading…</p>
-            ) : data ? (
-              <>
-                <div className="flex justify-between gap-4">
-                  <span className="text-muted-foreground">WooCommerce</span>
-                  <span
-                    className={
-                      data.sync.hasWooCommerce
-                        ? "font-medium text-success"
-                        : "font-medium text-warning"
-                    }
-                  >
-                    {data.sync.hasWooCommerce ? "Configured" : "Not configured"}
+          <div className="space-y-2.5">
+            {[
+              {
+                href: "/admin/affiliates",
+                icon: Users,
+                iconClass: "bg-primary text-white",
+                title: "Browse & Manage Affiliates",
+                desc: "View affiliate status, portal invites, and manual adjustments",
+              },
+              {
+                href: "/admin/payouts",
+                icon: DollarSign,
+                iconClass: "bg-emerald-700 text-white",
+                title: "Execute Custom Payout Run",
+                desc: "Select sponsor/team, date range, preview run, and mark paid",
+              },
+              {
+                href: "/admin/deal-rules",
+                icon: Scale,
+                iconClass: "bg-purple-700 text-white",
+                title: "Configure Custom Deal Rules",
+                desc: "Set revenue overrides, recruit rates, and sales milestone triggers",
+              },
+            ].map((action) => {
+              const Icon = action.icon;
+              return (
+                <Link
+                  key={action.href}
+                  href={action.href}
+                  className="group flex items-center justify-between rounded-lg border border-border bg-muted/50 p-3 transition-all hover:border-primary hover:bg-card"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`rounded-md p-2 ${action.iconClass}`}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-brand-dark">
+                        {action.title}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {action.desc}
+                      </div>
+                    </div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="ts-card space-y-4 p-5">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <div>
+              <h2 className="text-base font-bold text-brand-dark">
+                WooCommerce + SliceWP Engine
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Background data synchronization status
+              </p>
+            </div>
+            <Link
+              href="/admin/settings"
+              className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+            >
+              Settings
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : data ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between rounded-lg border border-border bg-muted p-3 text-xs">
+                <div className="flex items-center gap-2">
+                  <ShoppingBag className="h-4 w-4 text-primary" />
+                  <span className="font-semibold text-foreground">
+                    WooCommerce API Store Engine
                   </span>
                 </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-muted-foreground">SliceWP</span>
-                  <span
-                    className={
-                      data.sync.hasSliceWP
-                        ? "font-medium text-success"
-                        : "font-medium text-warning"
-                    }
-                  >
-                    {data.sync.hasSliceWP ? "Configured" : "Not configured"}
+                <span className="rounded border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                  {data.sync.hasWooCommerce ? "Connected" : "Not configured"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border border-border bg-muted p-3 text-xs">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-primary" />
+                  <span className="font-semibold text-foreground">
+                    SliceWP Affiliate Bridge
                   </span>
                 </div>
-                <div className="flex justify-between gap-4 border-t pt-3">
-                  <span className="text-muted-foreground">Last affiliate sync</span>
-                  <span className="text-right font-medium">
-                    {formatSyncTime(data.sync.lastAffiliateSyncAt)}
-                  </span>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-muted-foreground">Last commission sync</span>
-                  <span className="text-right font-medium">
+                <span className="rounded border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                  {data.sync.hasSliceWP ? "Connected" : "Not configured"}
+                </span>
+              </div>
+
+              <div className="space-y-1 rounded-lg border border-border bg-muted p-3 text-xs">
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Last Automated Sync:</span>
+                  <span className="font-mono font-semibold text-brand-dark">
                     {formatSyncTime(data.sync.lastCommissionSyncAt)}
                   </span>
                 </div>
-                <p className="border-t pt-3 text-xs text-muted-foreground">
-                  Sync runs automatically every 6 hours. Use &quot;Sync now&quot; above
-                  if you need fresh data immediately.
-                </p>
-              </>
-            ) : null}
-          </CardContent>
-        </Card>
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Last Affiliate Sync:</span>
+                  <span className="font-mono font-semibold text-brand-dark">
+                    {formatSyncTime(data.sync.lastAffiliateSyncAt)}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                Sync runs automatically every 6 hours. Use &quot;Sync now&quot; in
+                the header if you need fresh data immediately.
+              </p>
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );
