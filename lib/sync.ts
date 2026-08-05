@@ -16,6 +16,7 @@ import {
   type SliceWPCommission,
 } from "./slicewp";
 import { prisma } from "./prisma";
+import { fetchWooCustomersByIds, type WooCustomer } from "./woocommerce";
 import { getRecruitRevenueMap } from "./admin/team";
 import { ensureSponsorDownlineTeam } from "./teams/members";
 import {
@@ -45,35 +46,77 @@ type ValidRemoteAffiliate = {
   remote: SliceWPAffiliate;
   slicewpId: number;
   email: string;
+  paymentEmail: string | null;
   displayName: string;
 };
 
-/** SliceWP rows without an id or any usable email address are unusable. */
+/** SliceWP itself returns no names, so fall back to the WordPress account. */
+function resolveDisplayName(
+  remote: SliceWPAffiliate,
+  customer?: WooCustomer
+): string {
+  const candidates: Array<[string | undefined, string | undefined]> = [
+    [remote.first_name, remote.last_name],
+    [customer?.first_name, customer?.last_name],
+    [customer?.billing?.first_name, customer?.billing?.last_name],
+  ];
+
+  for (const [first, last] of candidates) {
+    const name = [first, last].filter(Boolean).join(" ").trim();
+    if (name) return name;
+  }
+  return "";
+}
+
+/**
+ * SliceWP rows without an id or any usable email are unusable. The linked
+ * WordPress account is the last resort — affiliates that never set a payment
+ * email were previously dropped from the sync entirely.
+ */
 function toValidAffiliate(
-  remote: SliceWPAffiliate
+  remote: SliceWPAffiliate,
+  customer?: WooCustomer
 ): ValidRemoteAffiliate | null {
   const slicewpId = Number(remote.id);
-  const email = (remote.email ?? remote.payment_email ?? "")
-    .trim()
-    .toLowerCase();
+
+  // SliceWP sends "" rather than omitting the field, so `??` is not enough.
+  const email = firstNonEmpty(
+    remote.email,
+    remote.payment_email,
+    customer?.email
+  ).toLowerCase();
   if (!Number.isFinite(slicewpId) || !email) return null;
 
-  const displayName = [remote.first_name, remote.last_name]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
+  return {
+    remote,
+    slicewpId,
+    email,
+    paymentEmail: firstNonEmpty(remote.payment_email) || null,
+    displayName: resolveDisplayName(remote, customer),
+  };
+}
 
-  return { remote, slicewpId, email, displayName };
+function firstNonEmpty(...values: Array<string | undefined | null>): string {
+  for (const value of values) {
+    const trimmed = (value ?? "").trim();
+    if (trimmed) return trimmed;
+  }
+  return "";
+}
+
+function affiliateUserIds(remotes: SliceWPAffiliate[]): number[] {
+  return remotes
+    .map((remote) => Number(remote.user_id))
+    .filter((id) => Number.isFinite(id) && id > 0);
 }
 
 function upsertAffiliate(
-  { remote, slicewpId, email, displayName }: ValidRemoteAffiliate,
+  { remote, slicewpId, email, paymentEmail, displayName }: ValidRemoteAffiliate,
   syncedAt: Date
 ) {
   const fields = {
     email,
-    paymentEmail: remote.payment_email ?? null,
-    displayName: displayName || null,
+    paymentEmail,
     status: mapSliceWPStatus(remote.status),
     commissionRate: remote.commission_rate
       ? toNumber(remote.commission_rate)
@@ -83,8 +126,10 @@ function upsertAffiliate(
 
   return prisma.affiliate.upsert({
     where: { slicewpId },
-    update: fields,
-    create: { slicewpId, ...fields },
+    // Names come from a separate WordPress lookup that is allowed to fail.
+    // Leave the stored name alone rather than blanking it when it does.
+    update: displayName ? { ...fields, displayName } : fields,
+    create: { slicewpId, ...fields, displayName: displayName || null },
   });
 }
 
@@ -100,9 +145,19 @@ export async function syncAffiliatesFromSliceWP(): Promise<number> {
     settings.slicewpConsumerSecret
   );
 
+  const customers = await fetchWooCustomersByIds(
+    settings.wcStoreUrl,
+    settings.wcConsumerKey,
+    settings.wcConsumerSecret,
+    affiliateUserIds(remoteAffiliates)
+  );
+
   const syncedAt = new Date();
   const validRemotes = remoteAffiliates.flatMap((remote) => {
-    const valid = toValidAffiliate(remote);
+    const valid = toValidAffiliate(
+      remote,
+      customers.get(Number(remote.user_id))
+    );
     return valid ? [valid] : [];
   });
 
@@ -379,7 +434,14 @@ export async function syncAffiliate(
     );
   }
 
-  const valid = toValidAffiliate(remote);
+  const customers = await fetchWooCustomersByIds(
+    settings.wcStoreUrl,
+    settings.wcConsumerKey,
+    settings.wcConsumerSecret,
+    affiliateUserIds([remote])
+  );
+
+  const valid = toValidAffiliate(remote, customers.get(Number(remote.user_id)));
   if (!valid) {
     throw new Error(
       `SliceWP affiliate ${existing.slicewpId} has no email address to sync.`
