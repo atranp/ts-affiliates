@@ -58,10 +58,13 @@ function EntryTypeBadge({ type }: { type: string }) {
 
 function formatPayoutWeek(iso: string | null) {
   if (!iso) return "—";
+  // Payout weeks are stored in UTC; render them in UTC so the date matches what
+  // the payout period filter will actually match on.
   return new Date(iso).toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
+    timeZone: "UTC",
   });
 }
 

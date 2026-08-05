@@ -1,27 +1,25 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { toast } from "sonner";
-import { DollarSign, History, Play } from "lucide-react";
+import { History, Users } from "lucide-react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import {
   AffiliateSearchCombobox,
   type AffiliateOption,
 } from "@/components/admin/AffiliateSearchCombobox";
-import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { EmptyState } from "@/components/admin/EmptyState";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { TableSkeleton } from "@/components/admin/TableSkeleton";
+import { AffiliatePayoutsTab } from "@/components/payouts/AffiliatePayoutsTab";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -30,30 +28,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { PayoutDateRangeFields } from "@/components/payouts/PayoutDateRangeFields";
-import { adminMutate, useAdminQuery } from "@/hooks/use-admin-query";
-import { apiFetch } from "@/lib/api-client";
-import {
-  defaultPayoutPeriodEnd,
-  defaultPayoutPeriodStart,
-  toDateInputValue,
-} from "@/lib/payouts/dates";
-import type { PayoutPreview } from "@/lib/teams/queries";
+import { useAdminQuery } from "@/hooks/use-admin-query";
+import type { AdminAffiliateDetail } from "@/lib/admin/types";
 import { formatCurrency } from "@/lib/utils";
-
-type AdminTeamOption = {
-  id: string;
-  name: string;
-  description: string | null;
-  active: boolean;
-  sponsorAffiliateId: string;
-  sponsorAffiliate?: {
-    id: string;
-    displayName: string | null;
-    email: string;
-  };
-  ruleCount?: number;
-};
 
 type PayoutBatchListItem = {
   id: string;
@@ -67,116 +44,32 @@ type PayoutBatchListItem = {
   totalAmount: number;
 };
 
-function todayInputValue() {
-  return toDateInputValue(defaultPayoutPeriodEnd());
-}
-
-function weekStartInputValue() {
-  return toDateInputValue(defaultPayoutPeriodStart());
-}
-
 export default function AdminPayoutsPage() {
   return (
-    <Suspense fallback={<p className="text-muted-foreground p-6">Loading payouts...</p>}>
+    <Suspense
+      fallback={<p className="text-muted-foreground p-6">Loading payouts...</p>}
+    >
       <AdminPayoutsPageContent />
     </Suspense>
   );
 }
 
 function AdminPayoutsPageContent() {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [sponsor, setSponsor] = useState<AffiliateOption | null>(null);
-  const [teamId, setTeamId] = useState("");
-  const [periodStart, setPeriodStart] = useState(weekStartInputValue);
-  const [periodEnd, setPeriodEnd] = useState(todayInputValue);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [running, setRunning] = useState(false);
-  const [prefilled, setPrefilled] = useState(false);
 
-  useEffect(() => {
-    if (prefilled) return;
-    const urlTeamId = searchParams.get("teamId");
-    const urlSponsorId = searchParams.get("sponsorAffiliateId");
-
-    async function prefill() {
-      try {
-        if (urlTeamId) {
-          const { team } = await apiFetch<{
-            team: {
-              id: string;
-              name: string;
-              sponsorAffiliateId: string;
-            };
-          }>(`/api/admin/teams/${urlTeamId}`);
-          setTeamId(team.id);
-          const affiliate = await apiFetch<{
-            id: string;
-            email: string;
-            displayName: string | null;
-            slicewpId: number;
-            status: string;
-          }>(`/api/admin/affiliates/${team.sponsorAffiliateId}`);
-          setSponsor({
-            id: affiliate.id,
-            email: affiliate.email,
-            displayName: affiliate.displayName,
-            slicewpId: affiliate.slicewpId,
-            status: affiliate.status,
-          });
-        } else if (urlSponsorId) {
-          const affiliate = await apiFetch<{
-            id: string;
-            email: string;
-            displayName: string | null;
-            slicewpId: number;
-            status: string;
-          }>(`/api/admin/affiliates/${urlSponsorId}`);
-          setSponsor({
-            id: affiliate.id,
-            email: affiliate.email,
-            displayName: affiliate.displayName,
-            slicewpId: affiliate.slicewpId,
-            status: affiliate.status,
-          });
-        }
-      } catch {
-        // ignore prefill errors
-      } finally {
-        setPrefilled(true);
-      }
-    }
-
-    if (urlTeamId || urlSponsorId) prefill();
-    else setPrefilled(true);
-  }, [searchParams, prefilled]);
-
-  const teamsUrl = sponsor?.id
-    ? `/api/admin/teams?sponsorAffiliateId=${sponsor.id}`
-    : null;
-
-  const { data: teamsData, isLoading: teamsLoading } = useAdminQuery<{
-    teams: AdminTeamOption[];
-  }>(["admin", "teams", sponsor?.id ?? ""], teamsUrl);
-
-  const periodInvalid =
-    periodStart && periodEnd && new Date(periodStart) > new Date(periodEnd);
-
-  const previewUrl =
-    (sponsor?.id || teamId) && !periodInvalid
-      ? `/api/admin/payouts/preview?periodStart=${periodStart}&periodEnd=${periodEnd}${
-          teamId ? `&teamId=${teamId}` : ""
-        }${sponsor?.id ? `&sponsorAffiliateId=${sponsor.id}` : ""}`
-      : null;
+  const sponsorId = searchParams.get("sponsorAffiliateId") ?? "";
+  const initialTeamId = searchParams.get("teamId") ?? undefined;
 
   const {
-    data: preview,
-    isLoading: previewLoading,
-    error: previewError,
-    refetch: refetchPreview,
-  } = useAdminQuery<PayoutPreview>(
-    ["admin", "payout-preview", teamId, sponsor?.id, periodStart, periodEnd],
-    previewUrl,
-    { enabled: !!(teamId || sponsor?.id) && !periodInvalid }
+    data: sponsor,
+    isLoading: sponsorLoading,
+    error: sponsorError,
+    refetch: refetchSponsor,
+  } = useAdminQuery<AdminAffiliateDetail>(
+    ["admin", "affiliate", sponsorId],
+    sponsorId ? `/api/admin/affiliates/${sponsorId}` : null
   );
 
   const {
@@ -188,269 +81,142 @@ function AdminPayoutsPageContent() {
     "/api/admin/payouts/batches"
   );
 
-  async function runPayout() {
-    setRunning(true);
-    try {
-      const result = await adminMutate<{
-        batchId: string;
-        label: string;
-        entriesPaid: number;
-      }>("/api/admin/payouts/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          periodStart,
-          periodEnd,
-          teamId: teamId || undefined,
-          sponsorAffiliateId: sponsor?.id,
-        }),
-      });
-
-      toast.success(`Payout completed: ${result.label}`, {
-        description: `${result.entriesPaid} ledger entries marked paid.`,
-      });
-      setConfirmOpen(false);
-      await refetchPreview();
-      await refetchBatches();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Payout failed");
-    } finally {
-      setRunning(false);
-    }
+  // Keeping the sponsor in the URL makes this page refreshable and linkable,
+  // which is what the teams page relies on.
+  function selectSponsor(id: string) {
+    const next = new URLSearchParams();
+    if (id) next.set("sponsorAffiliateId", id);
+    const query = next.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
   }
 
-  const selectedTeam = teamsData?.teams.find((t) => t.id === teamId);
+  const selectedOption: AffiliateOption | null = sponsor
+    ? {
+        id: sponsor.id,
+        email: sponsor.email,
+        displayName: sponsor.displayName,
+        slicewpId: sponsor.slicewpId,
+        status: sponsor.status,
+      }
+    : null;
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Payouts" />
+      <PageHeader
+        title="Payouts"
+        description="Pick a sponsor to review and run their team or direct payouts."
+      />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
-              Create payout
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <AffiliateSearchCombobox
-              id="payout-sponsor"
-              label="Sponsor"
-              value={sponsor?.id ?? ""}
-              selected={sponsor}
-              onChange={(_id, affiliate) => {
-                setSponsor(affiliate);
-                setTeamId("");
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Create payout
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <AffiliateSearchCombobox
+            id="payout-sponsor"
+            label="Sponsor"
+            value={sponsorId}
+            selected={selectedOption}
+            onChange={(id) => selectSponsor(id)}
+          />
+
+          {!sponsorId && (
+            <EmptyState
+              title="No sponsor selected"
+              description="Search for an affiliate above to see their teams, unpaid team bonuses, and direct commissions."
+            />
+          )}
+
+          {sponsorId && sponsorLoading && <TableSkeleton columns={3} rows={4} />}
+
+          {sponsorId && sponsorError && (
+            <ErrorState
+              message={sponsorError.message}
+              onRetry={() => refetchSponsor()}
+            />
+          )}
+
+          {sponsor && (
+            <AffiliatePayoutsTab
+              affiliateId={sponsor.id}
+              displayName={sponsor.displayName ?? sponsor.email}
+              unpaidDirectTotal={sponsor.ledger.directUnpaidTotal}
+              initialTeamId={initialTeamId}
+              onBatchCreated={() => {
+                void refetchSponsor();
+                void refetchBatches();
               }}
             />
+          )}
+        </CardContent>
+      </Card>
 
-            <div className="space-y-2">
-              <Label htmlFor="payout-team">Team (optional)</Label>
-              <select
-                id="payout-team"
-                className="select-field w-full"
-                value={teamId}
-                disabled={!sponsor?.id || teamsLoading}
-                onChange={(e) => setTeamId(e.target.value)}
-              >
-                <option value="">
-                  {sponsor?.id
-                    ? "All unpaid for this affiliate"
-                    : "Select sponsor first"}
-                </option>
-                {teamsData?.teams.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name} ({team.ruleCount ?? 0} rules)
-                  </option>
-                ))}
-              </select>
-              {selectedTeam?.description && (
-                <p className="text-xs text-muted-foreground">
-                  {selectedTeam.description}
-                </p>
-              )}
-            </div>
-
-            <PayoutDateRangeFields
-              startValue={periodStart}
-              endValue={periodEnd}
-              onStartChange={setPeriodStart}
-              onEndChange={setPeriodEnd}
-            />
-
-            {previewError && (
-              <ErrorState
-                message={previewError.message}
-                onRetry={() => refetchPreview()}
-              />
-            )}
-
-            {previewLoading && sponsor?.id && (
-              <TableSkeleton columns={4} rows={4} />
-            )}
-
-            {preview && (
-              <div className="space-y-3 border-t pt-4">
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground text-xs">Direct</p>
-                    <p className="font-medium">
-                      {formatCurrency(preview.totals.directTotal)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">
-                      Team bonuses
-                    </p>
-                    <p className="font-medium text-primary">
-                      {formatCurrency(preview.totals.overrideTotal)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Total due</p>
-                    <p className="font-semibold text-lg">
-                      {formatCurrency(preview.totals.grandTotal)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Entries</p>
-                    <p className="font-medium">{preview.totals.entryCount}</p>
-                  </div>
-                </div>
-
-                {preview.lines.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Affiliate</TableHead>
-                        <TableHead className="text-right">Direct</TableHead>
-                        <TableHead className="text-right">Overrides</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {preview.lines.map((line) => (
-                        <TableRow key={line.affiliateId}>
-                          <TableCell>
-                            {line.displayName ?? line.email}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {formatCurrency(line.directTotal)}
-                          </TableCell>
-                          <TableCell className="text-right text-primary">
-                            {formatCurrency(line.overrideTotal)}
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            {formatCurrency(line.total)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No unpaid entries for this scope and payout week.
-                  </p>
-                )}
-
-                <Button
-                  className="w-full sm:w-auto"
-                  disabled={
-                    !preview.totals.entryCount || previewLoading || running
-                  }
-                  onClick={() => setConfirmOpen(true)}
-                >
-                  <Play className="mr-2 h-4 w-4" />
-                  Run payout ({formatCurrency(preview.totals.grandTotal)})
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <History className="h-5 w-5" />
-              Recent payouts
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {batchesLoading && <TableSkeleton columns={4} rows={6} />}
-            {!batchesLoading && batchesData?.batches.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                No payouts run yet.
-              </p>
-            )}
-            {!batchesLoading && batchesData && batchesData.batches.length > 0 && (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Batch</TableHead>
-                    <TableHead>Team</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead>Status</TableHead>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <History className="h-5 w-5" />
+            All payouts
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {batchesLoading && <TableSkeleton columns={4} rows={6} />}
+          {!batchesLoading && batchesData?.batches.length === 0 && (
+            <p className="text-sm text-muted-foreground">No payouts run yet.</p>
+          )}
+          {!batchesLoading && batchesData && batchesData.batches.length > 0 && (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Batch</TableHead>
+                  <TableHead>Team</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {batchesData.batches.map((batch) => (
+                  <TableRow key={batch.id}>
+                    <TableCell>
+                      <Link
+                        href={`/admin/payouts/${batch.id}`}
+                        className="font-medium hover:text-primary hover:underline"
+                      >
+                        {batch.label}
+                      </Link>
+                      <p className="text-xs text-muted-foreground">
+                        {batch.entryCount} entries · {batch.affiliateCount}{" "}
+                        affiliates
+                      </p>
+                    </TableCell>
+                    <TableCell>
+                      {batch.teamName ?? (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {formatCurrency(batch.totalAmount)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          batch.status === "COMPLETED" ? "paid" : "pending"
+                        }
+                      >
+                        {batch.status}
+                      </Badge>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {batchesData.batches.map((batch) => (
-                    <TableRow key={batch.id}>
-                      <TableCell>
-                        <Link
-                          href={`/admin/payouts/${batch.id}`}
-                          className="font-medium hover:text-primary hover:underline"
-                        >
-                          {batch.label}
-                        </Link>
-                        <p className="text-xs text-muted-foreground">
-                          {batch.entryCount} entries · {batch.affiliateCount}{" "}
-                          affiliates
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        {batch.teamName ?? (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatCurrency(batch.totalAmount)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            batch.status === "COMPLETED" ? "paid" : "pending"
-                          }
-                        >
-                          {batch.status}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <ConfirmDialog
-        open={confirmOpen}
-        title="Run this payout?"
-        description={
-          preview
-            ? `Mark ${preview.totals.entryCount} unpaid entries (${formatCurrency(preview.totals.grandTotal)}) as PAID${
-                selectedTeam ? ` for team "${selectedTeam.name}"` : ""
-              }. This cannot be undone from the UI.`
-            : ""
-        }
-        confirmLabel="Confirm payout"
-        loading={running}
-        onConfirm={runPayout}
-        onCancel={() => {
-          if (!running) setConfirmOpen(false);
-        }}
-      />
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

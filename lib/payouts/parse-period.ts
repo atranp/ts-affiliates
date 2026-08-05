@@ -1,4 +1,8 @@
-import { endOfDay, startOfDay } from "date-fns";
+import {
+  endOfUtcDay,
+  parseUtcDateInput,
+  startOfUtcDay,
+} from "./utc-dates";
 
 export function resolvePayoutPeriodFromRequest(options: {
   periodStart?: string | null;
@@ -7,17 +11,17 @@ export function resolvePayoutPeriodFromRequest(options: {
 }) {
   const endInput = options.periodEnd ?? options.payoutWeek;
   if (!endInput) {
-    const today = startOfDay(new Date());
-    return { periodStart: today, periodEnd: endOfDay(today) };
+    const today = startOfUtcDay(new Date());
+    return { periodStart: today, periodEnd: endOfUtcDay(today) };
   }
 
-  const periodEnd = endOfDay(new Date(endInput));
+  const periodEnd = endOfUtcDay(parseUtcDateInput(endInput));
   if (Number.isNaN(periodEnd.getTime())) {
     throw new Error("Invalid end date");
   }
 
   if (options.periodStart) {
-    const periodStart = startOfDay(new Date(options.periodStart));
+    const periodStart = parseUtcDateInput(options.periodStart);
     if (Number.isNaN(periodStart.getTime())) {
       throw new Error("Invalid start date");
     }
@@ -27,5 +31,5 @@ export function resolvePayoutPeriodFromRequest(options: {
     return { periodStart, periodEnd };
   }
 
-  return { periodStart: startOfDay(new Date(endInput)), periodEnd };
+  return { periodStart: parseUtcDateInput(endInput), periodEnd };
 }

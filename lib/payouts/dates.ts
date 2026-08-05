@@ -1,12 +1,15 @@
 import {
-  endOfDay,
-  endOfMonth,
-  endOfWeek,
-  startOfDay,
-  startOfMonth,
-  startOfWeek,
-  subWeeks,
-} from "date-fns";
+  addUtcDays,
+  endOfUtcDay,
+  endOfUtcMonth,
+  endOfUtcWeek,
+  formatUtcDate,
+  formatUtcDateInput,
+  parseUtcDateInput,
+  startOfUtcDay,
+  startOfUtcMonth,
+  startOfUtcWeek,
+} from "./utc-dates";
 
 export type DatePreset = "this_week" | "last_week" | "this_month" | "all";
 
@@ -17,31 +20,34 @@ export type DateRange = {
   label: string;
 };
 
-export function resolveDatePreset(preset: DatePreset, now = new Date()): DateRange {
-  const today = startOfDay(now);
+export function resolveDatePreset(
+  preset: DatePreset,
+  now = new Date()
+): DateRange {
+  const today = startOfUtcDay(now);
 
   switch (preset) {
     case "this_week":
       return {
-        from: startOfWeek(today, { weekStartsOn: 1 }),
-        to: endOfWeek(today, { weekStartsOn: 1 }),
-        payoutWeek: endOfDay(today),
+        from: startOfUtcWeek(today),
+        to: endOfUtcWeek(today),
+        payoutWeek: endOfUtcDay(today),
         label: "This week",
       };
     case "last_week": {
-      const lastWeek = subWeeks(today, 1);
+      const lastWeek = addUtcDays(today, -7);
       return {
-        from: startOfWeek(lastWeek, { weekStartsOn: 1 }),
-        to: endOfWeek(lastWeek, { weekStartsOn: 1 }),
-        payoutWeek: endOfWeek(lastWeek, { weekStartsOn: 1 }),
+        from: startOfUtcWeek(lastWeek),
+        to: endOfUtcWeek(lastWeek),
+        payoutWeek: endOfUtcWeek(lastWeek),
         label: "Last week",
       };
     }
     case "this_month":
       return {
-        from: startOfMonth(today),
-        to: endOfMonth(today),
-        payoutWeek: endOfDay(today),
+        from: startOfUtcMonth(today),
+        to: endOfUtcMonth(today),
+        payoutWeek: endOfUtcDay(today),
         label: "This month",
       };
     case "all":
@@ -49,7 +55,7 @@ export function resolveDatePreset(preset: DatePreset, now = new Date()): DateRan
       return {
         from: null,
         to: null,
-        payoutWeek: endOfDay(today),
+        payoutWeek: endOfUtcDay(today),
         label: "All time",
       };
   }
@@ -57,35 +63,36 @@ export function resolveDatePreset(preset: DatePreset, now = new Date()): DateRan
 
 export function formatPeriodLabel(from: Date | null, to: Date | null) {
   if (!from || !to) return "All time";
-  const opts: Intl.DateTimeFormatOptions = {
+  const fromStr = formatUtcDate(from);
+  const toStr = formatUtcDate(to, {
     month: "short",
     day: "numeric",
-  };
-  const fromStr = from.toLocaleDateString("en-US", opts);
-  const toStr = to.toLocaleDateString("en-US", {
-    ...opts,
-    year: from.getFullYear() !== to.getFullYear() ? "numeric" : undefined,
+    year:
+      from.getUTCFullYear() !== to.getUTCFullYear() ? "numeric" : undefined,
   });
   return `${fromStr} – ${toStr}`;
 }
 
 export function toDateInputValue(date: Date) {
-  return startOfDay(date).toISOString().slice(0, 10);
+  return formatUtcDateInput(date);
 }
 
 export function defaultPayoutPeriodStart(now = new Date()) {
-  return startOfWeek(startOfDay(now), { weekStartsOn: 1 });
+  return startOfUtcWeek(now);
 }
 
 export function defaultPayoutPeriodEnd(now = new Date()) {
-  return startOfDay(now);
+  return startOfUtcDay(now);
 }
 
 export function parsePayoutPeriod(startInput: string, endInput: string) {
-  const periodStart = startOfDay(new Date(startInput));
-  const periodEnd = endOfDay(new Date(endInput));
+  const periodStart = parseUtcDateInput(startInput);
+  const periodEnd = endOfUtcDay(parseUtcDateInput(endInput));
 
-  if (Number.isNaN(periodStart.getTime()) || Number.isNaN(periodEnd.getTime())) {
+  if (
+    Number.isNaN(periodStart.getTime()) ||
+    Number.isNaN(periodEnd.getTime())
+  ) {
     throw new Error("Invalid date range");
   }
   if (periodStart > periodEnd) {

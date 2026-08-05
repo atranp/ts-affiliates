@@ -1,26 +1,35 @@
-import { addDays, nextMonday, startOfDay } from "date-fns";
 import { PayoutSchedule } from "@prisma/client";
+import {
+  addUtcDays,
+  formatUtcDate,
+  nextUtcMonday,
+  startOfUtcDay,
+} from "./payouts/utc-dates";
 
+/**
+ * Resolved in UTC so a commission lands on the same payout week regardless of
+ * which machine synced it. See lib/payouts/utc-dates.ts.
+ */
 export function getNextPayoutWeek(
   schedule: PayoutSchedule,
   fromDate = new Date()
 ): Date {
-  const base = startOfDay(fromDate);
+  const base = startOfUtcDay(fromDate);
 
   switch (schedule) {
     case PayoutSchedule.WEEKLY_MONDAY:
-      return startOfDay(nextMonday(base));
+      return nextUtcMonday(base);
     case PayoutSchedule.BIWEEKLY:
-      return startOfDay(nextMonday(addDays(base, 7)));
+      return nextUtcMonday(addUtcDays(base, 7));
     case PayoutSchedule.MONTHLY:
-      return startOfDay(nextMonday(addDays(base, 28)));
+      return nextUtcMonday(addUtcDays(base, 28));
     default:
-      return startOfDay(nextMonday(base));
+      return nextUtcMonday(base);
   }
 }
 
 export function formatPayoutWeek(date: Date): string {
-  return date.toLocaleDateString("en-US", {
+  return formatUtcDate(date, {
     weekday: "short",
     month: "short",
     day: "numeric",

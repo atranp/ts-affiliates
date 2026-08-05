@@ -68,7 +68,7 @@ export function PayoutDateRangeFields({
             endDate &&
             !Number.isNaN(startDate.getTime()) &&
             !Number.isNaN(endDate.getTime())
-              ? `Pay period ${formatPeriodLabel(startDate, endDate)} · unpaid entries with payout week in range`
+              ? `Matches unpaid entries scheduled for payout between ${formatPeriodLabel(startDate, endDate)} (UTC) — not the dates the sales happened.`
               : "Select start and end dates for this payout period")}
       </p>
     </div>

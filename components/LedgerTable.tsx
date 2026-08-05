@@ -52,10 +52,13 @@ function amountClass(status: string): string {
 
 function formatPayoutWeek(iso: string | null) {
   if (!iso) return "—";
+  // Payout weeks are stored in UTC, so render them in UTC rather than letting
+  // the viewer's timezone shift the date by a day.
   return new Date(iso).toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
+    timeZone: "UTC",
   });
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   ChevronRight,
@@ -37,6 +37,8 @@ type AffiliatePayoutsTabProps = {
   affiliateId: string;
   displayName: string;
   unpaidDirectTotal: number;
+  /** Opens straight into this team's preview, for deep links from the teams page. */
+  initialTeamId?: string;
   onBatchCreated?: () => void;
 };
 
@@ -44,6 +46,7 @@ export function AffiliatePayoutsTab({
   affiliateId,
   displayName,
   unpaidDirectTotal,
+  initialTeamId,
   onBatchCreated,
 }: AffiliatePayoutsTabProps) {
   const [periodStartInput, setPeriodStartInput] = useState(() =>
@@ -114,6 +117,21 @@ export function AffiliatePayoutsTab({
     setPreviewOpen(true);
   }
 
+  // Honour a deep link once, after the team it names has loaded.
+  const autoOpened = useRef(false);
+  useEffect(() => {
+    if (autoOpened.current || !initialTeamId) return;
+    const team = teamsData?.teams.find((t) => t.id === initialTeamId);
+    if (!team) return;
+    autoOpened.current = true;
+    openPreview({
+      scope: "team",
+      teamId: team.id,
+      teamName: team.name,
+      label: team.name,
+    });
+  }, [initialTeamId, teamsData]);
+
   async function runPayout() {
     if (!previewTarget) return;
     setRunning(true);
@@ -162,7 +180,7 @@ export function AffiliatePayoutsTab({
         endValue={periodEndInput}
         onStartChange={setPeriodStartInput}
         onEndChange={setPeriodEndInput}
-        hint="Team bonus totals above are all-time · payout includes unpaid entries in this date range"
+        hint="Totals below are all-time. A payout only covers unpaid entries whose scheduled payout week falls in this range (UTC)."
       />
 
       <div className="grid gap-3 sm:grid-cols-3">
