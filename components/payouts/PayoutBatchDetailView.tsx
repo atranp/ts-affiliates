@@ -22,6 +22,13 @@ function formatDate(iso: string) {
   });
 }
 
+/** Rounded to one decimal so a 10% rule reads as "10%", not "9.9987%". */
+function formatRate(amount: number, revenue: number) {
+  if (!revenue) return "—";
+  const rate = (amount / revenue) * 100;
+  return `${rate.toFixed(1).replace(/\.0$/, "")}%`;
+}
+
 type PayoutBatchDetailViewProps = {
   batch: PayoutBatchDetail;
   adminView?: boolean;
@@ -92,20 +99,29 @@ export function PayoutBatchDetailView({
             {batch.recruitBreakdown.map((recruit) => (
               <div
                 key={recruit.sourceAffiliateId}
-                className="flex items-center justify-between rounded-lg border border-border px-4 py-3"
+                className="flex items-center justify-between gap-3 rounded-lg border border-border px-4 py-3"
               >
-                <div>
-                  <p className="font-medium">
+                <div className="min-w-0">
+                  <p className="font-medium truncate">
                     {recruit.displayName ?? recruit.email}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {recruit.overrideCount}{" "}
-                    {recruit.overrideCount === 1 ? "entry" : "entries"}
+                    {recruit.overrideCount === 1 ? "sale" : "sales"} totalling{" "}
+                    {formatCurrency(recruit.sourceRevenue)}
                   </p>
                 </div>
-                <p className="font-semibold text-primary">
-                  {formatCurrency(recruit.overrideTotal)}
-                </p>
+                <div className="shrink-0 text-right">
+                  <p className="font-semibold text-primary">
+                    {formatCurrency(recruit.overrideTotal)}
+                  </p>
+                  {recruit.sourceRevenue > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {formatRate(recruit.overrideTotal, recruit.sourceRevenue)}{" "}
+                      of sales
+                    </p>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -116,7 +132,7 @@ export function PayoutBatchDetailView({
         <h2 className="text-sm font-medium">
           Line items ({batch.totals.entryCount})
         </h2>
-        <div className="rounded-lg border border-border overflow-hidden">
+        <div className="rounded-lg border border-border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -124,7 +140,9 @@ export function PayoutBatchDetailView({
                 <TableHead>Type</TableHead>
                 <TableHead>Details</TableHead>
                 <TableHead>Order</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-right">Sale amount</TableHead>
+                <TableHead className="text-right">Rate</TableHead>
+                <TableHead className="text-right">You earned</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -143,17 +161,27 @@ export function PayoutBatchDetailView({
                       {entry.type === "OVERRIDE" ? "Bonus" : "Direct"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="max-w-[12rem] truncate text-sm">
+                  <TableCell className="text-sm">
                     {entry.description ??
                       entry.sourceAffiliate?.displayName ??
                       entry.sourceAffiliate?.email ??
                       entry.dealRule?.name ??
                       "—"}
                   </TableCell>
-                  <TableCell className="text-sm">
+                  <TableCell className="text-sm whitespace-nowrap">
                     {entry.wooOrderId ? `#${entry.wooOrderId}` : "—"}
                   </TableCell>
-                  <TableCell className="text-right font-medium text-success">
+                  <TableCell className="text-right text-sm whitespace-nowrap">
+                    {entry.orderRevenue == null
+                      ? "—"
+                      : formatCurrency(entry.orderRevenue)}
+                  </TableCell>
+                  <TableCell className="text-right text-sm text-muted-foreground whitespace-nowrap">
+                    {entry.orderRevenue
+                      ? formatRate(entry.amount, entry.orderRevenue)
+                      : "—"}
+                  </TableCell>
+                  <TableCell className="text-right font-medium text-success whitespace-nowrap">
                     {formatCurrency(entry.amount)}
                   </TableCell>
                 </TableRow>
@@ -161,6 +189,10 @@ export function PayoutBatchDetailView({
             </TableBody>
           </Table>
         </div>
+        <p className="text-xs text-muted-foreground">
+          Rate is your earnings divided by the sale amount, so you can check
+          every line against your agreement.
+        </p>
       </section>
 
       {adminView && batch.items.length > 1 && (

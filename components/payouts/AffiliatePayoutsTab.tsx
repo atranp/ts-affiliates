@@ -27,7 +27,7 @@ import {
   formatPeriodLabel,
   toDateInputValue,
 } from "@/lib/payouts/dates";
-import type { PayoutBatchListItem } from "@/lib/payouts/types";
+import type { PayoutBatchListItem, PayoutDateBasis } from "@/lib/payouts/types";
 import type { TeamSummary } from "@/lib/teams/queries";
 import type { PayoutPreview } from "@/lib/teams/queries";
 import { RecordHistoricalPayoutDialog } from "@/components/payouts/RecordHistoricalPayoutDialog";
@@ -55,6 +55,7 @@ export function AffiliatePayoutsTab({
   const [periodEndInput, setPeriodEndInput] = useState(() =>
     toDateInputValue(defaultPayoutPeriodEnd())
   );
+  const [dateBasis, setDateBasis] = useState<PayoutDateBasis>("payout_week");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTarget, setPreviewTarget] = useState<PayoutTarget | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -92,6 +93,7 @@ export function AffiliatePayoutsTab({
           affiliateId,
           periodStart: periodStartInput,
           periodEnd: periodEndInput,
+          dateBasis,
           target: previewTarget,
         })
       : null;
@@ -106,6 +108,7 @@ export function AffiliatePayoutsTab({
       affiliateId,
       periodStartInput,
       periodEndInput,
+      dateBasis,
       previewTarget,
     ],
     previewUrl,
@@ -148,7 +151,9 @@ export function AffiliatePayoutsTab({
           periodEnd: periodEndInput,
           sponsorAffiliateId: affiliateId,
           teamId: previewTarget.teamId,
+          sourceAffiliateId: previewTarget.sourceAffiliateId,
           scope: previewTarget.scope,
+          dateBasis,
         }),
       });
 
@@ -175,13 +180,39 @@ export function AffiliatePayoutsTab({
 
   return (
     <div className="space-y-6">
-      <PayoutDateRangeFields
-        startValue={periodStartInput}
-        endValue={periodEndInput}
-        onStartChange={setPeriodStartInput}
-        onEndChange={setPeriodEndInput}
-        hint="Totals below are all-time. A payout only covers unpaid entries whose scheduled payout week falls in this range (UTC)."
-      />
+      <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground">
+            Match dates on
+          </span>
+          <div className="inline-flex rounded-md border border-border bg-card p-0.5">
+            <BasisButton
+              active={dateBasis === "payout_week"}
+              onClick={() => setDateBasis("payout_week")}
+            >
+              Payout week
+            </BasisButton>
+            <BasisButton
+              active={dateBasis === "sale_date"}
+              onClick={() => setDateBasis("sale_date")}
+            >
+              Sale date
+            </BasisButton>
+          </div>
+        </div>
+
+        <PayoutDateRangeFields
+          startValue={periodStartInput}
+          endValue={periodEndInput}
+          onStartChange={setPeriodStartInput}
+          onEndChange={setPeriodEndInput}
+          hint={
+            dateBasis === "sale_date"
+              ? "Totals below are all-time. This payout covers unpaid entries for sales that happened in this range (UTC) — use this to match a partner's own sales report."
+              : "Totals below are all-time. This payout covers unpaid entries whose scheduled payout week falls in this range (UTC), which is the normal weekly run."
+          }
+        />
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <StatTile
@@ -367,6 +398,15 @@ export function AffiliatePayoutsTab({
         }
         onConfirm={() => setConfirmOpen(true)}
         confirming={running}
+        onSelectRecruit={({ sourceAffiliateId, name }) =>
+          setPreviewTarget((current) => ({
+            scope: "recruit",
+            teamId: current?.teamId,
+            teamName: current?.teamName,
+            sourceAffiliateId,
+            label: `${name}'s sales`,
+          }))
+        }
       />
 
       <ConfirmDialog
@@ -472,6 +512,31 @@ function TeamPayoutCard({
   );
 }
 
+function BasisButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+        active
+          ? "bg-primary text-primary-foreground"
+          : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 function StatTile({
   label,
   value,
@@ -534,11 +599,13 @@ function buildPreviewUrl({
   affiliateId,
   periodStart,
   periodEnd,
+  dateBasis,
   target,
 }: {
   affiliateId: string;
   periodStart: string;
   periodEnd: string;
+  dateBasis: PayoutDateBasis;
   target: PayoutTarget;
 }) {
   const params = new URLSearchParams({
@@ -546,7 +613,11 @@ function buildPreviewUrl({
     periodEnd,
     sponsorAffiliateId: affiliateId,
     scope: target.scope,
+    dateBasis,
   });
   if (target.teamId) params.set("teamId", target.teamId);
+  if (target.sourceAffiliateId) {
+    params.set("sourceAffiliateId", target.sourceAffiliateId);
+  }
   return `/api/admin/payouts/preview?${params.toString()}`;
 }

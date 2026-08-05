@@ -4,7 +4,7 @@ import { formatPeriodLabel } from "@/lib/payouts/dates";
 import { resolvePayoutPeriodFromRequest } from "@/lib/payouts/parse-period";
 import { prisma } from "@/lib/prisma";
 import { buildPayoutEntryWhere } from "@/lib/payouts/scope";
-import type { PayoutScope } from "@/lib/payouts/types";
+import type { PayoutDateBasis, PayoutScope } from "@/lib/payouts/types";
 import { toNumber } from "@/lib/utils";
 
 export async function POST(request: Request) {
@@ -14,7 +14,11 @@ export async function POST(request: Request) {
   const body = await request.json();
   const teamId: string | undefined = body.teamId;
   const sponsorAffiliateId: string | undefined = body.sponsorAffiliateId;
-  const scope: PayoutScope = body.scope ?? (teamId ? "team" : "all");
+  const sourceAffiliateId: string | undefined = body.sourceAffiliateId;
+  const scope: PayoutScope =
+    body.scope ?? (sourceAffiliateId ? "recruit" : teamId ? "team" : "all");
+  const dateBasis: PayoutDateBasis =
+    body.dateBasis === "sale_date" ? "sale_date" : "payout_week";
 
   let periodStart: Date;
   let periodEnd: Date;
@@ -46,12 +50,25 @@ export async function POST(request: Request) {
 
   const resolvedSponsorId = team?.sponsorAffiliateId ?? sponsorAffiliateId;
 
+  const sourceAffiliate = sourceAffiliateId
+    ? await prisma.affiliate.findUnique({
+        where: { id: sourceAffiliateId },
+        select: { id: true, displayName: true, email: true },
+      })
+    : null;
+
+  if (sourceAffiliateId && !sourceAffiliate) {
+    return NextResponse.json({ error: "Recruit not found" }, { status: 404 });
+  }
+
   const where = buildPayoutEntryWhere({
     periodStart,
     periodEnd,
     teamId,
     sponsorAffiliateId: resolvedSponsorId,
+    sourceAffiliateId,
     scope,
+    dateBasis,
   });
 
   const entries = await prisma.ledgerEntry.findMany({
@@ -71,13 +88,18 @@ export async function POST(request: Request) {
   }
 
   const dateLabel = formatPeriodLabel(periodStart, periodEnd);
-  const label = team
-    ? `${team.name} · ${dateLabel}`
-    : scope === "direct"
-      ? `Direct payout · ${dateLabel}`
-      : resolvedSponsorId
-        ? `Payout · ${dateLabel}`
-        : `Platform payout · ${dateLabel}`;
+  const recruitName = sourceAffiliate
+    ? (sourceAffiliate.displayName ?? sourceAffiliate.email)
+    : null;
+  const label = recruitName
+    ? `${recruitName}'s sales · ${dateLabel}`
+    : team
+      ? `${team.name} · ${dateLabel}`
+      : scope === "direct"
+        ? `Direct payout · ${dateLabel}`
+        : resolvedSponsorId
+          ? `Payout · ${dateLabel}`
+          : `Platform payout · ${dateLabel}`;
 
   const batch = await prisma.$transaction(async (tx) => {
     const createdBatch = await tx.payoutBatch.create({

@@ -17,6 +17,11 @@ type PayoutPreviewSheetProps = {
   description?: string;
   onConfirm: () => void;
   confirming?: boolean;
+  /** Narrows the payout to a single recruit's bonuses. */
+  onSelectRecruit?: (recruit: {
+    sourceAffiliateId: string;
+    name: string;
+  }) => void;
 };
 
 export function PayoutPreviewSheet({
@@ -28,6 +33,7 @@ export function PayoutPreviewSheet({
   description,
   onConfirm,
   confirming = false,
+  onSelectRecruit,
 }: PayoutPreviewSheetProps) {
   const [showLines, setShowLines] = useState(false);
 
@@ -90,29 +96,70 @@ export function PayoutPreviewSheet({
             />
           </div>
 
+          {preview.totals.sourceRevenue > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Team bonuses come from{" "}
+              {formatCurrency(preview.totals.sourceRevenue)} of recruit sales —
+              an effective rate of{" "}
+              {(
+                (preview.totals.overrideTotal / preview.totals.sourceRevenue) *
+                100
+              )
+                .toFixed(1)
+                .replace(/\.0$/, "")}
+              %.
+            </p>
+          )}
+
           {preview.recruitBreakdown.length > 0 && (
             <section className="space-y-2">
               <h3 className="text-sm font-medium">By recruit</h3>
               <div className="space-y-2">
-                {preview.recruitBreakdown.map((recruit) => (
-                  <div
-                    key={recruit.sourceAffiliateId}
-                    className="flex items-center justify-between rounded-md border border-border px-3 py-2.5"
-                  >
-                    <div>
-                      <p className="text-sm font-medium">
-                        {recruit.displayName ?? recruit.email}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {recruit.overrideCount}{" "}
-                        {recruit.overrideCount === 1 ? "bonus" : "bonuses"}
-                      </p>
+                {preview.recruitBreakdown.map((recruit) => {
+                  const name = recruit.displayName ?? recruit.email;
+                  const rate =
+                    recruit.sourceRevenue > 0
+                      ? `${((recruit.overrideTotal / recruit.sourceRevenue) * 100).toFixed(1).replace(/\.0$/, "")}% of ${formatCurrency(recruit.sourceRevenue)}`
+                      : null;
+
+                  return (
+                    <div
+                      key={recruit.sourceAffiliateId}
+                      className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2.5"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {recruit.overrideCount}{" "}
+                          {recruit.overrideCount === 1 ? "bonus" : "bonuses"}
+                          {rate ? ` · ${rate}` : ""}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <p className="text-sm font-semibold text-primary">
+                          {formatCurrency(recruit.overrideTotal)}
+                        </p>
+                        {onSelectRecruit &&
+                          preview.scope !== "recruit" &&
+                          preview.recruitBreakdown.length > 1 && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={confirming}
+                              onClick={() =>
+                                onSelectRecruit({
+                                  sourceAffiliateId: recruit.sourceAffiliateId,
+                                  name,
+                                })
+                              }
+                            >
+                              Only this
+                            </Button>
+                          )}
+                      </div>
                     </div>
-                    <p className="text-sm font-semibold text-primary">
-                      {formatCurrency(recruit.overrideTotal)}
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
           )}
@@ -192,5 +239,6 @@ export type PayoutTarget = {
   scope: PayoutScope;
   teamId?: string;
   teamName?: string;
+  sourceAffiliateId?: string;
   label: string;
 };

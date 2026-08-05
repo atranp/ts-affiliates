@@ -1,7 +1,11 @@
 import { CommissionStatus, LedgerEntryType, Prisma } from "@prisma/client";
 import { getMilestoneProgress } from "../milestone";
 import { buildPayoutEntryWhere } from "../payouts/scope";
-import type { PayoutRecruitLine, PayoutScope } from "../payouts/types";
+import type {
+  PayoutDateBasis,
+  PayoutRecruitLine,
+  PayoutScope,
+} from "../payouts/types";
 import { prisma } from "../prisma";
 import { toNumber } from "../utils";
 import { ensureSponsorDownlineTeam, getTeamMembers } from "./members";
@@ -394,7 +398,10 @@ export type PayoutPreview = {
   teamId: string | null;
   teamName: string | null;
   sponsorAffiliateId: string | null;
+  sourceAffiliateId: string | null;
+  sourceAffiliateName: string | null;
   scope: PayoutScope;
+  dateBasis: PayoutDateBasis;
   lines: PayoutPreviewLine[];
   recruitBreakdown: PayoutRecruitLine[];
   totals: {
@@ -403,6 +410,8 @@ export type PayoutPreview = {
     grandTotal: number;
     entryCount: number;
     affiliateCount: number;
+    /** Underlying sale value, so a percentage rate can be checked. */
+    sourceRevenue: number;
   };
 };
 
@@ -411,7 +420,9 @@ export async function getPayoutPreview(options: {
   periodEnd: Date;
   teamId?: string;
   sponsorAffiliateId?: string;
+  sourceAffiliateId?: string;
   scope?: PayoutScope;
+  dateBasis?: PayoutDateBasis;
 }): Promise<PayoutPreview> {
   const team = options.teamId
     ? await prisma.team.findUnique({
@@ -424,14 +435,26 @@ export async function getPayoutPreview(options: {
     team?.sponsorAffiliateId ?? options.sponsorAffiliateId;
 
   const scope: PayoutScope =
-    options.scope ?? (options.teamId ? "team" : "all");
+    options.scope ??
+    (options.sourceAffiliateId ? "recruit" : options.teamId ? "team" : "all");
+
+  const dateBasis: PayoutDateBasis = options.dateBasis ?? "payout_week";
+
+  const sourceAffiliate = options.sourceAffiliateId
+    ? await prisma.affiliate.findUnique({
+        where: { id: options.sourceAffiliateId },
+        select: { id: true, displayName: true, email: true },
+      })
+    : null;
 
   const where = buildPayoutEntryWhere({
     periodStart: options.periodStart,
     periodEnd: options.periodEnd,
     teamId: options.teamId,
     sponsorAffiliateId,
+    sourceAffiliateId: options.sourceAffiliateId,
     scope,
+    dateBasis,
   });
 
   const entries = await prisma.ledgerEntry.findMany({
@@ -489,6 +512,7 @@ export async function getPayoutPreview(options: {
   }
 
   const recruitMap = new Map<string, PayoutRecruitLine>();
+  let sourceRevenue = 0;
   for (const entry of entries) {
     if (entry.type !== LedgerEntryType.OVERRIDE || !entry.sourceAffiliate) continue;
     const id = entry.sourceAffiliate.id;
@@ -498,9 +522,13 @@ export async function getPayoutPreview(options: {
       email: entry.sourceAffiliate.email,
       overrideTotal: 0,
       overrideCount: 0,
+      sourceRevenue: 0,
     };
+    const revenue = toNumber(entry.orderRevenue);
     current.overrideTotal += toNumber(entry.amount);
     current.overrideCount += 1;
+    current.sourceRevenue += revenue;
+    sourceRevenue += revenue;
     recruitMap.set(id, current);
   }
 
@@ -514,7 +542,11 @@ export async function getPayoutPreview(options: {
     teamId: team?.id ?? options.teamId ?? null,
     teamName: team?.name ?? null,
     sponsorAffiliateId: sponsorAffiliateId ?? null,
+    sourceAffiliateId: sourceAffiliate?.id ?? null,
+    sourceAffiliateName:
+      sourceAffiliate?.displayName ?? sourceAffiliate?.email ?? null,
     scope,
+    dateBasis,
     lines,
     recruitBreakdown,
     totals: {
@@ -523,6 +555,7 @@ export async function getPayoutPreview(options: {
       grandTotal: directTotal + overrideTotal,
       entryCount,
       affiliateCount: lines.length,
+      sourceRevenue,
     },
   };
 }

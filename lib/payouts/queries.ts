@@ -42,6 +42,7 @@ function recruitBreakdownFromEntries(
   entries: Array<{
     type: LedgerEntryType;
     amount: { toString(): string };
+    orderRevenue: { toString(): string } | null;
     sourceAffiliate: {
       id: string;
       displayName: string | null;
@@ -60,9 +61,11 @@ function recruitBreakdownFromEntries(
       email: entry.sourceAffiliate.email,
       overrideTotal: 0,
       overrideCount: 0,
+      sourceRevenue: 0,
     };
     current.overrideTotal += toNumber(entry.amount);
     current.overrideCount += 1;
+    current.sourceRevenue += toNumber(entry.orderRevenue);
     map.set(id, current);
   }
 

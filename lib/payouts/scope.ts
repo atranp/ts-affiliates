@@ -1,5 +1,5 @@
 import { CommissionStatus, LedgerEntryType, Prisma } from "@prisma/client";
-import type { PayoutScope } from "./types";
+import type { PayoutDateBasis, PayoutScope } from "./types";
 import { endOfUtcDay, startOfUtcDay } from "./utc-dates";
 
 export function buildPayoutEntryWhere(options: {
@@ -9,7 +9,9 @@ export function buildPayoutEntryWhere(options: {
   payoutWeek?: Date;
   teamId?: string;
   sponsorAffiliateId?: string;
+  sourceAffiliateId?: string;
   scope?: PayoutScope;
+  dateBasis?: PayoutDateBasis;
 }): Prisma.LedgerEntryWhereInput {
   const {
     periodStart,
@@ -17,25 +19,40 @@ export function buildPayoutEntryWhere(options: {
     payoutWeek,
     teamId,
     sponsorAffiliateId,
-    scope = teamId ? "team" : "all",
+    sourceAffiliateId,
+    dateBasis = "payout_week",
+    scope = sourceAffiliateId ? "recruit" : teamId ? "team" : "all",
   } = options;
 
-  const resolvedEnd = endOfUtcDay(periodEnd ?? payoutWeek!);
-  const payoutWeekFilter: Prisma.DateTimeNullableFilter = { lte: resolvedEnd };
+  const range: { lte: Date; gte?: Date } = {
+    lte: endOfUtcDay(periodEnd ?? payoutWeek!),
+  };
   if (periodStart) {
-    payoutWeekFilter.gte = startOfUtcDay(periodStart);
+    range.gte = startOfUtcDay(periodStart);
   }
 
-  const base = {
-    status: CommissionStatus.UNPAID,
-    payoutWeek: payoutWeekFilter,
-  };
+  const base: Prisma.LedgerEntryWhereInput =
+    dateBasis === "sale_date"
+      ? { status: CommissionStatus.UNPAID, occurredAt: range }
+      : { status: CommissionStatus.UNPAID, payoutWeek: range };
 
   if (scope === "direct" && sponsorAffiliateId) {
     return {
       ...base,
       affiliateId: sponsorAffiliateId,
       type: LedgerEntryType.DIRECT,
+    };
+  }
+
+  // A single recruit's bonuses, so a sponsor can be paid for one partner's
+  // sales and reconcile the line items against that partner's own report.
+  if (scope === "recruit" && sourceAffiliateId) {
+    return {
+      ...base,
+      type: LedgerEntryType.OVERRIDE,
+      sourceAffiliateId,
+      ...(sponsorAffiliateId ? { affiliateId: sponsorAffiliateId } : {}),
+      ...(teamId ? { dealRule: { teamId } } : {}),
     };
   }
 

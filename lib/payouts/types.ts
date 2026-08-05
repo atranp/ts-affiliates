@@ -1,4 +1,13 @@
-export type PayoutScope = "all" | "team" | "direct";
+export type PayoutScope = "all" | "team" | "direct" | "recruit";
+
+/**
+ * Which date a payout period is measured against.
+ *
+ * "payout_week" is the scheduled disbursement Monday, which is what a routine
+ * weekly run wants. "sale_date" is when the underlying sale happened, which is
+ * what you want when reconciling against a partner's own sales report.
+ */
+export type PayoutDateBasis = "payout_week" | "sale_date";
 
 export type PayoutRecruitLine = {
   sourceAffiliateId: string;
@@ -6,6 +15,8 @@ export type PayoutRecruitLine = {
   email: string;
   overrideTotal: number;
   overrideCount: number;
+  /** Sale value behind the bonus, so the effective rate can be shown. */
+  sourceRevenue: number;
 };
 
 export type PayoutBatchEntry = {

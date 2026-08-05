@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-auth";
 import { resolvePayoutPeriodFromRequest } from "@/lib/payouts/parse-period";
 import { getPayoutPreview } from "@/lib/teams/queries";
-import type { PayoutScope } from "@/lib/payouts/types";
+import type { PayoutDateBasis, PayoutScope } from "@/lib/payouts/types";
 
 export async function GET(request: Request) {
   const auth = await requireAdmin();
@@ -12,7 +12,13 @@ export async function GET(request: Request) {
   const teamId = searchParams.get("teamId") ?? undefined;
   const sponsorAffiliateId =
     searchParams.get("sponsorAffiliateId") ?? undefined;
+  const sourceAffiliateId =
+    searchParams.get("sourceAffiliateId") ?? undefined;
   const scope = (searchParams.get("scope") as PayoutScope | null) ?? undefined;
+  const dateBasis =
+    searchParams.get("dateBasis") === "sale_date"
+      ? ("sale_date" as PayoutDateBasis)
+      : undefined;
 
   try {
     const { periodStart, periodEnd } = resolvePayoutPeriodFromRequest({
@@ -26,7 +32,9 @@ export async function GET(request: Request) {
       periodEnd,
       teamId,
       sponsorAffiliateId,
+      sourceAffiliateId,
       scope,
+      dateBasis,
     });
 
     return NextResponse.json(preview);
