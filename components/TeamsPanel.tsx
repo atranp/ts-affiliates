@@ -177,7 +177,20 @@ function TeamCard({
 
   return (
     <Card className={!team.active ? "opacity-70" : undefined}>
-      <CardHeader className="cursor-pointer pb-3" onClick={onToggle}>
+      <CardHeader
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
+        className="cursor-pointer pb-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        onClick={onToggle}
+        onKeyDown={(event) => {
+          if (event.target !== event.currentTarget) return;
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onToggle();
+          }
+        }}
+      >
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1 min-w-0">
             <CardTitle className="text-lg flex items-center gap-2">

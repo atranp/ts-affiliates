@@ -45,24 +45,12 @@ export function AffiliateStatCard({
   actionHref,
   onAction,
 }: AffiliateStatCardProps) {
-  const display =
-    typeof value === "number" ? formatCurrency(value) : value;
+  const display = typeof value === "number" ? formatCurrency(value) : value;
   const config = toneConfig[tone];
+  const interactive = Boolean(actionLabel && (actionHref || onAction));
 
-  const actionContent = actionLabel ? (
-    <span
-      className={cn(
-        "flex items-center gap-0.5 font-semibold hover:underline",
-        config.action
-      )}
-    >
-      {actionLabel}
-      <ArrowUpRight className="h-3.5 w-3.5" />
-    </span>
-  ) : null;
-
-  return (
-    <div className={cn("ts-stat-card group", config.hover)}>
+  const body = (
+    <>
       <div className="flex items-start justify-between">
         <div>
           <span className="ts-stat-label">{label}</span>
@@ -74,16 +62,49 @@ export function AffiliateStatCard({
           </div>
         )}
       </div>
-      <div className="flex items-center justify-between border-t border-border/60 pt-2 text-xs text-muted-foreground">
+      <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-2 text-xs text-muted-foreground">
         <span>{hint}</span>
-        {actionHref ? (
-          <Link href={actionHref}>{actionContent}</Link>
-        ) : onAction ? (
-          <button type="button" onClick={onAction}>
-            {actionContent}
-          </button>
-        ) : null}
+        {actionLabel && (
+          <span
+            className={cn(
+              "flex shrink-0 items-center gap-0.5 font-semibold",
+              config.action,
+              interactive && "group-hover:underline"
+            )}
+          >
+            {actionLabel}
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </span>
+        )}
       </div>
-    </div>
+    </>
   );
+
+  // The whole card reads as clickable, so make the whole card the target
+  // instead of leaving only the footer label hittable.
+  const className = cn(
+    "ts-stat-card group text-left",
+    interactive && [
+      config.hover,
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    ]
+  );
+
+  if (actionHref) {
+    return (
+      <Link href={actionHref} className={className}>
+        {body}
+      </Link>
+    );
+  }
+
+  if (onAction) {
+    return (
+      <button type="button" onClick={onAction} className={className}>
+        {body}
+      </button>
+    );
+  }
+
+  return <div className={className}>{body}</div>;
 }

@@ -79,6 +79,7 @@ export type OverrideUpdateRow = {
   orderRevenue: number | null;
   wooOrderId: number | null;
   sourceAffiliateId: string;
+  occurredAt: Date;
 };
 
 /** One UPDATE ... FROM (VALUES ...) instead of a statement per override. */
@@ -95,7 +96,8 @@ export async function bulkUpdateOverrideEntries(
       ${row.description},
       ${row.orderRevenue === null ? null : String(row.orderRevenue)}::numeric,
       ${row.wooOrderId}::integer,
-      ${row.sourceAffiliateId}
+      ${row.sourceAffiliateId},
+      ${row.occurredAt}::timestamptz
     )`
   );
 
@@ -107,10 +109,11 @@ export async function bulkUpdateOverrideEntries(
         "orderRevenue"      = v.order_revenue,
         "wooOrderId"        = v.woo_order_id,
         "sourceAffiliateId" = v.source_affiliate_id,
+        "occurredAt"        = v.occurred_at,
         "updatedAt"         = now()
     FROM (VALUES ${Prisma.join(values)}) AS v(
       id, amount, status, description, order_revenue, woo_order_id,
-      source_affiliate_id
+      source_affiliate_id, occurred_at
     )
     WHERE le."id" = v.id
   `;
@@ -153,6 +156,27 @@ function affiliateScope(affiliateIds?: string[]) {
 }
 
 /**
+ * The affiliate ledger folds the order number into the description column, so
+ * this carries it rather than repeating it in a column of its own.
+ */
+const DIRECT_DESCRIPTION = Prisma.sql`
+  CASE
+    WHEN c."wooOrderId" IS NOT NULL THEN 'Order #' || c."wooOrderId"
+    ELSE 'Direct commission'
+  END
+`;
+
+/**
+ * SliceWP emits its own tier-2 commission ("inherit") alongside the tier-1
+ * sale. We model that bonus ourselves as an OVERRIDE driven by deal rules, so
+ * mirroring SliceWP's copy as well would bill the same tier-2 bonus twice.
+ *
+ * Existing inherit-backed rows are left alone here: most sit inside settled
+ * payout batches, which have to keep reconciling.
+ */
+const EXCLUDE_INHERITED = Prisma.sql`AND lower(coalesce(c."type", '')) <> 'inherit'`;
+
+/**
  * DIRECT ledger lines mirror their commission exactly, so they can be derived
  * in SQL rather than diffed row by row in application code.
  */
@@ -169,6 +193,8 @@ export async function syncDirectLedgerEntries(
         "status"       = c."status",
         "orderRevenue" = c."orderRevenue",
         "wooOrderId"   = c."wooOrderId",
+        "occurredAt"   = c."dateCreated",
+        "description"  = ${DIRECT_DESCRIPTION},
         "updatedAt"    = now()
     FROM "Commission" AS c
     WHERE le."type" = 'DIRECT'
@@ -180,6 +206,8 @@ export async function syncDirectLedgerEntries(
         OR le."status"       IS DISTINCT FROM c."status"
         OR le."orderRevenue" IS DISTINCT FROM c."orderRevenue"
         OR le."wooOrderId"   IS DISTINCT FROM c."wooOrderId"
+        OR le."occurredAt"   IS DISTINCT FROM c."dateCreated"
+        OR le."description"  IS DISTINCT FROM ${DIRECT_DESCRIPTION}
       )
   `;
 
@@ -189,7 +217,7 @@ export async function syncDirectLedgerEntries(
     INSERT INTO "LedgerEntry" (
       "id", "affiliateId", "type", "amount", "status", "description",
       "wooOrderId", "orderRevenue", "sourceCommissionId", "slicewpCommissionId",
-      "payoutWeek", "createdAt", "updatedAt"
+      "payoutWeek", "occurredAt", "createdAt", "updatedAt"
     )
     SELECT
       gen_random_uuid()::text,
@@ -197,21 +225,19 @@ export async function syncDirectLedgerEntries(
       'DIRECT',
       c."amount",
       c."status",
-      CASE
-        WHEN c."wooOrderId" IS NOT NULL
-          THEN 'Commission for order #' || c."wooOrderId"
-        ELSE 'Direct commission'
-      END,
+      ${DIRECT_DESCRIPTION},
       c."wooOrderId",
       c."orderRevenue",
       c."id",
       c."slicewpId",
       ${payoutWeek}::timestamptz,
+      c."dateCreated",
       now(),
       now()
     FROM "Commission" AS c
     WHERE TRUE
       ${scope}
+      ${EXCLUDE_INHERITED}
       AND NOT EXISTS (
         SELECT 1 FROM "LedgerEntry" AS le
         WHERE le."type" = 'DIRECT'

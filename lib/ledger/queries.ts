@@ -192,7 +192,9 @@ export async function getPaginatedLedgerEntries(filters: LedgerFilters) {
         select: { id: true, label: true },
       },
     },
-    orderBy: { createdAt: "desc" },
+    // Thousands of rows share a sync timestamp, so an unstable sort key would
+    // let OFFSET paging repeat and skip entries. id breaks the ties.
+    orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
     skip: (page - 1) * limit,
     take: limit,
   });
@@ -206,9 +208,28 @@ export async function getPaginatedLedgerEntries(filters: LedgerFilters) {
   };
 }
 
+/**
+ * Totals for exactly what the current filters match, including team and search
+ * which the cached groupBy below cannot express. This is the number an
+ * affiliate is looking for after narrowing the ledger down.
+ */
+async function filteredTotals(filters: LedgerFilters) {
+  const result = await prisma.ledgerEntry.aggregate({
+    where: buildWhere(filters),
+    _sum: { amount: true },
+    _count: { _all: true },
+  });
+
+  return {
+    amount: toNumber(result._sum.amount),
+    count: result._count._all,
+  };
+}
+
 /** Single-connection-safe: sequential queries, one groupBy for all summaries. */
 export async function getLedgerResponse(filters: LedgerFilters) {
   const pageData = await getPaginatedLedgerEntries(filters);
+  const filtered = await filteredTotals(filters);
 
   const groups = await prisma.ledgerEntry.groupBy({
     by: ["type", "status", "sourceAffiliateId"],
@@ -307,6 +328,7 @@ export async function getLedgerResponse(filters: LedgerFilters) {
 
   return {
     ...pageData,
+    filtered,
     summary,
     overrideSummary,
     teamBonuses,

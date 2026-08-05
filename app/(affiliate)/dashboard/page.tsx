@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { AffiliateStatCard } from "@/components/affiliate/AffiliateStatCard";
 import { DashboardSkeleton } from "@/components/affiliate/DashboardSkeleton";
@@ -34,18 +34,27 @@ import {
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ledgerTabToFilters, useLedger } from "@/hooks/use-ledger";
 import { PayoutsList } from "@/components/payouts/PayoutsList";
-import {
-  AFFILIATE_COPY,
-  memberCountLabel,
-} from "@/lib/affiliate/copy";
+import { AFFILIATE_COPY, memberCountLabel } from "@/lib/affiliate/copy";
 import { formatCurrency } from "@/lib/utils";
 
 type DashboardTab = "overview" | "ledger" | "teams" | "payouts";
+type LedgerStatusTab = "all" | "unpaid" | "paid" | "overrides";
 
-function resolveInitialTab(tab: string | null): DashboardTab {
-  if (tab === "commissions" || tab === "ledger") return "ledger";
-  if (tab === "teams" || tab === "payouts") return tab;
-  return "overview";
+const DASHBOARD_TABS: DashboardTab[] = [
+  "overview",
+  "ledger",
+  "teams",
+  "payouts",
+];
+const LEDGER_TABS: LedgerStatusTab[] = ["all", "unpaid", "paid", "overrides"];
+
+function resolveTab(value: string | null): DashboardTab {
+  if (value === "commissions") return "ledger";
+  return DASHBOARD_TABS.find((tab) => tab === value) ?? "overview";
+}
+
+function resolveLedgerTab(value: string | null): LedgerStatusTab {
+  return LEDGER_TABS.find((tab) => tab === value) ?? "all";
 }
 
 export default function DashboardPage() {
@@ -57,32 +66,68 @@ export default function DashboardPage() {
 }
 
 function DashboardPageContent() {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get("tab");
   const { user, loading: authLoading } = useAuth();
-  const [viewTab, setViewTab] = useState<DashboardTab>(resolveInitialTab(initialTab));
-  const [ledgerTab, setLedgerTab] = useState<
-    "all" | "unpaid" | "paid" | "overrides"
-  >("all");
-  const [sourceFilter, setSourceFilter] = useState<string>("all");
-  const [teamFilter, setTeamFilter] = useState<string>("all");
-  const [page, setPage] = useState(1);
-  const [q, setQ] = useState("");
-  const [debouncedQ, setDebouncedQ] = useState("");
+
+  /**
+   * The URL is the single source of truth for navigation state so refreshes,
+   * the back button, and shared links all land where the user expects.
+   * Tab moves go into history; filter tweaks replace so they don't flood it.
+   */
+  const setParams = useCallback(
+    (
+      updates: Record<string, string | null>,
+      { history = false }: { history?: boolean } = {}
+    ) => {
+      const next = new URLSearchParams(searchParams.toString());
+      for (const [key, value] of Object.entries(updates)) {
+        if (value === null) next.delete(key);
+        else next.set(key, value);
+      }
+      const query = next.toString();
+      const url = query ? `${pathname}?${query}` : pathname;
+      if (history) router.push(url, { scroll: false });
+      else router.replace(url, { scroll: false });
+    },
+    [pathname, router, searchParams]
+  );
+
+  const viewTab = resolveTab(searchParams.get("tab"));
+  const ledgerTab = resolveLedgerTab(searchParams.get("status"));
+  const sourceFilter = searchParams.get("member") ?? "all";
+  const teamFilter = searchParams.get("team") ?? "all";
+  const urlQuery = searchParams.get("q") ?? "";
+  const page = Math.max(1, Number(searchParams.get("page") ?? "1") || 1);
+
+  // Typing stays local for responsiveness, then lands in the URL once settled.
+  const [q, setQ] = useState(urlQuery);
+  const lastWritten = useRef(urlQuery);
+
+  // Adopt query changes we did not cause, so back/forward and "clear filters"
+  // are not immediately overwritten by the pending debounce.
+  useEffect(() => {
+    if (urlQuery !== lastWritten.current) {
+      lastWritten.current = urlQuery;
+      setQ(urlQuery);
+    }
+  }, [urlQuery]);
 
   useEffect(() => {
+    if (q === urlQuery) return;
     const timer = setTimeout(() => {
-      setDebouncedQ(q);
-      setPage(1);
+      lastWritten.current = q;
+      setParams({ q: q || null, page: null });
     }, 300);
     return () => clearTimeout(timer);
-  }, [q]);
+  }, [q, urlQuery, setParams]);
 
   const tabFilters = ledgerTabToFilters(ledgerTab, sourceFilter);
 
   const { data, error, isLoading, refetch, isFetching } = useLedger({
     ...tabFilters,
-    q: debouncedQ,
+    q: urlQuery,
     teamId: teamFilter !== "all" ? teamFilter : undefined,
     page,
     limit: 50,
@@ -95,43 +140,59 @@ function DashboardPageContent() {
   );
   const { data: legacyTeamData } = useTeam(undefined, !!user);
 
-  function focusTeamMember(
-    sourceId: string,
-    status: "unpaid" | "paid" | "all"
-  ) {
-    setTeamFilter("all");
-    setSourceFilter(sourceId);
-    setLedgerTab(status === "all" ? "overrides" : status);
-    setPage(1);
-    setViewTab("ledger");
+  function setViewTab(tab: string) {
+    setParams({ tab: tab === "overview" ? null : tab }, { history: true });
+  }
+
+  function focusTeamMember(sourceId: string, status: "unpaid" | "paid" | "all") {
+    setParams(
+      {
+        tab: "ledger",
+        team: null,
+        member: sourceId,
+        status: status === "all" ? "overrides" : status,
+        page: null,
+      },
+      { history: true }
+    );
   }
 
   function focusTeam(teamId: string) {
-    setSourceFilter("all");
-    setTeamFilter(teamId);
-    setLedgerTab("overrides");
-    setPage(1);
-    setViewTab("ledger");
+    setParams(
+      {
+        tab: "ledger",
+        member: null,
+        team: teamId,
+        status: "overrides",
+        page: null,
+      },
+      { history: true }
+    );
   }
 
   function handleTeamFilter(value: string) {
-    setTeamFilter(value);
-    if (value !== "all") setSourceFilter("all");
-    setPage(1);
+    setParams({
+      team: value === "all" ? null : value,
+      // A team and a single member are mutually exclusive narrowings.
+      ...(value === "all" ? {} : { member: null }),
+      page: null,
+    });
   }
 
-  function handleTabChange(value: string) {
-    setLedgerTab(value as typeof ledgerTab);
-    setPage(1);
+  function handleSourceFilter(value: string) {
+    setParams({ member: value === "all" ? null : value, page: null });
   }
 
-  function handleSourceFilter(sourceId: string) {
-    setSourceFilter(sourceId);
-    setPage(1);
+  function handleLedgerTab(value: string) {
+    setParams({ status: value === "all" ? null : value, page: null });
   }
 
-  const displayName =
-    user?.affiliateName?.trim() || user?.name?.trim() || null;
+  function clearLedgerFilters() {
+    setQ("");
+    setParams({ status: null, member: null, team: null, q: null, page: null });
+  }
+
+  const displayName = user?.affiliateName?.trim() || user?.name?.trim() || null;
 
   if (authLoading || (isLoading && !data)) {
     return <DashboardSkeleton />;
@@ -139,6 +200,11 @@ function DashboardPageContent() {
 
   const hasTeams = (teamsData?.teams.length ?? 0) > 0;
   const hasTeamBonuses = (data?.teamBonuses.length ?? 0) > 0;
+  const filtersActive =
+    ledgerTab !== "all" ||
+    sourceFilter !== "all" ||
+    teamFilter !== "all" ||
+    urlQuery !== "";
 
   return (
     <div className="space-y-6">
@@ -147,13 +213,10 @@ function DashboardPageContent() {
       )}
 
       {data && (
-        <Tabs
-          value={viewTab}
-          onValueChange={(v) => setViewTab(v as DashboardTab)}
-        >
+        <Tabs value={viewTab} onValueChange={setViewTab}>
           <PartnerTabRail
             activeTab={viewTab}
-            onTabChange={(v) => setViewTab(v as DashboardTab)}
+            onTabChange={setViewTab}
             tabs={[
               {
                 id: "overview",
@@ -197,7 +260,7 @@ function DashboardPageContent() {
                 value={data.summary.unpaidTotal}
                 tone="primary"
                 icon={DollarSign}
-                actionLabel="View"
+                actionLabel={AFFILIATE_COPY.stats.owed.action}
                 onAction={() => setViewTab("ledger")}
               />
               <AffiliateStatCard
@@ -206,7 +269,7 @@ function DashboardPageContent() {
                 value={data.summary.paidTotal}
                 tone="success"
                 icon={CheckCircle2}
-                actionLabel="Payouts"
+                actionLabel={AFFILIATE_COPY.stats.paid.action}
                 onAction={() => setViewTab("payouts")}
               />
               <AffiliateStatCard
@@ -215,7 +278,7 @@ function DashboardPageContent() {
                 value={data.summary.pendingTotal}
                 tone="warning"
                 icon={Clock}
-                actionLabel="Team"
+                actionLabel={AFFILIATE_COPY.stats.pending.action}
                 onAction={() => setViewTab("teams")}
               />
             </div>
@@ -247,8 +310,8 @@ function DashboardPageContent() {
                       <button
                         key={team.id}
                         type="button"
-                        onClick={() => setViewTab("teams")}
-                        className="rounded-lg border border-border bg-background p-4 text-left transition-colors hover:border-primary/30 hover:bg-primary-soft/20"
+                        onClick={() => focusTeam(team.id)}
+                        className="rounded-lg border border-border bg-background p-4 text-left transition-colors hover:border-primary/30 hover:bg-primary-soft/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <p className="font-medium">{team.name}</p>
                         <p className="mt-1 text-xs text-muted-foreground">
@@ -389,9 +452,7 @@ function DashboardPageContent() {
                   <div className="relative min-w-[220px] flex-1">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder={
-                        AFFILIATE_COPY.commissions.searchPlaceholder
-                      }
+                      placeholder={AFFILIATE_COPY.commissions.searchPlaceholder}
                       value={q}
                       onChange={(e) => setQ(e.target.value)}
                       className="rounded-lg bg-card pl-9"
@@ -400,6 +461,7 @@ function DashboardPageContent() {
                   <div className="flex flex-wrap items-center gap-2">
                     {teamsData?.teams && teamsData.teams.length > 0 && (
                       <select
+                        aria-label={AFFILIATE_COPY.commissions.allTeams}
                         className="select-field w-full sm:max-w-xs"
                         value={teamFilter}
                         onChange={(e) => handleTeamFilter(e.target.value)}
@@ -416,11 +478,10 @@ function DashboardPageContent() {
                     )}
                     {data.sourceAffiliates.length > 0 && (
                       <select
+                        aria-label={AFFILIATE_COPY.commissions.allMembers}
                         className="select-field w-full sm:max-w-xs"
                         value={sourceFilter}
-                        onChange={(e) =>
-                          handleSourceFilter(e.target.value)
-                        }
+                        onChange={(e) => handleSourceFilter(e.target.value)}
                       >
                         <option value="all">
                           {AFFILIATE_COPY.commissions.allMembers}
@@ -435,69 +496,102 @@ function DashboardPageContent() {
                   </div>
                 </div>
 
-                <Tabs value={ledgerTab} onValueChange={handleTabChange}>
-                  <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
-                    {(
+                <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
+                  {(
+                    [
+                      ["all", AFFILIATE_COPY.commissions.tabs.all],
+                      ["unpaid", AFFILIATE_COPY.commissions.tabs.owed],
+                      ["paid", AFFILIATE_COPY.commissions.tabs.paid],
                       [
-                        ["all", AFFILIATE_COPY.commissions.tabs.all],
-                        ["unpaid", AFFILIATE_COPY.commissions.tabs.owed],
-                        ["paid", AFFILIATE_COPY.commissions.tabs.paid],
-                        [
-                          "overrides",
-                          AFFILIATE_COPY.commissions.tabs.teamEarnings,
-                        ],
-                      ] as const
-                    ).map(([value, label]) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => handleTabChange(value)}
-                        className={
-                          ledgerTab === value
-                            ? "filter-pill filter-pill-active"
-                            : "filter-pill filter-pill-inactive"
-                        }
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                  <TabsContent value={ledgerTab} className="mt-0">
-                    <LedgerTable
-                      entries={data.entries}
-                      showDetails
-                      affiliateView
-                    />
-                    {data.totalPages > 1 && (
-                      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/50 p-4 text-xs text-muted-foreground">
-                        <p>
-                          Page {data.page} of {data.totalPages} · {data.total}{" "}
-                          {data.total === 1 ? "entry" : "entries"}
-                          {isFetching ? " · updating…" : ""}
-                        </p>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={page <= 1}
-                            onClick={() => setPage((p) => p - 1)}
-                          >
-                            Previous
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={page >= data.totalPages}
-                            onClick={() => setPage((p) => p + 1)}
-                          >
-                            Next
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </TabsContent>
-                </Tabs>
+                        "overrides",
+                        AFFILIATE_COPY.commissions.tabs.teamEarnings,
+                      ],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={ledgerTab === value}
+                      onClick={() => handleLedgerTab(value)}
+                      className={
+                        ledgerTab === value
+                          ? "filter-pill filter-pill-active"
+                          : "filter-pill filter-pill-inactive"
+                      }
+                    >
+                      {label}
+                    </button>
+                  ))}
+                  {filtersActive && (
+                    <button
+                      type="button"
+                      onClick={clearLedgerFilters}
+                      className="ml-auto text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
+                    >
+                      {AFFILIATE_COPY.commissions.clearFilters}
+                    </button>
+                  )}
+                </div>
               </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 text-xs">
+                <p className="text-muted-foreground">
+                  {data.filtered.count}{" "}
+                  {data.filtered.count === 1 ? "entry" : "entries"}
+                  {isFetching && (
+                    <span className="text-muted-foreground"> · updating…</span>
+                  )}
+                </p>
+                <p className="font-semibold text-brand-dark">
+                  {AFFILIATE_COPY.commissions.columns.amount}:{" "}
+                  <span className="text-primary">
+                    {formatCurrency(data.filtered.amount)}
+                  </span>
+                </p>
+              </div>
+
+              {data.entries.length === 0 && filtersActive ? (
+                <div className="space-y-3 px-4 py-10 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    {AFFILIATE_COPY.commissions.noMatches}
+                  </p>
+                  <Button variant="outline" size="sm" onClick={clearLedgerFilters}>
+                    {AFFILIATE_COPY.commissions.clearFilters}
+                  </Button>
+                </div>
+              ) : (
+                <LedgerTable entries={data.entries} showDetails affiliateView />
+              )}
+
+              {data.totalPages > 1 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/50 p-4 text-xs text-muted-foreground">
+                  <p>
+                    Page {data.page} of {data.totalPages}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page <= 1}
+                      onClick={() =>
+                        setParams({
+                          page: page - 1 <= 1 ? null : String(page - 1),
+                        })
+                      }
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page >= data.totalPages}
+                      onClick={() => setParams({ page: String(page + 1) })}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </TabsContent>
 
@@ -516,9 +610,7 @@ function DashboardPageContent() {
             ) : teamsData?.teams && teamsData.teams.length > 0 ? (
               <TeamsPanel
                 teams={teamsData.teams}
-                onViewLedger={(memberId) =>
-                  focusTeamMember(memberId, "unpaid")
-                }
+                onViewLedger={(memberId) => focusTeamMember(memberId, "unpaid")}
                 onViewTeamLedger={focusTeam}
               />
             ) : legacyTeamData?.team && legacyTeamData.team.length > 0 ? (
@@ -542,10 +634,7 @@ function DashboardPageContent() {
                 {AFFILIATE_COPY.payouts.description}
               </p>
             </div>
-            <PayoutsList
-              detailHrefPrefix="/dashboard/payouts"
-              affiliateView
-            />
+            <PayoutsList detailHrefPrefix="/dashboard/payouts" affiliateView />
           </TabsContent>
         </Tabs>
       )}

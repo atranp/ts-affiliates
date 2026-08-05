@@ -16,7 +16,7 @@ export type PayoutBatchEntry = {
   description: string | null;
   wooOrderId: number | null;
   orderRevenue: number | null;
-  createdAt: string;
+  occurredAt: string;
   sourceAffiliate: {
     id: string;
     displayName: string | null;

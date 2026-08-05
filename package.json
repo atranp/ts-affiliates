@@ -10,6 +10,8 @@
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "reconcile-overrides": "tsx scripts/reconcile-override-status.ts",
+    "backfill-ledger-dates": "tsx scripts/backfill-ledger-occurred-at.ts",
+    "prune-inherited-direct": "tsx scripts/prune-inherited-direct.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

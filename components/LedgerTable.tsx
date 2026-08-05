@@ -26,7 +26,7 @@ type LedgerEntry = {
   orderRevenue: string | number | null;
   payoutWeek: string | null;
   paidAt: string | null;
-  createdAt: string;
+  occurredAt: string;
   sourceAffiliate?: {
     displayName: string | null;
     email: string;
@@ -89,7 +89,8 @@ export function LedgerTable({
               <TableHead>{cols?.details ?? "Details"}</TableHead>
             )}
             {!showDetails && <TableHead>Source</TableHead>}
-            <TableHead>{cols?.order ?? "Order"}</TableHead>
+            {/* The affiliate view folds the order number into Details. */}
+            {!affiliateView && <TableHead>Order</TableHead>}
             <TableHead>{cols?.sale ?? "Sale"}</TableHead>
             <TableHead className="text-right">
               {cols?.amount ?? "Amount"}
@@ -107,7 +108,7 @@ export function LedgerTable({
               className="text-xs hover:bg-muted/80"
             >
               <TableCell className="whitespace-nowrap font-medium">
-                {new Date(entry.createdAt).toLocaleDateString("en-US", {
+                {new Date(entry.occurredAt).toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",
                   year: "numeric",
@@ -140,9 +141,9 @@ export function LedgerTable({
                     entry.sourceAffiliate?.displayName ??
                     entry.sourceAffiliate?.email ??
                     "—"}
-                  {entry.sourceAffiliate && affiliateView && (
+                  {entry.sourceAffiliate && !affiliateView && (
                     <div className="text-[11px] font-normal text-muted-foreground">
-                      Referred by:{" "}
+                      Source:{" "}
                       {entry.sourceAffiliate.displayName ??
                         entry.sourceAffiliate.email}
                     </div>
@@ -155,9 +156,11 @@ export function LedgerTable({
                     "—"}
                 </TableCell>
               )}
-              <TableCell className="font-mono font-medium text-muted-foreground">
-                {entry.wooOrderId ? `#${entry.wooOrderId}` : "—"}
-              </TableCell>
+              {!affiliateView && (
+                <TableCell className="font-mono font-medium text-muted-foreground">
+                  {entry.wooOrderId ? `#${entry.wooOrderId}` : "—"}
+                </TableCell>
+              )}
               <TableCell className="font-medium text-muted-foreground">
                 {entry.orderRevenue
                   ? formatCurrency(entry.orderRevenue)

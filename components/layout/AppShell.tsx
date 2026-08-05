@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, LogOut, Menu, X } from "lucide-react";
+import { ChevronDown, KeyRound, LogOut, Menu, X } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { BrandMark } from "@/components/layout/BrandMark";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
@@ -115,6 +115,17 @@ export function AppShell({
                         {user?.email}
                       </div>
                     </div>
+                    {/* Middleware bounces admins out of /account. */}
+                    {variant === "partner" && (
+                      <Link
+                        href="/account/change-password"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex w-full items-center gap-2 px-3 py-2 font-medium text-foreground hover:bg-muted"
+                      >
+                        <KeyRound className="h-3.5 w-3.5" />
+                        Change Password
+                      </Link>
+                    )}
                     <div className="border-t border-border pt-1">
                       <button
                         type="button"
@@ -157,6 +168,16 @@ export function AppShell({
                 {user?.name}
               </span>
             </div>
+            {variant === "partner" && (
+              <Link
+                href="/account/change-password"
+                onClick={() => setMenuOpen(false)}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-card py-2 text-xs font-semibold text-foreground"
+              >
+                <KeyRound className="h-3.5 w-3.5" />
+                Change Password
+              </Link>
+            )}
             <button
               type="button"
               onClick={signOut}

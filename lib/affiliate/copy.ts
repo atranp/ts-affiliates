@@ -43,14 +43,17 @@ export const AFFILIATE_COPY = {
     owed: {
       label: "Owed to you",
       hint: "Included in the next payout run",
+      action: "Commissions",
     },
     paid: {
       label: "Paid out",
       hint: "Already sent to you",
+      action: "Payouts",
     },
     pending: {
       label: "Pending",
       hint: "Unlocks when a team member hits their sales goal",
+      action: "Team",
     },
   },
   home: {
@@ -79,9 +82,11 @@ export const AFFILIATE_COPY = {
     title: "Commissions",
     description: "Every sale and team earning tied to your account.",
     empty: "No commissions yet.",
+    noMatches: "No commissions match these filters.",
     searchPlaceholder: "Search order or description…",
     allTeams: "All teams",
     allMembers: "All team members",
+    clearFilters: "Clear filters",
     tabs: {
       all: "All",
       owed: "Owed",
@@ -92,7 +97,6 @@ export const AFFILIATE_COPY = {
       date: "Date",
       type: "Type",
       details: "Details",
-      order: "Order",
       sale: "Sale amount",
       amount: "Your earnings",
       payout: "Payout date",

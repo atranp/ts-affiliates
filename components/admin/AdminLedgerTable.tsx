@@ -28,7 +28,7 @@ export type AdminLedgerEntry = {
   orderRevenue: string | number | null;
   payoutWeek: string | null;
   paidAt: string | null;
-  createdAt: string;
+  occurredAt: string;
   payoutBatchId?: string | null;
   payoutBatch?: { id: string; label: string } | null;
   sourceAffiliate?: {
@@ -284,7 +284,7 @@ export function AdminLedgerTable({
                   />
                 </TableCell>
                 <TableCell>
-                  {new Date(entry.createdAt).toLocaleDateString("en-US")}
+                  {new Date(entry.occurredAt).toLocaleDateString("en-US")}
                 </TableCell>
                 <TableCell>
                   <EntryTypeBadge type={entry.type} />
@@ -355,7 +355,7 @@ export function AdminLedgerTable({
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">
-                      {new Date(entry.createdAt).toLocaleDateString("en-US")}
+                      {new Date(entry.occurredAt).toLocaleDateString("en-US")}
                     </p>
                     <EntryTypeBadge type={entry.type} />
                   </div>

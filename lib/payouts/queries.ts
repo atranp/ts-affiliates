@@ -16,7 +16,7 @@ function mapEntry(entry: {
   description: string | null;
   wooOrderId: number | null;
   orderRevenue: { toString(): string } | null;
-  createdAt: Date;
+  occurredAt: Date;
   sourceAffiliate: {
     id: string;
     displayName: string | null;
@@ -32,7 +32,7 @@ function mapEntry(entry: {
     description: entry.description,
     wooOrderId: entry.wooOrderId,
     orderRevenue: entry.orderRevenue ? toNumber(entry.orderRevenue) : null,
-    createdAt: entry.createdAt.toISOString(),
+    occurredAt: entry.occurredAt.toISOString(),
     sourceAffiliate: entry.sourceAffiliate,
     dealRule: entry.dealRule,
   };
@@ -96,7 +96,7 @@ export async function getPayoutBatchDetail(
           },
           dealRule: { select: { id: true, name: true } },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
       },
     },
   });
@@ -209,7 +209,7 @@ export async function listPayoutBatchesForAffiliate(
 ): Promise<PayoutBatchListItem[]> {
   const batches = await prisma.payoutBatch.findMany({
     where: { items: { some: { affiliateId } } },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ processedAt: "desc" }, { createdAt: "desc" }],
     take: limit,
     include: {
       team: { select: { id: true, name: true } },

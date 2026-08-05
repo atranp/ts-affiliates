@@ -194,10 +194,14 @@ model LedgerEntry {
   payoutBatch         PayoutBatch?     @relation(fields: [payoutBatchId], references: [id], onDelete: SetNull)
   payoutWeek          DateTime?
   paidAt              DateTime?
+  /// When the underlying sale happened. createdAt is when sync wrote the row,
+  /// which is meaningless to an affiliate reading their ledger.
+  occurredAt          DateTime         @default(now())
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
   @@index([affiliateId, status])
+  @@index([affiliateId, occurredAt])
   @@index([sourceAffiliateId])
   @@index([wooOrderId])
 }

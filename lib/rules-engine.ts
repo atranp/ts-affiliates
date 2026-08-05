@@ -203,10 +203,11 @@ async function applyOverrideBatch(
         status: resolveOverrideStatusOnSync(prior, data.status),
         description: data.description,
         orderRevenue:
-          data.orderRevenue == null ? null : toNumber(data.orderRevenue),
-        wooOrderId: data.wooOrderId,
-        sourceAffiliateId: data.sourceAffiliateId,
-      });
+                  data.orderRevenue == null ? null : toNumber(data.orderRevenue),
+                wooOrderId: data.wooOrderId,
+                sourceAffiliateId: data.sourceAffiliateId,
+                occurredAt: data.occurredAt,
+              });
     } else {
       creates.push(data);
     }
@@ -272,7 +273,13 @@ function buildOverrideEntryData(
   rule: DealRule,
   commission: Pick<
     Commission,
-    "id" | "amount" | "orderRevenue" | "status" | "wooOrderId" | "affiliateId"
+    | "id"
+    | "amount"
+    | "orderRevenue"
+    | "status"
+    | "wooOrderId"
+    | "affiliateId"
+    | "dateCreated"
   >,
   sourceName: string,
   cumulativeRevenue: number,
@@ -292,15 +299,13 @@ function buildOverrideEntryData(
   );
 
   const rate = toNumber(rule.ratePercent);
-  const revenue = toNumber(commission.orderRevenue);
-  const orderLabel = commission.wooOrderId
-    ? `Order #${commission.wooOrderId}`
-    : "commission";
 
-  const baseDescription =
-    rule.basis === DealBasis.ORDER_REVENUE
-      ? `${rate}% team bonus from ${sourceName} · ${orderLabel} · $${revenue.toLocaleString("en-US", { minimumFractionDigits: 2 })} revenue`
-      : `${rate}% team bonus from ${sourceName} · ${orderLabel}`;
+  // The ledger shows the sale amount in its own column, so the description
+  // only needs to say whose sale this came from.
+  const orderLabel = commission.wooOrderId
+    ? ` · Order #${commission.wooOrderId}`
+    : "";
+  const baseDescription = `${rate}% of ${sourceName}'s sale${orderLabel}`;
 
   return {
     affiliateId: rule.sponsorAffiliateId,
@@ -314,6 +319,7 @@ function buildOverrideEntryData(
     sourceCommissionId: commission.id,
     dealRuleId: rule.id,
     payoutWeek: getNextPayoutWeek(rule.schedule),
+    occurredAt: commission.dateCreated,
   };
 }
 
@@ -390,6 +396,7 @@ async function createOverrideEntry(
         orderRevenue: data.orderRevenue,
         wooOrderId: data.wooOrderId,
         sourceAffiliateId: data.sourceAffiliateId,
+        occurredAt: data.occurredAt,
       },
     });
   } else {

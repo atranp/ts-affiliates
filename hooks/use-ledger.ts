@@ -14,7 +14,7 @@ export type LedgerEntry = {
   orderRevenue: string | null;
   payoutWeek: string | null;
   paidAt: string | null;
-  createdAt: string;
+  occurredAt: string;
   payoutBatchId: string | null;
   payoutBatch?: { id: string; label: string } | null;
   sourceAffiliateId: string | null;
@@ -31,6 +31,11 @@ export type LedgerData = {
   limit: number;
   total: number;
   totalPages: number;
+  /** Sum and count of everything the active filters match, not just this page. */
+  filtered: {
+    amount: number;
+    count: number;
+  };
   summary: {
     unpaidTotal: number;
     paidTotal: number;

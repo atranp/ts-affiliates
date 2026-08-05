@@ -131,7 +131,7 @@ export function PayoutBatchDetailView({
               {batch.entries.map((entry) => (
                 <TableRow key={entry.id}>
                   <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                    {formatDate(entry.createdAt)}
+                    {formatDate(entry.occurredAt)}
                   </TableCell>
                   <TableCell>
                     <Badge
