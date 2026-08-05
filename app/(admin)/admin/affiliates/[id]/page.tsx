@@ -42,7 +42,7 @@ import type {
   AdminAffiliateDetail,
 } from "@/lib/admin/types";
 import { AffiliatePortalPanel } from "@/components/admin/AffiliatePortalPanel";
-import { AffiliatePayoutsTab } from "@/components/payouts/AffiliatePayoutsTab";
+import { PayoutBuilder } from "@/components/payouts/PayoutBuilder";
 import { formatCurrency } from "@/lib/utils";
 
 type ViewTab = "ledger" | "payouts" | "team" | "rules";
@@ -566,10 +566,9 @@ function AdminAffiliateDetailPageContent() {
                       <CardTitle>Payouts</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <AffiliatePayoutsTab
+                      <PayoutBuilder
                         affiliateId={affiliate.id}
                         displayName={displayName}
-                        unpaidDirectTotal={affiliate.ledger.directUnpaidTotal}
                         onBatchCreated={() => {
                           void queryClient.invalidateQueries({
                             queryKey: queryKeys.admin.affiliate(affiliateId),

@@ -19,6 +19,19 @@ export type PayoutRecruitLine = {
   sourceRevenue: number;
 };
 
+/** A single sale behind a payout, shown so the rate can be checked before paying. */
+export type PayoutPreviewEntry = {
+  id: string;
+  occurredAt: string;
+  type: string;
+  description: string | null;
+  wooOrderId: number | null;
+  orderRevenue: number | null;
+  amount: number;
+  affiliateName: string;
+  sourceAffiliateName: string | null;
+};
+
 export type PayoutBatchEntry = {
   id: string;
   type: string;

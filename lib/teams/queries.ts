@@ -3,6 +3,7 @@ import { getMilestoneProgress } from "../milestone";
 import { buildPayoutEntryWhere } from "../payouts/scope";
 import type {
   PayoutDateBasis,
+  PayoutPreviewEntry,
   PayoutRecruitLine,
   PayoutScope,
 } from "../payouts/types";
@@ -404,6 +405,9 @@ export type PayoutPreview = {
   dateBasis: PayoutDateBasis;
   lines: PayoutPreviewLine[];
   recruitBreakdown: PayoutRecruitLine[];
+  /** Most recent sales only; totals above always cover the whole selection. */
+  entries: PayoutPreviewEntry[];
+  entriesTruncated: boolean;
   totals: {
     directTotal: number;
     overrideTotal: number;
@@ -414,6 +418,79 @@ export type PayoutPreview = {
     sourceRevenue: number;
   };
 };
+
+export const PAYOUT_PREVIEW_ENTRY_LIMIT = 100;
+
+type PreviewEntryRow = {
+  id: string;
+  occurredAt: Date;
+  type: LedgerEntryType;
+  description: string | null;
+  wooOrderId: number | null;
+  orderRevenue: Prisma.Decimal | null;
+  amount: Prisma.Decimal;
+  affiliate: { displayName: string | null; email: string };
+  sourceAffiliate: { displayName: string | null; email: string } | null;
+};
+
+function toPreviewEntries(rows: PreviewEntryRow[]): PayoutPreviewEntry[] {
+  return rows
+    .slice()
+    .sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime())
+    .map((entry) => ({
+      id: entry.id,
+      occurredAt: entry.occurredAt.toISOString(),
+      type: entry.type,
+      description: entry.description,
+      wooOrderId: entry.wooOrderId,
+      orderRevenue:
+        entry.orderRevenue == null ? null : toNumber(entry.orderRevenue),
+      amount: toNumber(entry.amount),
+      affiliateName: entry.affiliate.displayName ?? entry.affiliate.email,
+      sourceAffiliateName: entry.sourceAffiliate
+        ? (entry.sourceAffiliate.displayName ?? entry.sourceAffiliate.email)
+        : null,
+    }));
+}
+
+/** Every line item in a payout selection, for CSV export and reconciliation. */
+export async function getPayoutPreviewEntries(options: {
+  periodStart: Date;
+  periodEnd: Date;
+  teamId?: string;
+  sponsorAffiliateId?: string;
+  sourceAffiliateId?: string;
+  scope?: PayoutScope;
+  dateBasis?: PayoutDateBasis;
+}): Promise<PayoutPreviewEntry[]> {
+  const team = options.teamId
+    ? await prisma.team.findUnique({
+        where: { id: options.teamId },
+        select: { sponsorAffiliateId: true },
+      })
+    : null;
+
+  const where = buildPayoutEntryWhere({
+    periodStart: options.periodStart,
+    periodEnd: options.periodEnd,
+    teamId: options.teamId,
+    sponsorAffiliateId:
+      team?.sponsorAffiliateId ?? options.sponsorAffiliateId,
+    sourceAffiliateId: options.sourceAffiliateId,
+    scope: options.scope,
+    dateBasis: options.dateBasis,
+  });
+
+  const rows = await prisma.ledgerEntry.findMany({
+    where,
+    include: {
+      affiliate: { select: { displayName: true, email: true } },
+      sourceAffiliate: { select: { displayName: true, email: true } },
+    },
+  });
+
+  return toPreviewEntries(rows);
+}
 
 export async function getPayoutPreview(options: {
   periodStart: Date;
@@ -536,6 +613,11 @@ export async function getPayoutPreview(options: {
     (a.displayName ?? a.email).localeCompare(b.displayName ?? b.email)
   );
 
+  const previewEntries = toPreviewEntries(entries).slice(
+    0,
+    PAYOUT_PREVIEW_ENTRY_LIMIT
+  );
+
   return {
     periodStart: options.periodStart.toISOString(),
     periodEnd: options.periodEnd.toISOString(),
@@ -549,6 +631,8 @@ export async function getPayoutPreview(options: {
     dateBasis,
     lines,
     recruitBreakdown,
+    entries: previewEntries,
+    entriesTruncated: entries.length > PAYOUT_PREVIEW_ENTRY_LIMIT,
     totals: {
       directTotal,
       overrideTotal,

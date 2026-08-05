@@ -5,14 +5,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { History, Users } from "lucide-react";
 import { PageHeader } from "@/components/admin/PageHeader";
-import {
-  AffiliateSearchCombobox,
-  type AffiliateOption,
-} from "@/components/admin/AffiliateSearchCombobox";
-import { EmptyState } from "@/components/admin/EmptyState";
+import type { AffiliateOption } from "@/components/admin/AffiliateSearchCombobox";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { TableSkeleton } from "@/components/admin/TableSkeleton";
-import { AffiliatePayoutsTab } from "@/components/payouts/AffiliatePayoutsTab";
+import { PayoutBuilder } from "@/components/payouts/PayoutBuilder";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -116,36 +112,20 @@ function AdminPayoutsPageContent() {
             Create payout
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <AffiliateSearchCombobox
-            id="payout-sponsor"
-            label="Sponsor"
-            value={sponsorId}
-            selected={selectedOption}
-            onChange={(id) => selectSponsor(id)}
-          />
-
-          {!sponsorId && (
-            <EmptyState
-              title="No sponsor selected"
-              description="Search for an affiliate above to see their teams, unpaid team bonuses, and direct commissions."
-            />
-          )}
-
-          {sponsorId && sponsorLoading && <TableSkeleton columns={3} rows={4} />}
-
-          {sponsorId && sponsorError && (
+        <CardContent>
+          {sponsorId && sponsorError ? (
             <ErrorState
               message={sponsorError.message}
               onRetry={() => refetchSponsor()}
             />
-          )}
-
-          {sponsor && (
-            <AffiliatePayoutsTab
-              affiliateId={sponsor.id}
-              displayName={sponsor.displayName ?? sponsor.email}
-              unpaidDirectTotal={sponsor.ledger.directUnpaidTotal}
+          ) : sponsorId && sponsorLoading ? (
+            <TableSkeleton columns={3} rows={4} />
+          ) : (
+            <PayoutBuilder
+              affiliateId={sponsor?.id ?? null}
+              displayName={sponsor?.displayName ?? sponsor?.email ?? null}
+              selectedAffiliate={selectedOption}
+              onAffiliateChange={selectSponsor}
               initialTeamId={initialTeamId}
               onBatchCreated={() => {
                 void refetchSponsor();
