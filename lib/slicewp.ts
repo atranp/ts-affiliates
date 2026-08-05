@@ -1,3 +1,4 @@
+import { mapWithConcurrency } from "./utils";
 import {
   appendWpAuthParams,
   normalizeStoreUrl,
@@ -97,6 +98,8 @@ export interface SliceWPCommission {
   affiliate_id?: number | string;
   reference?: string;
   amount: string;
+  /** Order total the commission was calculated from — saves a WooCommerce lookup. */
+  reference_amount?: string;
   type?: string;
   origin?: string;
   status?: string;
@@ -117,34 +120,52 @@ function normalizeList<T>(data: T[] | T): T[] {
 }
 
 const SLICEWP_PAGE_SIZE = 100;
+/** Offset paging is stateless, so pages can be fetched in parallel waves. */
+const SLICEWP_PAGE_CONCURRENCY = 5;
 
 async function fetchAllSliceWPPages<T>(
   storeUrl: string,
   consumerKey: string,
   consumerSecret: string,
   path: string,
-  params: Record<string, string> = {}
+  params: Record<string, string> = {},
+  pageConcurrency = SLICEWP_PAGE_CONCURRENCY
 ): Promise<T[]> {
   const all: T[] = [];
-  let offset = 0;
+  let waveStart = 0;
 
   while (true) {
-    const data = await slicewpFetch<T[] | T>(
-      storeUrl,
-      consumerKey,
-      consumerSecret,
-      path,
-      {
-        ...params,
-        offset: String(offset),
-        number: String(SLICEWP_PAGE_SIZE),
-      }
+    const offsets = Array.from(
+      { length: pageConcurrency },
+      (_, index) => waveStart + index * SLICEWP_PAGE_SIZE
     );
-    const batch = normalizeList(data);
-    if (batch.length === 0) break;
 
-    all.push(...batch);
-    offset += batch.length;
+    const pages = await mapWithConcurrency(
+      offsets,
+      pageConcurrency,
+      async (offset) =>
+        normalizeList(
+          await slicewpFetch<T[] | T>(
+            storeUrl,
+            consumerKey,
+            consumerSecret,
+            path,
+            {
+              ...params,
+              offset: String(offset),
+              number: String(SLICEWP_PAGE_SIZE),
+            }
+          )
+        )
+    );
+
+    // A short page means the end of the result set — ignore anything after it.
+    const lastPage = pages.findIndex((page) => page.length < SLICEWP_PAGE_SIZE);
+    const usable = lastPage === -1 ? pages : pages.slice(0, lastPage + 1);
+    for (const page of usable) all.push(...page);
+
+    if (lastPage !== -1) break;
+    waveStart += pageConcurrency * SLICEWP_PAGE_SIZE;
   }
 
   return all;
@@ -218,27 +239,84 @@ export async function fetchAllSliceWPAffiliates(
   );
 }
 
-export async function fetchAllSliceWPCommissionsSince(
+/**
+ * Sorted oldest-first so milestone thresholds accumulate chronologically.
+ * SliceWP's date filters are unreliable, so the sort is applied client-side.
+ */
+function sortCommissionsByDate(
+  commissions: SliceWPCommission[]
+): SliceWPCommission[] {
+  return commissions.sort((a, b) => {
+    const left = a.date_created ?? "";
+    const right = b.date_created ?? "";
+    if (left === right) return Number(a.id) - Number(b.id);
+    return left < right ? -1 : 1;
+  });
+}
+
+export async function fetchAllSliceWPCommissions(
   storeUrl: string,
   consumerKey: string,
-  consumerSecret: string,
-  since?: Date
+  consumerSecret: string
 ): Promise<SliceWPCommission[]> {
-  const params: Record<string, string> = {
-    orderby: "date_created",
-    order: "DESC",
-  };
-  if (since) {
-    params.after = since.toISOString();
-  }
-
-  return fetchAllSliceWPPages<SliceWPCommission>(
+  const commissions = await fetchAllSliceWPPages<SliceWPCommission>(
     storeUrl,
     consumerKey,
     consumerSecret,
-    "/commissions/",
-    params
+    "/commissions/"
   );
+  return sortCommissionsByDate(commissions);
+}
+
+/** SliceWP filters `/commissions/` by affiliate_id server-side. */
+export async function fetchSliceWPCommissionsForAffiliates(
+  storeUrl: string,
+  consumerKey: string,
+  consumerSecret: string,
+  affiliateSlicewpIds: number[]
+): Promise<SliceWPCommission[]> {
+  // Most affiliates fit in one page, so page sequentially and spend the
+  // concurrency budget on fetching different affiliates instead.
+  const pages = await mapWithConcurrency(
+    affiliateSlicewpIds,
+    SLICEWP_PAGE_CONCURRENCY,
+    (affiliateId) =>
+      fetchAllSliceWPPages<SliceWPCommission>(
+        storeUrl,
+        consumerKey,
+        consumerSecret,
+        "/commissions/",
+        { affiliate_id: String(affiliateId) },
+        1
+      )
+  );
+
+  return sortCommissionsByDate(pages.flat());
+}
+
+/**
+ * `/affiliates/?id=` is ignored by SliceWP — the path route is the only
+ * way to fetch a single affiliate.
+ */
+export async function fetchSliceWPAffiliateById(
+  storeUrl: string,
+  consumerKey: string,
+  consumerSecret: string,
+  slicewpId: number
+): Promise<SliceWPAffiliate | null> {
+  try {
+    return await slicewpFetch<SliceWPAffiliate>(
+      storeUrl,
+      consumerKey,
+      consumerSecret,
+      `/affiliates/${slicewpId}/`
+    );
+  } catch (error) {
+    if (error instanceof Error && /invalid_affiliate_id|404/.test(error.message)) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export function mapSliceWPStatus(status?: string): "ACTIVE" | "INACTIVE" | "PENDING" | "REJECTED" {

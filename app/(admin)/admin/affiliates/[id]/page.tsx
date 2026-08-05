@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { FileText, Users, Share2, ChevronRight, DollarSign } from "lucide-react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { AffiliateQuickActions } from "@/components/admin/AffiliateQuickActions";
+import { AffiliateSyncButton } from "@/components/admin/AffiliateSyncButton";
 import { StatCard, StatCardSkeleton } from "@/components/admin/StatCard";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { EmptyState } from "@/components/admin/EmptyState";
@@ -389,6 +390,10 @@ function AdminAffiliateDetailPageContent() {
                       {formatDate(affiliate.syncedAt)}
                     </span>
                   </div>
+                  <AffiliateSyncButton
+                    affiliateId={affiliate.id}
+                    onSynced={refreshAffiliate}
+                  />
                 </CardContent>
               </Card>
 

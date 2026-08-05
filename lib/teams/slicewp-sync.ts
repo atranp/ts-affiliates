@@ -1,22 +1,10 @@
 import { prisma } from "@/lib/prisma";
+import { syncDownlineTeams } from "@/lib/sync-write";
 import { SLICEWP_DOWNLINE_KEY } from "./constants";
-import { ensureSponsorDownlineTeam } from "./members";
 
 /** Create/update one downline Team per sponsor that has SliceWP recruits. */
 export async function syncTeamsFromSliceWP(): Promise<number> {
-  const parentIds = await prisma.affiliate.groupBy({
-    by: ["parentAffiliateId"],
-    where: { parentAffiliateId: { not: null } },
-  });
-
-  let count = 0;
-  for (const row of parentIds) {
-    if (!row.parentAffiliateId) continue;
-    await ensureSponsorDownlineTeam(row.parentAffiliateId);
-    count += 1;
-  }
-
-  return count;
+  return syncDownlineTeams(SLICEWP_DOWNLINE_KEY);
 }
 
 /** Attach team-wide rules without a team to the sponsor's downline team. */

@@ -4,7 +4,6 @@ import {
   DealBasis,
   DealRule,
   LedgerEntryType,
-  PayoutSchedule,
   Prisma,
 } from "@prisma/client";
 import { prisma } from "./prisma";
@@ -17,7 +16,18 @@ import {
 } from "./milestone";
 import { getTeamMemberIds } from "./teams/members";
 import { getNextPayoutWeek } from "./payout-schedule";
+import {
+  bulkUpdateOverrideEntries,
+  type OverrideUpdateRow,
+} from "./sync-write";
 import { toNumber } from "./utils";
+
+type OverrideTarget = {
+  rule: DealRule;
+  commission: Commission;
+  sourceAffiliateId: string;
+  cumulativeRevenue: number;
+};
 
 export async function createSyncDealRuleProcessor() {
   const recruitRulesByAffiliate = new Map<string, DealRule[]>();
@@ -40,37 +50,183 @@ export async function createSyncDealRuleProcessor() {
     },
   });
 
-  const teamMembersByTeamId = new Map<string, string[]>();
+  const teamMembersByTeamId = new Map<string, Set<string>>();
   for (const rule of teamRules) {
     if (!rule.teamId || teamMembersByTeamId.has(rule.teamId)) continue;
-    teamMembersByTeamId.set(rule.teamId, await getTeamMemberIds(rule.teamId));
+    teamMembersByTeamId.set(
+      rule.teamId,
+      new Set(await getTeamMemberIds(rule.teamId))
+    );
   }
+
+  const pendingPromotions = new Map<
+    string,
+    { ruleId: string; sourceAffiliateId: string; threshold: number }
+  >();
 
   return {
     teamMemberIds: Array.from(
-      new Set(Array.from(teamMembersByTeamId.values()).flat())
+      new Set(
+        Array.from(teamMembersByTeamId.values()).flatMap((members) =>
+          Array.from(members)
+        )
+      )
     ),
-    async process(commission: Commission, revenueByRecruit?: Map<string, number>) {
-      const recruitRules =
-        recruitRulesByAffiliate.get(commission.affiliateId) ?? [];
-      for (const rule of recruitRules) {
-        await createOverrideEntry(rule, commission, revenueByRecruit);
+
+    /**
+     * Commissions must arrive oldest-first: revenue accrues as the batch is
+     * walked so milestone thresholds unlock in chronological order.
+     */
+    async processBatch(
+      commissions: Commission[],
+      revenueByRecruit: Map<string, number>,
+      affiliateNames: Map<string, string>
+    ) {
+      const targets: OverrideTarget[] = [];
+
+      for (const commission of commissions) {
+        const recruitRules =
+          recruitRulesByAffiliate.get(commission.affiliateId) ?? [];
+
+        for (const rule of recruitRules) {
+          if (!rule.sourceAffiliateId) continue;
+          targets.push({
+            rule,
+            commission,
+            sourceAffiliateId: rule.sourceAffiliateId,
+            cumulativeRevenue:
+              revenueByRecruit.get(rule.sourceAffiliateId) ?? 0,
+          });
+        }
+
+        for (const rule of teamRules) {
+          if (commission.affiliateId === rule.sponsorAffiliateId) continue;
+          if (!rule.teamId) continue;
+          if (!teamMembersByTeamId.get(rule.teamId)?.has(commission.affiliateId)) {
+            continue;
+          }
+          targets.push({
+            rule,
+            commission,
+            sourceAffiliateId: commission.affiliateId,
+            cumulativeRevenue:
+              revenueByRecruit.get(commission.affiliateId) ?? 0,
+          });
+        }
+
+        if (commission.orderRevenue != null) {
+          const current = revenueByRecruit.get(commission.affiliateId) ?? 0;
+          revenueByRecruit.set(
+            commission.affiliateId,
+            current + toNumber(commission.orderRevenue)
+          );
+        }
       }
 
-      for (const rule of teamRules) {
-        if (commission.affiliateId === rule.sponsorAffiliateId) continue;
-        if (!rule.teamId) continue;
-        const memberIds = teamMembersByTeamId.get(rule.teamId) ?? [];
-        if (!memberIds.includes(commission.affiliateId)) continue;
-        await createOverrideEntry(
-          rule,
-          commission,
-          revenueByRecruit,
-          commission.affiliateId
+      await applyOverrideBatch(targets, affiliateNames, pendingPromotions);
+    },
+
+    /**
+     * Milestone unlocks depend on total accrued revenue, so they are applied
+     * once after every batch rather than repeatedly per chunk.
+     */
+    async flushMilestonePromotions(revenueByRecruit: Map<string, number>) {
+      for (const promotion of Array.from(pendingPromotions.values())) {
+        await promoteMilestoneOverrides(
+          promotion.ruleId,
+          promotion.sourceAffiliateId,
+          promotion.threshold,
+          revenueByRecruit.get(promotion.sourceAffiliateId) ?? 0
         );
       }
+      pendingPromotions.clear();
     },
   };
+}
+
+/** Writes a whole chunk of overrides using a fixed number of round-trips. */
+async function applyOverrideBatch(
+  targets: OverrideTarget[],
+  affiliateNames: Map<string, string>,
+  pendingPromotions: Map<
+    string,
+    { ruleId: string; sourceAffiliateId: string; threshold: number }
+  >
+) {
+  if (targets.length === 0) return;
+
+  const existing = await prisma.ledgerEntry.findMany({
+    where: {
+      type: LedgerEntryType.OVERRIDE,
+      dealRuleId: { in: Array.from(new Set(targets.map((t) => t.rule.id))) },
+      sourceCommissionId: {
+        in: Array.from(new Set(targets.map((t) => t.commission.id))),
+      },
+    },
+    select: {
+      id: true,
+      dealRuleId: true,
+      sourceCommissionId: true,
+      status: true,
+      payoutBatchId: true,
+      paidAt: true,
+    },
+  });
+
+  const existingByKey = new Map(
+    existing.map((entry) => [
+      `${entry.dealRuleId}:${entry.sourceCommissionId}`,
+      entry,
+    ])
+  );
+
+  const creates: Prisma.LedgerEntryCreateManyInput[] = [];
+  const updates: OverrideUpdateRow[] = [];
+
+  for (const target of targets) {
+    const { rule, commission, sourceAffiliateId, cumulativeRevenue } = target;
+
+    const data = buildOverrideEntryData(
+      rule,
+      commission,
+      affiliateNames.get(sourceAffiliateId) ?? "recruit",
+      cumulativeRevenue,
+      sourceAffiliateId
+    );
+    if (!data) continue;
+
+    const prior = existingByKey.get(`${rule.id}:${commission.id}`);
+    if (prior) {
+      updates.push({
+        id: prior.id,
+        amount: data.amount,
+        status: resolveOverrideStatusOnSync(prior, data.status),
+        description: data.description,
+        orderRevenue:
+          data.orderRevenue == null ? null : toNumber(data.orderRevenue),
+        wooOrderId: data.wooOrderId,
+        sourceAffiliateId: data.sourceAffiliateId,
+      });
+    } else {
+      creates.push(data);
+    }
+
+    const threshold = rule.milestoneRevenueThreshold
+      ? toNumber(rule.milestoneRevenueThreshold)
+      : null;
+    if (threshold && threshold > 0) {
+      pendingPromotions.set(`${rule.id}:${sourceAffiliateId}`, {
+        ruleId: rule.id,
+        sourceAffiliateId,
+        threshold,
+      });
+    }
+  }
+
+  if (creates.length > 0) {
+    await prisma.ledgerEntry.createMany({ data: creates });
+  }
+  await bulkUpdateOverrideEntries(updates);
 }
 
 export async function processDealRulesForCommission(
@@ -423,46 +579,6 @@ function calculateOverrideAmount(rule: DealRule, commission: Commission): number
     default:
       return 0;
   }
-}
-
-export async function ensureDirectLedgerEntry(commission: Commission) {
-  const existing = await prisma.ledgerEntry.findFirst({
-    where: {
-      affiliateId: commission.affiliateId,
-      type: LedgerEntryType.DIRECT,
-      slicewpCommissionId: commission.slicewpId,
-    },
-  });
-
-  if (existing) {
-    await prisma.ledgerEntry.update({
-      where: { id: existing.id },
-      data: {
-        amount: commission.amount,
-        status: commission.status,
-        orderRevenue: commission.orderRevenue,
-        wooOrderId: commission.wooOrderId,
-      },
-    });
-    return;
-  }
-
-  await prisma.ledgerEntry.create({
-    data: {
-      affiliateId: commission.affiliateId,
-      type: LedgerEntryType.DIRECT,
-      amount: commission.amount,
-      status: commission.status,
-      description: commission.wooOrderId
-        ? `Commission for order #${commission.wooOrderId}`
-        : "Direct commission",
-      wooOrderId: commission.wooOrderId,
-      orderRevenue: commission.orderRevenue,
-      sourceCommissionId: commission.id,
-      slicewpCommissionId: commission.slicewpId,
-      payoutWeek: getNextPayoutWeek(PayoutSchedule.WEEKLY_MONDAY),
-    },
-  });
 }
 
 export type LedgerSummary = {
