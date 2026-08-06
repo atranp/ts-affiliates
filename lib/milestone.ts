@@ -79,11 +79,14 @@ export async function promoteMilestoneOverrides(
   return result.count;
 }
 
+/**
+ * Only says anything while a milestone is still pending, since that explains
+ * why the commission isn't payable yet. Once it's met the note is noise.
+ */
 export function milestoneDescriptionSuffix(
   progress: MilestoneProgress | null
 ): string {
-  if (!progress) return "";
-  if (progress.met) return " · Milestone reached";
+  if (!progress || progress.met) return "";
   return ` · Milestone ${formatMoney(progress.current)} / ${formatMoney(progress.threshold)}`;
 }
 
