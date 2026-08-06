@@ -65,6 +65,9 @@ export const AFFILIATE_COPY = {
     teamsTitle: "Your teams",
     teamsAction: "View team",
     teamEarningsTitle: "Team earnings",
+    payoutsTitle: "Recent payouts",
+    payoutsDescription: "Transfers recorded for your account",
+    payoutsAction: "View all",
     salesLabel: "Sales",
   },
   team: {

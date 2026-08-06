@@ -12,15 +12,25 @@ import {
 } from "@/lib/payouts/status";
 import type { PayoutBatchListItem } from "@/lib/payouts/types";
 import { formatAppDate } from "@/lib/timezone";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
+
+type PayoutsListProps = {
+  detailHrefPrefix: string;
+  affiliateView?: boolean;
+  /** Show only the first N batches — for dashboard preview. */
+  limit?: number;
+  /** Drop outer chrome; meant to sit inside a Card on the home tab. */
+  embedded?: boolean;
+  onViewAll?: () => void;
+};
 
 export function PayoutsList({
   detailHrefPrefix,
   affiliateView = false,
-}: {
-  detailHrefPrefix: string;
-  affiliateView?: boolean;
-}) {
+  limit,
+  embedded = false,
+  onViewAll,
+}: PayoutsListProps) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["payouts"],
     queryFn: () => apiFetch<{ batches: PayoutBatchListItem[] }>("/api/payouts"),
@@ -28,7 +38,11 @@ export function PayoutsList({
   });
 
   if (isLoading) {
-    return <p className="text-sm text-muted-foreground">Loading payouts...</p>;
+    return (
+      <p className="text-sm text-muted-foreground">
+        {embedded ? "Loading payouts…" : "Loading payouts..."}
+      </p>
+    );
   }
 
   if (error) {
@@ -39,7 +53,19 @@ export function PayoutsList({
     );
   }
 
-  if (!data?.batches.length) {
+  const batches = data?.batches ?? [];
+  const visible = limit ? batches.slice(0, limit) : batches;
+  const hasMore = limit != null && batches.length > limit;
+
+  if (batches.length === 0) {
+    if (embedded) {
+      return (
+        <p className="text-sm text-muted-foreground">
+          {AFFILIATE_COPY.payouts.empty}
+        </p>
+      );
+    }
+
     return (
       <div className="rounded-xl border border-border bg-card px-6 py-12 text-center shadow-xs">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
@@ -55,6 +81,36 @@ export function PayoutsList({
     );
   }
 
+  const list = (
+    <div className={embedded ? "divide-y divide-border" : "divide-y divide-border"}>
+      {visible.map((batch) => (
+        <PayoutBatchRow
+          key={batch.id}
+          batch={batch}
+          href={`${detailHrefPrefix}/${batch.id}`}
+          compact={embedded}
+        />
+      ))}
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <div className="space-y-3">
+        {list}
+        {hasMore && onViewAll && (
+          <button
+            type="button"
+            onClick={onViewAll}
+            className="text-xs font-medium text-primary hover:underline"
+          >
+            +{batches.length - limit!} more — {AFFILIATE_COPY.home.payoutsAction}
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
       <div className="flex items-center justify-between border-b border-border bg-muted px-4 py-3">
@@ -63,67 +119,97 @@ export function PayoutsList({
         </span>
       </div>
 
-      <div className="divide-y divide-border">
-        {data.batches.map((batch) => {
-          const paid = isPayoutPaid(batch.status);
-          return (
-            <Link
-              key={batch.id}
-              href={`${detailHrefPrefix}/${batch.id}`}
-              className="flex items-center justify-between gap-4 p-5 transition-colors hover:bg-muted/50"
-            >
-              <div className="flex min-w-0 items-center gap-4">
-                <div
-                  className={`rounded-lg border p-3 ${
-                    paid
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                      : "border-amber-200 bg-amber-50 text-amber-700"
-                  }`}
-                >
-                  <CreditCard className="h-5 w-5" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="truncate text-sm font-bold text-brand-dark">
-                      {batch.label}
-                    </p>
-                    <span
-                      className={`rounded border px-2 py-0.5 text-[10px] font-bold ${payoutStatusClasses(batch.status)}`}
-                    >
-                      {payoutStatusLabel(batch.status)}
-                    </span>
-                  </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3.5 w-3.5" />
-                      {paid ? "Paid " : "Created "}
-                      {formatAppDate(batch.processedAt ?? batch.createdAt)}
-                    </span>
-                    <span>•</span>
-                    <span>
-                      {batch.entryCount}{" "}
-                      {batch.entryCount === 1 ? "commission" : "commissions"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-4">
-                <div className="text-right">
-                  <span className="block text-[10px] font-semibold uppercase text-muted-foreground">
-                    Amount
-                  </span>
-                  <span
-                    className={`text-lg font-bold ${paid ? "text-emerald-700" : "text-amber-700"}`}
-                  >
-                    {formatCurrency(batch.totalAmount)}
-                  </span>
-                </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </Link>
-          );
-        })}
-      </div>
+      {list}
+
+      {hasMore && onViewAll && (
+        <div className="border-t border-border bg-muted/30 px-4 py-3 text-center">
+          <button
+            type="button"
+            onClick={onViewAll}
+            className="text-xs font-semibold text-primary hover:underline"
+          >
+            View all payouts
+          </button>
+        </div>
+      )}
     </div>
+  );
+}
+
+function PayoutBatchRow({
+  batch,
+  href,
+  compact,
+}: {
+  batch: PayoutBatchListItem;
+  href: string;
+  compact?: boolean;
+}) {
+  const paid = isPayoutPaid(batch.status);
+
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "flex items-center justify-between gap-4 transition-colors hover:bg-muted/50",
+        compact ? "py-3 first:pt-0 last:pb-0" : "p-5"
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <div
+          className={cn(
+            "shrink-0 rounded-lg border p-2.5",
+            paid
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border-amber-200 bg-amber-50 text-amber-700"
+          )}
+        >
+          <CreditCard className={compact ? "h-4 w-4" : "h-5 w-5"} />
+        </div>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="truncate text-sm font-semibold text-brand-dark">
+              {batch.label}
+            </p>
+            <span
+              className={`rounded border px-2 py-0.5 text-[10px] font-bold ${payoutStatusClasses(batch.status)}`}
+            >
+              {payoutStatusLabel(batch.status)}
+            </span>
+          </div>
+          <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3.5 w-3.5" />
+              {paid ? "Paid " : "Created "}
+              {formatAppDate(batch.processedAt ?? batch.createdAt)}
+            </span>
+            <span>·</span>
+            <span>
+              {batch.entryCount}{" "}
+              {batch.entryCount === 1 ? "commission" : "commissions"}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-3">
+        <div className="text-right">
+          {!compact && (
+            <span className="block text-[10px] font-semibold uppercase text-muted-foreground">
+              Amount
+            </span>
+          )}
+          <span
+            className={cn(
+              "font-bold tabular-nums",
+              compact ? "text-sm" : "text-lg",
+              paid ? "text-emerald-700" : "text-amber-700"
+            )}
+          >
+            {formatCurrency(batch.totalAmount)}
+          </span>
+        </div>
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      </div>
+    </Link>
   );
 }

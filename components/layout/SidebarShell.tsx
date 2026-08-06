@@ -212,12 +212,12 @@ export function SidebarShell({
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-[var(--impersonation-offset,0px)]">
       <ImpersonationBanner />
 
       <div className="flex h-[calc(100dvh-var(--impersonation-offset,0px))] min-h-0">
-        {/* Desktop sidebar */}
-        <aside className="hidden w-60 shrink-0 border-r border-border bg-card lg:fixed lg:inset-y-0 lg:z-30 lg:flex lg:flex-col">
+        {/* Desktop sidebar — sits below the impersonation banner when active */}
+        <aside className="hidden w-60 shrink-0 border-r border-border bg-card lg:fixed lg:bottom-0 lg:left-0 lg:top-[var(--impersonation-offset,0px)] lg:z-30 lg:flex lg:flex-col">
           <SidebarPanel {...sidebarProps} />
         </aside>
 
@@ -255,14 +255,14 @@ export function SidebarShell({
 
       {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-50 lg:hidden pt-[var(--impersonation-offset,0px)]">
           <button
             type="button"
-            className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
+            className="absolute inset-x-0 bottom-0 top-[var(--impersonation-offset,0px)] bg-foreground/20 backdrop-blur-sm"
             aria-label="Close navigation menu"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="absolute inset-y-0 left-0 flex w-[min(100%,16rem)] flex-col border-r border-border bg-card shadow-xl">
+          <aside className="absolute bottom-0 left-0 top-[var(--impersonation-offset,0px)] flex w-[min(100%,16rem)] flex-col border-r border-border bg-card shadow-xl">
             <div className="flex justify-end border-b border-border p-2">
               <button
                 type="button"

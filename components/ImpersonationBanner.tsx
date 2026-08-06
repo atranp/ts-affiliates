@@ -1,15 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, X } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { adminMutate } from "@/hooks/use-admin-query";
 
+const IMPERSONATION_OFFSET_VAR = "--impersonation-offset";
+
+function setImpersonationOffset(height: number) {
+  document.documentElement.style.setProperty(
+    IMPERSONATION_OFFSET_VAR,
+    height > 0 ? `${height}px` : "0px"
+  );
+}
+
 export function ImpersonationBanner() {
   const { user, refresh } = useAuth();
   const router = useRouter();
+  const bannerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!user?.impersonating) {
+      setImpersonationOffset(0);
+      return;
+    }
+
+    const el = bannerRef.current;
+    if (!el) return;
+
+    function syncOffset() {
+      setImpersonationOffset(el!.offsetHeight);
+    }
+
+    syncOffset();
+    const observer = new ResizeObserver(syncOffset);
+    observer.observe(el);
+
+    return () => {
+      observer.disconnect();
+      setImpersonationOffset(0);
+    };
+  }, [user?.impersonating]);
 
   if (!user?.impersonating) return null;
 
@@ -30,7 +63,10 @@ export function ImpersonationBanner() {
   const displayName = user.affiliateName ?? user.name;
 
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-amber-600/30 bg-amber-500 px-4 py-2 text-xs font-semibold text-amber-950">
+    <div
+      ref={bannerRef}
+      className="fixed inset-x-0 top-0 z-[60] flex items-center justify-between gap-3 border-b border-amber-600/30 bg-amber-500 px-4 py-2 text-xs font-semibold text-amber-950"
+    >
       <div className="flex min-w-0 items-center gap-2">
         <AlertTriangle className="h-4 w-4 shrink-0" />
         <span className="truncate">
