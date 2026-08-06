@@ -274,8 +274,8 @@ export function AdminLedgerTable({
               <TableHead>Type</TableHead>
               <TableHead>Details</TableHead>
               <TableHead>Order</TableHead>
-              <TableHead>Sale</TableHead>
-              <TableHead>Amount</TableHead>
+              <TableHead className="text-right">Sale</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
               <TableHead>Payout</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-10" />
@@ -293,7 +293,7 @@ export function AdminLedgerTable({
                     className="h-4 w-4 rounded border-border"
                   />
                 </TableCell>
-                <TableCell>
+                <TableCell className="whitespace-nowrap">
                   {new Date(entry.occurredAt).toLocaleDateString("en-US")}
                 </TableCell>
                 <TableCell>
@@ -302,18 +302,18 @@ export function AdminLedgerTable({
                 <TableCell className="max-w-xs text-sm text-muted-foreground">
                   {entryDetails(entry)}
                 </TableCell>
-                <TableCell>
+                <TableCell className="whitespace-nowrap tabular-nums">
                   {entry.wooOrderId ? `#${entry.wooOrderId}` : "—"}
                 </TableCell>
-                <TableCell>
+                <TableCell className="whitespace-nowrap text-right tabular-nums">
                   {entry.orderRevenue
                     ? formatCurrency(entry.orderRevenue)
                     : "—"}
                 </TableCell>
-                <TableCell className="font-medium text-success">
+                <TableCell className="whitespace-nowrap text-right font-medium tabular-nums text-success">
                   {formatCurrency(entry.amount)}
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
+                <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                   {entryPayoutLabel(entry)}
                 </TableCell>
                 <TableCell>
@@ -347,11 +347,11 @@ export function AdminLedgerTable({
         </Table>
       </div>
 
-      <div className="space-y-3 md:hidden">
+      <div className="space-y-2 md:hidden">
         {entries.map((entry) => (
           <div
             key={entry.id}
-            className="rounded-lg border border-border p-3 space-y-3"
+            className="space-y-3 rounded-lg border border-border bg-card p-3"
           >
             <div className="flex items-start gap-3">
               <input
@@ -370,7 +370,7 @@ export function AdminLedgerTable({
                     <EntryTypeBadge type={entry.type} />
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="font-medium text-success">
+                    <span className="font-semibold tabular-nums text-success">
                       {formatCurrency(entry.amount)}
                     </span>
                     <Button

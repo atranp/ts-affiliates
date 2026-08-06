@@ -4,6 +4,13 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
+  DataCard,
+  DataCardHeader,
+  DataCardList,
+  DataCardMeta,
+  ResponsiveTable,
+} from "@/components/ui/data-cards";
+import {
   Table,
   TableBody,
   TableCell,
@@ -28,6 +35,16 @@ function formatRate(amount: number, revenue: number) {
   if (!revenue) return "—";
   const rate = (amount / revenue) * 100;
   return `${rate.toFixed(1).replace(/\.0$/, "")}%`;
+}
+
+function entryDetails(entry: PayoutBatchDetail["entries"][number]) {
+  return (
+    entry.description ??
+    entry.sourceAffiliate?.displayName ??
+    entry.sourceAffiliate?.email ??
+    entry.dealRule?.name ??
+    "—"
+  );
 }
 
 type PayoutBatchDetailViewProps = {
@@ -149,26 +166,81 @@ export function PayoutBatchDetailView({
         <h2 className="text-sm font-medium">
           Line items ({batch.totals.entryCount})
         </h2>
-        <div className="rounded-lg border border-border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Details</TableHead>
-                <TableHead>Order</TableHead>
-                <TableHead className="text-right">Sale amount</TableHead>
-                <TableHead className="text-right">Rate</TableHead>
-                <TableHead className="text-right">You earned</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        <ResponsiveTable
+          table={
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Details</TableHead>
+                    <TableHead>Order</TableHead>
+                    <TableHead className="text-right">Sale amount</TableHead>
+                    <TableHead className="text-right">Rate</TableHead>
+                    <TableHead className="text-right">You earned</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {batch.entries.map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                        {formatDate(entry.occurredAt)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            entry.type === "OVERRIDE" ? "unpaid" : "secondary"
+                          }
+                          className="text-xs"
+                        >
+                          {entry.type === "OVERRIDE" ? "Bonus" : "Direct"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {entryDetails(entry)}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-sm tabular-nums">
+                        {entry.wooOrderId ? `#${entry.wooOrderId}` : "—"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">
+                        {entry.orderRevenue == null
+                          ? "—"
+                          : formatCurrency(entry.orderRevenue)}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-right text-sm tabular-nums text-muted-foreground">
+                        {entry.orderRevenue
+                          ? formatRate(entry.amount, entry.orderRevenue)
+                          : "—"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-right font-medium tabular-nums text-success">
+                        {formatCurrency(entry.amount)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          }
+          cards={
+            <DataCardList>
               {batch.entries.map((entry) => (
-                <TableRow key={entry.id}>
-                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                    {formatDate(entry.occurredAt)}
-                  </TableCell>
-                  <TableCell>
+                <DataCard key={entry.id}>
+                  <DataCardHeader
+                    title={entryDetails(entry)}
+                    subtitle={formatDate(entry.occurredAt)}
+                    value={
+                      <span className="text-success">
+                        {formatCurrency(entry.amount)}
+                      </span>
+                    }
+                    valueHint={
+                      entry.orderRevenue
+                        ? `${formatRate(entry.amount, entry.orderRevenue)} of ${formatCurrency(entry.orderRevenue)}`
+                        : undefined
+                    }
+                  />
+                  <DataCardMeta>
                     <Badge
                       variant={
                         entry.type === "OVERRIDE" ? "unpaid" : "secondary"
@@ -177,35 +249,13 @@ export function PayoutBatchDetailView({
                     >
                       {entry.type === "OVERRIDE" ? "Bonus" : "Direct"}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {entry.description ??
-                      entry.sourceAffiliate?.displayName ??
-                      entry.sourceAffiliate?.email ??
-                      entry.dealRule?.name ??
-                      "—"}
-                  </TableCell>
-                  <TableCell className="text-sm whitespace-nowrap">
-                    {entry.wooOrderId ? `#${entry.wooOrderId}` : "—"}
-                  </TableCell>
-                  <TableCell className="text-right text-sm whitespace-nowrap">
-                    {entry.orderRevenue == null
-                      ? "—"
-                      : formatCurrency(entry.orderRevenue)}
-                  </TableCell>
-                  <TableCell className="text-right text-sm text-muted-foreground whitespace-nowrap">
-                    {entry.orderRevenue
-                      ? formatRate(entry.amount, entry.orderRevenue)
-                      : "—"}
-                  </TableCell>
-                  <TableCell className="text-right font-medium text-success whitespace-nowrap">
-                    {formatCurrency(entry.amount)}
-                  </TableCell>
-                </TableRow>
+                    {entry.wooOrderId && <span>Order #{entry.wooOrderId}</span>}
+                  </DataCardMeta>
+                </DataCard>
               ))}
-            </TableBody>
-          </Table>
-        </div>
+            </DataCardList>
+          }
+        />
         <p className="text-xs text-muted-foreground">
           Rate is your earnings divided by the sale amount, so you can check
           every line against your agreement.
@@ -215,36 +265,54 @@ export function PayoutBatchDetailView({
       {adminView && batch.items.length > 1 && (
         <section className="space-y-3">
           <h2 className="text-sm font-medium">Affiliates in batch</h2>
-          <div className="rounded-lg border border-border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Affiliate</TableHead>
-                  <TableHead className="text-right">Direct</TableHead>
-                  <TableHead className="text-right">Bonuses</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+          <ResponsiveTable
+            table={
+              <div className="overflow-hidden rounded-lg border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Affiliate</TableHead>
+                      <TableHead className="text-right">Direct</TableHead>
+                      <TableHead className="text-right">Bonuses</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {batch.items.map((item) => (
+                      <TableRow key={item.affiliateId}>
+                        <TableCell>{item.displayName ?? item.email}</TableCell>
+                        <TableCell className="whitespace-nowrap text-right tabular-nums">
+                          {formatCurrency(item.directTotal)}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-right tabular-nums text-primary">
+                          {formatCurrency(item.overrideTotal)}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-right font-medium tabular-nums">
+                          {formatCurrency(item.totalAmount)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            }
+            cards={
+              <DataCardList>
                 {batch.items.map((item) => (
-                  <TableRow key={item.affiliateId}>
-                    <TableCell>
-                      {item.displayName ?? item.email}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(item.directTotal)}
-                    </TableCell>
-                    <TableCell className="text-right text-primary">
-                      {formatCurrency(item.overrideTotal)}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(item.totalAmount)}
-                    </TableCell>
-                  </TableRow>
+                  <DataCard key={item.affiliateId}>
+                    <DataCardHeader
+                      title={item.displayName ?? item.email}
+                      value={formatCurrency(item.totalAmount)}
+                    />
+                    <DataCardMeta>
+                      <span>Direct {formatCurrency(item.directTotal)}</span>
+                      <span>Bonuses {formatCurrency(item.overrideTotal)}</span>
+                    </DataCardMeta>
+                  </DataCard>
                 ))}
-              </TableBody>
-            </Table>
-          </div>
+              </DataCardList>
+            }
+          />
         </section>
       )}
     </div>

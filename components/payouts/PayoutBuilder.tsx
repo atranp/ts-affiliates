@@ -15,6 +15,13 @@ import { PayoutDateRangeFields } from "@/components/payouts/PayoutDateRangeField
 import { RecordHistoricalPayoutDialog } from "@/components/payouts/RecordHistoricalPayoutDialog";
 import { Button } from "@/components/ui/button";
 import {
+  DataCard,
+  DataCardHeader,
+  DataCardList,
+  DataCardMeta,
+  ResponsiveTable,
+} from "@/components/ui/data-cards";
+import {
   Table,
   TableBody,
   TableCell,
@@ -629,55 +636,89 @@ function PreviewPanel({
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Sale date</TableHead>
-              <TableHead>Recruit</TableHead>
-              <TableHead>Order</TableHead>
-              <TableHead className="text-right">Sale amount</TableHead>
-              <TableHead className="text-right">Rate</TableHead>
-              <TableHead className="text-right">Earned</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+      <ResponsiveTable
+        table={
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Sale date</TableHead>
+                  <TableHead>Recruit</TableHead>
+                  <TableHead>Order</TableHead>
+                  <TableHead className="text-right">Sale amount</TableHead>
+                  <TableHead className="text-right">Rate</TableHead>
+                  <TableHead className="text-right">Earned</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {preview.entries.map((entry) => (
+                  <TableRow key={entry.id}>
+                    <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                      {formatSaleDate(entry.occurredAt)}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {entry.sourceAffiliateName ?? "Direct sale"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-sm tabular-nums">
+                      {entry.wooOrderId ? `#${entry.wooOrderId}` : "—"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">
+                      {entry.orderRevenue == null
+                        ? "—"
+                        : formatCurrency(entry.orderRevenue)}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-right text-sm tabular-nums text-muted-foreground">
+                      {entryRate(entry)}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-right text-sm font-medium tabular-nums">
+                      {formatCurrency(entry.amount)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        }
+        cards={
+          <DataCardList>
             {preview.entries.map((entry) => (
-              <TableRow key={entry.id}>
-                <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                  {new Date(entry.occurredAt).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                    timeZone: "UTC",
-                  })}
-                </TableCell>
-                <TableCell className="text-sm">
-                  {entry.sourceAffiliateName ?? "Direct sale"}
-                </TableCell>
-                <TableCell className="whitespace-nowrap text-sm">
-                  {entry.wooOrderId ? `#${entry.wooOrderId}` : "—"}
-                </TableCell>
-                <TableCell className="whitespace-nowrap text-right text-sm">
-                  {entry.orderRevenue == null
-                    ? "—"
-                    : formatCurrency(entry.orderRevenue)}
-                </TableCell>
-                <TableCell className="whitespace-nowrap text-right text-sm text-muted-foreground">
-                  {entry.orderRevenue
-                    ? `${((entry.amount / entry.orderRevenue) * 100).toFixed(1).replace(/\.0$/, "")}%`
-                    : "—"}
-                </TableCell>
-                <TableCell className="whitespace-nowrap text-right text-sm font-medium">
-                  {formatCurrency(entry.amount)}
-                </TableCell>
-              </TableRow>
+              <DataCard key={entry.id}>
+                <DataCardHeader
+                  title={entry.sourceAffiliateName ?? "Direct sale"}
+                  subtitle={formatSaleDate(entry.occurredAt)}
+                  value={formatCurrency(entry.amount)}
+                  valueHint={
+                    entry.orderRevenue == null
+                      ? undefined
+                      : `${entryRate(entry)} of ${formatCurrency(entry.orderRevenue)}`
+                  }
+                />
+                {entry.wooOrderId && (
+                  <DataCardMeta>
+                    <span>Order #{entry.wooOrderId}</span>
+                  </DataCardMeta>
+                )}
+              </DataCard>
             ))}
-          </TableBody>
-        </Table>
-      </div>
+          </DataCardList>
+        }
+      />
     </div>
   );
+}
+
+function formatSaleDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+function entryRate(entry: { amount: number; orderRevenue: number | null }) {
+  if (!entry.orderRevenue) return "—";
+  return `${((entry.amount / entry.orderRevenue) * 100).toFixed(1).replace(/\.0$/, "")}%`;
 }
 
 /** Opens the page on "who needs paying?" rather than an empty search box. */

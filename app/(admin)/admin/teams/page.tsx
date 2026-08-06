@@ -25,6 +25,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  DataCard,
+  DataCardHeader,
+  DataCardList,
+  DataCardMeta,
+  ResponsiveTable,
+} from "@/components/ui/data-cards";
+import {
   Table,
   TableBody,
   TableCell,
@@ -48,6 +55,48 @@ type AdminTeamRow = {
   };
   ruleCount: number;
 };
+
+/** Shared by the desktop row and the mobile card so they can't drift apart. */
+function TeamActions({
+  team,
+  onDelete,
+}: {
+  team: AdminTeamRow;
+  onDelete: () => void;
+}) {
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="icon"
+        asChild
+        title="Create a payout for this team"
+      >
+        <Link
+          href={`/admin/payouts?teamId=${team.id}&sponsorAffiliateId=${team.sponsorAffiliateId}`}
+        >
+          <DollarSign className="h-4 w-4" />
+        </Link>
+      </Button>
+      <Button variant="ghost" size="icon" asChild title="Add deal rules">
+        <Link
+          href={`/admin/deal-rules?sponsorId=${team.sponsorAffiliateId}&teamId=${team.id}`}
+        >
+          <GitBranch className="h-4 w-4" />
+        </Link>
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        aria-label={`Delete ${team.name}`}
+        onClick={onDelete}
+      >
+        <Trash2 className="h-4 w-4 text-destructive" />
+      </Button>
+    </>
+  );
+}
 
 export default function AdminTeamsPage() {
   return (
@@ -193,92 +242,111 @@ function AdminTeamsPageContent() {
             />
           )}
           {!isLoading && data && data.teams.length > 0 && (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Team</TableHead>
-                  <TableHead>Sponsor</TableHead>
-                  <TableHead>Rules</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-[140px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.teams.map((team) => (
-                  <TableRow key={team.id}>
-                    <TableCell>
-                      <p className="font-medium">{team.name}</p>
+            <ResponsiveTable
+              table={
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Team</TableHead>
+                      <TableHead>Sponsor</TableHead>
+                      <TableHead className="text-right">Rules</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-[132px] text-right">
+                        Actions
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {data.teams.map((team) => (
+                      <TableRow key={team.id}>
+                        <TableCell>
+                          <p className="font-medium">{team.name}</p>
+                          {team.description && (
+                            <p className="text-xs text-muted-foreground">
+                              {team.description}
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Link
+                            href={`/admin/affiliates/${team.sponsorAffiliateId}`}
+                            className="text-primary hover:underline"
+                          >
+                            {team.sponsorAffiliate.displayName ??
+                              team.sponsorAffiliate.email}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-right tabular-nums">
+                          {team.ruleCount === 0 ? (
+                            <Link
+                              href={`/admin/deal-rules?teamId=${team.id}&sponsorId=${team.sponsorAffiliateId}`}
+                              className="text-sm text-primary hover:underline"
+                            >
+                              Add rules →
+                            </Link>
+                          ) : (
+                            team.ruleCount
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={team.active ? "paid" : "secondary"}>
+                            {team.active ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-0.5">
+                            <TeamActions
+                              team={team}
+                              onDelete={() => setDeletingTeam(team)}
+                            />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              }
+              cards={
+                <DataCardList>
+                  {data.teams.map((team) => (
+                    <DataCard key={team.id}>
+                      <DataCardHeader
+                        title={team.name}
+                        subtitle={
+                          team.sponsorAffiliate.displayName ??
+                          team.sponsorAffiliate.email
+                        }
+                        value={
+                          <Badge
+                            variant={team.active ? "paid" : "secondary"}
+                          >
+                            {team.active ? "Active" : "Inactive"}
+                          </Badge>
+                        }
+                      />
                       {team.description && (
-                        <p className="text-xs text-muted-foreground">
+                        <p className="mt-1 text-xs text-muted-foreground">
                           {team.description}
                         </p>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      <Link
-                        href={`/admin/affiliates/${team.sponsorAffiliateId}`}
-                        className="text-primary hover:underline"
-                      >
-                        {team.sponsorAffiliate.displayName ??
-                          team.sponsorAffiliate.email}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      {team.ruleCount === 0 ? (
-                        <Link
-                          href={`/admin/deal-rules?teamId=${team.id}&sponsorId=${team.sponsorAffiliateId}`}
-                          className="text-primary text-sm hover:underline"
-                        >
-                          Add rules →
-                        </Link>
-                      ) : (
-                        team.ruleCount
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={team.active ? "paid" : "secondary"}>
-                        {team.active ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          asChild
-                          title="Run payout for this team"
-                        >
-                          <Link
-                            href={`/admin/payouts?teamId=${team.id}&sponsorAffiliateId=${team.sponsorAffiliateId}`}
-                          >
-                            <DollarSign className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          asChild
-                          title="Add deal rules"
-                        >
-                          <Link href={`/admin/deal-rules?sponsorId=${team.sponsorAffiliateId}&teamId=${team.id}`}>
-                            <GitBranch className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Delete ${team.name}`}
-                          onClick={() => setDeletingTeam(team)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      <DataCardMeta className="justify-between">
+                        <span>
+                          {team.ruleCount === 0
+                            ? "No deal rules yet"
+                            : `${team.ruleCount} ${team.ruleCount === 1 ? "rule" : "rules"}`}
+                        </span>
+                        <span className="flex items-center gap-0.5">
+                          <TeamActions
+                            team={team}
+                            onDelete={() => setDeletingTeam(team)}
+                          />
+                        </span>
+                      </DataCardMeta>
+                    </DataCard>
+                  ))}
+                </DataCardList>
+              }
+            />
           )}
         </CardContent>
       </Card>

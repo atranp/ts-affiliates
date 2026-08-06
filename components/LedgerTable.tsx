@@ -12,6 +12,13 @@ import {
 import { formatCurrency, cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
+  DataCard,
+  DataCardHeader,
+  DataCardList,
+  DataCardMeta,
+  ResponsiveTable,
+} from "@/components/ui/data-cards";
+import {
   Table,
   TableBody,
   TableCell,
@@ -87,7 +94,57 @@ export function LedgerTable({
 
   const cols = affiliateView ? AFFILIATE_COPY.commissions.columns : null;
 
-  return (
+  const cards = (
+    <DataCardList>
+      {entries.map((entry) => {
+        const status = effectiveLedgerStatus(entry.status, entry.payoutBatch);
+        const details =
+          entry.description ??
+          entry.sourceAffiliate?.displayName ??
+          entry.sourceAffiliate?.email ??
+          "—";
+        return (
+          <DataCard key={entry.id}>
+            <DataCardHeader
+              title={details}
+              subtitle={new Date(entry.occurredAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+              value={
+                <span className={affiliateView ? amountClass(status) : undefined}>
+                  {formatCurrency(entry.amount)}
+                </span>
+              }
+              valueHint={
+                entry.orderRevenue
+                  ? `of ${formatCurrency(entry.orderRevenue)}`
+                  : undefined
+              }
+            />
+            <DataCardMeta>
+              <Badge variant={statusVariant(status)}>
+                {formatCommissionStatus(status)}
+              </Badge>
+              <span>{formatCommissionType(entry.type)}</span>
+              {!affiliateView && entry.wooOrderId && (
+                <span>Order #{entry.wooOrderId}</span>
+              )}
+              {showDetails && entry.payoutWeek && (
+                <span>
+                  {cols?.payout ?? "Payout week"}:{" "}
+                  {formatPayoutWeek(entry.payoutWeek)}
+                </span>
+              )}
+            </DataCardMeta>
+          </DataCard>
+        );
+      })}
+    </DataCardList>
+  );
+
+  const table = (
     <div className="overflow-x-auto">
       <Table>
         <TableHeader>
@@ -100,7 +157,7 @@ export function LedgerTable({
             {!showDetails && <TableHead>Source</TableHead>}
             {/* The affiliate view folds the order number into Details. */}
             {!affiliateView && <TableHead>Order</TableHead>}
-            <TableHead>{cols?.sale ?? "Sale"}</TableHead>
+            <TableHead className="text-right">{cols?.sale ?? "Sale"}</TableHead>
             <TableHead className="text-right">
               {cols?.amount ?? "Amount"}
             </TableHead>
@@ -175,14 +232,14 @@ export function LedgerTable({
                   {entry.wooOrderId ? `#${entry.wooOrderId}` : "—"}
                 </TableCell>
               )}
-              <TableCell className="font-medium text-muted-foreground">
+              <TableCell className="whitespace-nowrap text-right font-medium tabular-nums text-muted-foreground">
                 {entry.orderRevenue
                   ? formatCurrency(entry.orderRevenue)
                   : "—"}
               </TableCell>
               <TableCell
                 className={cn(
-                  "text-right text-sm font-bold tabular-nums",
+                  "whitespace-nowrap text-right text-sm font-bold tabular-nums",
                   affiliateView ? amountClass(status) : "text-emerald-700"
                 )}
               >
@@ -205,4 +262,6 @@ export function LedgerTable({
       </Table>
     </div>
   );
+
+  return <ResponsiveTable table={table} cards={cards} />;
 }

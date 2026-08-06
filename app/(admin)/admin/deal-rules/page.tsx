@@ -25,6 +25,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  DataCard,
+  DataCardHeader,
+  DataCardList,
+  DataCardMeta,
+  ResponsiveTable,
+} from "@/components/ui/data-cards";
+import {
   Table,
   TableBody,
   TableCell,
@@ -74,6 +81,53 @@ function affiliateFromRule(
     slicewpId: 0,
     status: "ACTIVE",
   };
+}
+
+/** The team name is already folded in here, so it needs no column of its own. */
+function appliesTo(rule: DealRuleListItem) {
+  if (rule.sourceAffiliate) {
+    return rule.sourceAffiliate.displayName ?? rule.sourceAffiliate.email;
+  }
+  return rule.team ? `Entire team · ${rule.team.name}` : "Entire team";
+}
+
+function milestoneLabel(rule: DealRuleListItem) {
+  if (!rule.milestoneRevenueThreshold) return "—";
+  return `$${Number(rule.milestoneRevenueThreshold).toLocaleString("en-US")}`;
+}
+
+/** Shared by the desktop row and the mobile card so they can't drift apart. */
+function RuleActions({
+  rule,
+  onEdit,
+  onDelete,
+}: {
+  rule: DealRuleListItem;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        aria-label={`Edit ${rule.name}`}
+        onClick={onEdit}
+      >
+        <Pencil className="h-4 w-4" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        aria-label={`Delete ${rule.name}`}
+        onClick={onDelete}
+      >
+        <Trash2 className="h-4 w-4 text-destructive" />
+      </Button>
+    </>
+  );
 }
 
 export default function AdminDealRulesPage() {
@@ -398,74 +452,95 @@ function AdminDealRulesPageContent() {
             <EmptyState title="No deal rules yet" />
           )}
           {!rulesLoading && rules && rules.length > 0 && (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Sponsor</TableHead>
-                  <TableHead>Applies to</TableHead>
-                  <TableHead>Team</TableHead>
-                  <TableHead>Rate</TableHead>
-                  <TableHead>Milestone</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rules.map((rule) => (
-                  <TableRow key={rule.id}>
-                    <TableCell className="font-medium">{rule.name}</TableCell>
-                    <TableCell>
-                      {rule.sponsorAffiliate.displayName ??
-                        rule.sponsorAffiliate.email}
-                    </TableCell>
-                    <TableCell>
-                      {rule.sourceAffiliate?.displayName ??
-                        rule.sourceAffiliate?.email ??
-                        (rule.team ? `Entire team · ${rule.team.name}` : "Entire team")}
-                    </TableCell>
-                    <TableCell>
-                      {rule.team?.name ?? (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>{rule.ratePercent}%</TableCell>
-                    <TableCell>
-                      {rule.milestoneRevenueThreshold
-                        ? `$${Number(rule.milestoneRevenueThreshold).toLocaleString()} revenue`
-                        : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={rule.active ? "paid" : "secondary"}>
-                        {rule.active ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Edit ${rule.name}`}
-                          onClick={() => openEdit(rule)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Delete ${rule.name}`}
-                          onClick={() => setDeletingRule(rule)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <ResponsiveTable
+              table={
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Sponsor</TableHead>
+                      <TableHead>Applies to</TableHead>
+                      <TableHead className="text-right">Rate</TableHead>
+                      <TableHead className="hidden text-right lg:table-cell">
+                        Milestone
+                      </TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-[92px] text-right">
+                        Actions
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rules.map((rule) => (
+                      <TableRow key={rule.id}>
+                        <TableCell className="font-medium">
+                          {rule.name}
+                        </TableCell>
+                        <TableCell>
+                          {rule.sponsorAffiliate.displayName ??
+                            rule.sponsorAffiliate.email}
+                        </TableCell>
+                        <TableCell>{appliesTo(rule)}</TableCell>
+                        <TableCell className="whitespace-nowrap text-right tabular-nums">
+                          {rule.ratePercent}%
+                        </TableCell>
+                        <TableCell className="hidden whitespace-nowrap text-right tabular-nums text-muted-foreground lg:table-cell">
+                          {milestoneLabel(rule)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={rule.active ? "paid" : "secondary"}>
+                            {rule.active ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-0.5">
+                            <RuleActions
+                              rule={rule}
+                              onEdit={() => openEdit(rule)}
+                              onDelete={() => setDeletingRule(rule)}
+                            />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              }
+              cards={
+                <DataCardList>
+                  {rules.map((rule) => (
+                    <DataCard key={rule.id}>
+                      <DataCardHeader
+                        title={rule.name}
+                        subtitle={appliesTo(rule)}
+                        value={`${rule.ratePercent}%`}
+                      />
+                      <DataCardMeta className="justify-between">
+                        <span className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                          <Badge variant={rule.active ? "paid" : "secondary"}>
+                            {rule.active ? "Active" : "Inactive"}
+                          </Badge>
+                          <span>
+                            {rule.sponsorAffiliate.displayName ??
+                              rule.sponsorAffiliate.email}
+                          </span>
+                          {rule.milestoneRevenueThreshold && (
+                            <span>Milestone {milestoneLabel(rule)}</span>
+                          )}
+                        </span>
+                        <span className="flex items-center gap-0.5">
+                          <RuleActions
+                            rule={rule}
+                            onEdit={() => openEdit(rule)}
+                            onDelete={() => setDeletingRule(rule)}
+                          />
+                        </span>
+                      </DataCardMeta>
+                    </DataCard>
+                  ))}
+                </DataCardList>
+              }
+            />
           )}
         </CardContent>
       </Card>

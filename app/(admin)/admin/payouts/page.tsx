@@ -13,6 +13,13 @@ import { PayoutBuilder } from "@/components/payouts/PayoutBuilder";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  DataCard,
+  DataCardHeader,
+  DataCardList,
+  DataCardMeta,
+  ResponsiveTable,
+} from "@/components/ui/data-cards";
+import {
   Card,
   CardContent,
   CardHeader,
@@ -42,6 +49,19 @@ type PayoutBatchListItem = {
   affiliateCount: number;
   totalAmount: number;
 };
+
+function batchCounts(batch: PayoutBatchListItem) {
+  const sales = `${batch.entryCount.toLocaleString("en-US")} sales`;
+  const people = `${batch.affiliateCount} ${batch.affiliateCount === 1 ? "affiliate" : "affiliates"}`;
+  return `${sales} · ${people}`;
+}
+
+/** Mobile has no Team column, so it gets folded into the subtitle instead. */
+function batchSummary(batch: PayoutBatchListItem) {
+  return batch.teamName
+    ? `${batch.teamName} · ${batchCounts(batch)}`
+    : batchCounts(batch);
+}
 
 export default function AdminPayoutsPage() {
   return (
@@ -173,67 +193,101 @@ function AdminPayoutsPageContent() {
               <p className="text-sm text-muted-foreground">No payouts yet.</p>
             )}
             {!batchesLoading && batchesData && batchesData.batches.length > 0 && (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Payout</TableHead>
-                    <TableHead>Team</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-0" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {batchesData.batches.map((batch) => (
-                    <TableRow key={batch.id}>
-                      <TableCell>
-                        <Link
-                          href={`/admin/payouts/${batch.id}`}
-                          className="font-medium hover:text-primary hover:underline"
-                        >
-                          {batch.label}
+              <ResponsiveTable
+                table={
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Payout</TableHead>
+                        <TableHead>Team</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="w-0" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {batchesData.batches.map((batch) => (
+                        <TableRow key={batch.id}>
+                          <TableCell>
+                            <Link
+                              href={`/admin/payouts/${batch.id}`}
+                              className="font-medium hover:text-primary hover:underline"
+                            >
+                              {batch.label}
+                            </Link>
+                            <p className="text-xs text-muted-foreground">
+                              {batchCounts(batch)}
+                            </p>
+                          </TableCell>
+                          <TableCell>
+                            {batch.teamName ?? (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap text-right font-medium tabular-nums">
+                            {formatCurrency(batch.totalAmount)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                isPayoutPaid(batch.status) ? "paid" : "pending"
+                              }
+                            >
+                              {payoutStatusLabel(batch.status)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {!isPayoutPaid(batch.status) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={markingId === batch.id}
+                                onClick={() => markPaid(batch.id)}
+                              >
+                                Mark paid
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                }
+                cards={
+                  <DataCardList>
+                    {batchesData.batches.map((batch) => (
+                      <DataCard key={batch.id}>
+                        <Link href={`/admin/payouts/${batch.id}`}>
+                          <DataCardHeader
+                            title={batch.label}
+                            subtitle={batchSummary(batch)}
+                            value={formatCurrency(batch.totalAmount)}
+                          />
                         </Link>
-                        <p className="text-xs text-muted-foreground">
-                          {batch.entryCount.toLocaleString("en-US")} sales ·{" "}
-                          {batch.affiliateCount}{" "}
-                          {batch.affiliateCount === 1
-                            ? "affiliate"
-                            : "affiliates"}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        {batch.teamName ?? (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatCurrency(batch.totalAmount)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            isPayoutPaid(batch.status) ? "paid" : "pending"
-                          }
-                        >
-                          {payoutStatusLabel(batch.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {!isPayoutPaid(batch.status) && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={markingId === batch.id}
-                            onClick={() => markPaid(batch.id)}
+                        <DataCardMeta className="justify-between">
+                          <Badge
+                            variant={
+                              isPayoutPaid(batch.status) ? "paid" : "pending"
+                            }
                           >
-                            Mark paid
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                            {payoutStatusLabel(batch.status)}
+                          </Badge>
+                          {!isPayoutPaid(batch.status) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={markingId === batch.id}
+                              onClick={() => markPaid(batch.id)}
+                            >
+                              Mark paid
+                            </Button>
+                          )}
+                        </DataCardMeta>
+                      </DataCard>
+                    ))}
+                  </DataCardList>
+                }
+              />
             )}
           </CardContent>
         </Card>

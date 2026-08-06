@@ -11,6 +11,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  DataCard,
+  DataCardHeader,
+  DataCardList,
+  DataCardMeta,
+  ResponsiveTable,
+} from "@/components/ui/data-cards";
+import {
   Table,
   TableBody,
   TableCell,
@@ -137,56 +144,102 @@ export default function AdminAffiliatesPage() {
 
           {!isLoading && !error && data && data.items.length > 0 && (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow className="ts-table-header hover:bg-muted">
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>SliceWP ID</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Portal</TableHead>
-                    <TableHead className="text-right">Unpaid</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.items.map((affiliate) => (
-                    <TableRow 
-                      key={affiliate.id} 
-                      className="cursor-pointer hover:bg-muted/80"
-                      onClick={() => router.push(`/admin/affiliates/${affiliate.id}`)}
-                    >
-                      <TableCell className="font-bold text-brand-dark">
-                        {affiliate.displayName ?? "—"}
-                      </TableCell>
-                      <TableCell>
-                        {affiliate.email}
-                      </TableCell>
-                      <TableCell>{affiliate.slicewpId}</TableCell>
-                      <TableCell>
-                        <Badge variant={statusBadgeVariant(affiliate.status)}>
-                          {affiliate.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {affiliate.hasPortalAccess ? (
-                          <Check
-                            className="mx-auto h-4 w-4 text-success"
-                            aria-label="Portal linked"
-                          />
-                        ) : (
-                          <Minus
-                            className="mx-auto h-4 w-4 text-muted-foreground"
-                            aria-label="No portal login"
-                          />
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right font-medium text-primary">
-                        {formatCurrency(affiliate.unpaidTotal)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <ResponsiveTable
+                table={
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="ts-table-header hover:bg-muted">
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead className="hidden xl:table-cell">
+                          SliceWP ID
+                        </TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-center">Portal</TableHead>
+                        <TableHead className="text-right">Unpaid</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data.items.map((affiliate) => (
+                        <TableRow
+                          key={affiliate.id}
+                          className="cursor-pointer hover:bg-muted/80"
+                          onClick={() =>
+                            router.push(`/admin/affiliates/${affiliate.id}`)
+                          }
+                        >
+                          <TableCell className="font-bold text-brand-dark">
+                            {affiliate.displayName ?? "—"}
+                          </TableCell>
+                          <TableCell className="max-w-[22ch] truncate text-muted-foreground">
+                            {affiliate.email}
+                          </TableCell>
+                          <TableCell className="hidden tabular-nums xl:table-cell">
+                            {affiliate.slicewpId}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={statusBadgeVariant(affiliate.status)}
+                            >
+                              {affiliate.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {affiliate.hasPortalAccess ? (
+                              <Check
+                                className="mx-auto h-4 w-4 text-success"
+                                aria-label="Portal linked"
+                              />
+                            ) : (
+                              <Minus
+                                className="mx-auto h-4 w-4 text-muted-foreground"
+                                aria-label="No portal login"
+                              />
+                            )}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap text-right font-medium tabular-nums text-primary">
+                            {formatCurrency(affiliate.unpaidTotal)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                }
+                cards={
+                  <DataCardList>
+                    {data.items.map((affiliate) => (
+                      <DataCard
+                        key={affiliate.id}
+                        href={`/admin/affiliates/${affiliate.id}`}
+                      >
+                        <DataCardHeader
+                          title={affiliate.displayName ?? affiliate.email}
+                          subtitle={affiliate.email}
+                          value={
+                            <span className="text-primary">
+                              {formatCurrency(affiliate.unpaidTotal)}
+                            </span>
+                          }
+                          valueHint="unpaid"
+                        />
+                        <DataCardMeta>
+                          <Badge
+                            variant={statusBadgeVariant(affiliate.status)}
+                          >
+                            {affiliate.status}
+                          </Badge>
+                          <span>
+                            {affiliate.hasPortalAccess
+                              ? "Portal linked"
+                              : "No portal login"}
+                          </span>
+                          <span>ID {affiliate.slicewpId}</span>
+                        </DataCardMeta>
+                      </DataCard>
+                    ))}
+                  </DataCardList>
+                }
+              />
 
               <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
                 <p className="text-sm text-muted-foreground">
