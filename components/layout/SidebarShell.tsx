@@ -101,6 +101,7 @@ function SidebarPanel({
   navActive: (item: SidebarNavItem) => boolean;
   onNavigate?: () => void;
 }) {
+  const pathname = usePathname();
   const { user, signOut } = useAuth();
 
   const initials =
@@ -155,7 +156,12 @@ function SidebarPanel({
           <Link
             href="/account/change-password"
             onClick={onNavigate}
-            className="mb-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-foreground hover:bg-muted"
+            className={cn(
+              "mb-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors",
+              pathname === "/account/change-password"
+                ? "bg-primary/10 text-primary"
+                : "text-foreground hover:bg-muted"
+            )}
           >
             <KeyRound className="h-3.5 w-3.5" />
             Change Password

@@ -1,101 +1,97 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import Link from "next/link";
+import { AlertTriangle, ArrowLeft, ShieldCheck } from "lucide-react";
+import { ChangePasswordForm } from "@/components/account/ChangePasswordForm";
 import { useAuth } from "@/components/AuthProvider";
+import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
+import { cn } from "@/lib/utils";
 
 export default function ChangePasswordPage() {
-  const router = useRouter();
-  const { refresh } = useAuth();
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-
-    if (password.length < 8) {
-      toast.error("Password must be at least 8 characters");
-      return;
-    }
-
-    if (password !== confirm) {
-      toast.error("Passwords do not match");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await fetch("/api/account/change-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
-
-      const data = (await res.json()) as { error?: string };
-      if (!res.ok) {
-        throw new Error(data.error ?? "Failed to change password");
-      }
-
-      toast.success("Password updated");
-      await refresh();
-      router.push("/dashboard");
-      router.refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Update failed");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { user, loading } = useAuth();
+  const copy = AFFILIATE_COPY.account.changePassword;
+  const required = !!user?.mustChangePassword;
 
   return (
-    <div className="mx-auto max-w-md">
-      <Card>
-        <CardHeader>
-          <CardTitle>Set a new password</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="password">New password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="new-password"
-                required
-                minLength={8}
-              />
+    <div className="mx-auto flex w-full max-w-lg flex-1 flex-col">
+      <header className="mb-6 shrink-0">
+        {!required && !loading && (
+          <Link
+            href="/dashboard"
+            className="mb-4 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+            Back to dashboard
+          </Link>
+        )}
+
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/5 text-primary">
+            <ShieldCheck className="h-5 w-5" aria-hidden />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 id="change-password-heading" className="page-title text-xl sm:text-2xl">
+              {required ? copy.requiredTitle : copy.title}
+            </h1>
+            <p className="page-description mt-1">
+              {required ? copy.requiredDescription : copy.description}
+            </p>
+          </div>
+        </div>
+      </header>
+
+      {required && (
+        <div
+          className={cn(
+            "mb-6 flex gap-3 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3",
+            "text-sm leading-snug text-foreground"
+          )}
+          role="status"
+        >
+          <AlertTriangle
+            className="mt-0.5 h-4 w-4 shrink-0 text-warning"
+            aria-hidden
+          />
+          <p>{copy.requiredBanner}</p>
+        </div>
+      )}
+
+      <div className="ts-panel">
+        <div className="ts-panel-header">
+          <p className="text-sm font-semibold text-foreground">
+            {copy.panelTitle}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {copy.panelDescription}
+          </p>
+        </div>
+        <div className="ts-panel-body">
+          {!loading ? (
+            <ChangePasswordForm required={required} />
+          ) : (
+            <div
+              className="space-y-4 animate-pulse"
+              aria-busy="true"
+              aria-label="Loading"
+            >
+              <div className="space-y-2">
+                <div className="h-3 w-24 rounded bg-muted" />
+                <div className="h-11 rounded-lg bg-muted sm:h-9" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-3 w-28 rounded bg-muted" />
+                <div className="h-11 rounded-lg bg-muted sm:h-9" />
+              </div>
+              <div className="h-16 rounded-lg bg-muted" />
+              <div className="h-11 rounded-lg bg-muted sm:h-9" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm">Confirm password</Label>
-              <Input
-                id="confirm"
-                type="password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                autoComplete="new-password"
-                required
-                minLength={8}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Saving…" : "Update password"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+          )}
+        </div>
+      </div>
+
+      <p className="mt-6 text-center text-xs leading-relaxed text-muted-foreground sm:text-left">
+        {copy.footer}
+      </p>
     </div>
   );
 }

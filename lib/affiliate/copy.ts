@@ -115,4 +115,34 @@ export const AFFILIATE_COPY = {
     description: "Transfers sent to you after admin runs a payout.",
     empty: "No payouts yet. When a payout is processed, it will show up here.",
   },
+  account: {
+    changePassword: {
+      title: "Change password",
+      description: "Choose a strong password you do not use anywhere else.",
+      requiredTitle: "Set a new password",
+      requiredDescription:
+        "Your administrator issued a temporary password. Choose a new one to continue.",
+      requiredBanner:
+        "You must set a new password before you can use the Ambassador Portal.",
+      panelTitle: "New password",
+      panelDescription: "At least 8 characters. Use a mix you will remember.",
+      fields: {
+        password: "New password",
+        confirm: "Confirm new password",
+      },
+      requirements: {
+        length: (min: number) => `At least ${min} characters`,
+        match: "Passwords match",
+      },
+      submit: "Update password",
+      submitRequired: "Continue to dashboard",
+      submitting: "Saving…",
+      success: "Password updated",
+      footer:
+        "Need help? Contact your True Sciences administrator to reset your password.",
+      errors: {
+        updateFailed: "Unable to update password. Please try again.",
+      },
+    },
+  },
 } as const;
