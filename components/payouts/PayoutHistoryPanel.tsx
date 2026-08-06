@@ -54,6 +54,7 @@ type PayoutHistoryPanelProps = {
   search: string;
   onSearchChange: (value: string) => void;
   onRefresh?: () => void;
+  className?: string;
 };
 
 const FILTERS: Array<{ id: PayoutStatusFilter; label: string }> = [
@@ -132,6 +133,7 @@ export function PayoutHistoryPanel({
   search,
   onSearchChange,
   onRefresh,
+  className,
 }: PayoutHistoryPanelProps) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -211,8 +213,8 @@ export function PayoutHistoryPanel({
   }
 
   return (
-    <div className="ts-panel min-h-[420px]">
-      <div className="ts-panel-header space-y-4">
+    <div className={cn("ts-panel flex min-h-0 flex-col", className)}>
+      <div className="ts-panel-header shrink-0 space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -290,7 +292,7 @@ export function PayoutHistoryPanel({
         </div>
       </div>
 
-      <div className="ts-panel-body flex-1">
+      <div className="ts-panel-body ts-panel-scroll flex-1">
         {loading && <TableSkeleton columns={5} rows={8} />}
         {!loading && filtered.length === 0 && (
           <EmptyState

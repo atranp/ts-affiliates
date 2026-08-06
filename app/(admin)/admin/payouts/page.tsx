@@ -21,11 +21,11 @@ export default function AdminPayoutsPage() {
   return (
     <Suspense
       fallback={
-        <div className="space-y-8">
-          <div className="h-9 w-40 animate-pulse rounded-lg bg-muted" />
-          <div className="grid gap-6 xl:grid-cols-2">
-            <div className="h-96 animate-pulse rounded-xl bg-muted" />
-            <div className="h-96 animate-pulse rounded-xl bg-muted" />
+        <div className="ts-workspace gap-4">
+          <div className="h-9 w-40 shrink-0 animate-pulse rounded-lg bg-muted" />
+          <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-2">
+            <div className="animate-pulse rounded-xl bg-muted" />
+            <div className="animate-pulse rounded-xl bg-muted" />
           </div>
         </div>
       }
@@ -95,23 +95,25 @@ function AdminPayoutsPageContent() {
     sponsor?.displayName ?? sponsor?.email ?? "Selected affiliate";
 
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title="Payouts"
-        description="Record what ambassadors are owed, then confirm once money is sent."
-      />
-
-      {sponsorId && sponsor && (
-        <SelectedAffiliateBanner
-          displayName={sponsorDisplayName}
-          unpaidTotal={sponsor.ledger.unpaidTotal}
-          onClear={clearSponsor}
+    <div className="ts-workspace gap-4">
+      <div className="shrink-0 space-y-4">
+        <PageHeader
+          title="Payouts"
+          description="Record what ambassadors are owed, then confirm once money is sent."
         />
-      )}
 
-      <div className="grid gap-6 xl:grid-cols-2 xl:items-start xl:gap-8">
-        <div className="ts-panel">
-          <div className="ts-panel-header">
+        {sponsorId && sponsor && (
+          <SelectedAffiliateBanner
+            displayName={sponsorDisplayName}
+            unpaidTotal={sponsor.ledger.unpaidTotal}
+            onClear={clearSponsor}
+          />
+        )}
+      </div>
+
+      <div className="grid min-h-0 flex-1 grid-rows-2 gap-4 xl:grid-cols-2 xl:grid-rows-1 xl:gap-6">
+        <div className="ts-panel flex min-h-0 flex-col">
+          <div className="ts-panel-header shrink-0">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <PenLine className="h-4 w-4" />
@@ -124,7 +126,7 @@ function AdminPayoutsPageContent() {
               </div>
             </div>
           </div>
-          <div className="ts-panel-body">
+          <div className="ts-panel-body ts-panel-scroll">
             {sponsorId && sponsorError ? (
               <ErrorState
                 message={sponsorError.message}
@@ -149,6 +151,7 @@ function AdminPayoutsPageContent() {
         </div>
 
         <PayoutHistoryPanel
+          className="min-h-0"
           batches={batchesData?.batches ?? []}
           loading={batchesLoading}
           sponsorAffiliateId={sponsorId || undefined}

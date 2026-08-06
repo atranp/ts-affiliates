@@ -215,14 +215,14 @@ export function SidebarShell({
     <div className="min-h-screen bg-background">
       <ImpersonationBanner />
 
-      <div className="flex min-h-[calc(100vh-var(--impersonation-offset,0px))]">
+      <div className="flex h-[calc(100dvh-var(--impersonation-offset,0px))] min-h-0">
         {/* Desktop sidebar */}
         <aside className="hidden w-60 shrink-0 border-r border-border bg-card lg:fixed lg:inset-y-0 lg:z-30 lg:flex lg:flex-col">
           <SidebarPanel {...sidebarProps} />
         </aside>
 
         {/* Main column */}
-        <div className="flex min-w-0 flex-1 flex-col lg:pl-60">
+        <div className="flex min-h-0 flex-1 flex-col lg:pl-60">
           {/* Mobile top bar */}
           <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-card/95 px-4 backdrop-blur-md lg:hidden">
             <button
@@ -247,7 +247,7 @@ export function SidebarShell({
 
           {variant === "admin" && syncBanner}
 
-          <main className="flex-1 px-4 py-6 pb-12 sm:px-6 lg:px-8">
+          <main className="flex min-h-0 flex-1 flex-col px-4 py-6 pb-12 sm:px-6 lg:px-8">
             {children}
           </main>
         </div>
