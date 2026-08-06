@@ -1,15 +1,16 @@
 import {
-  addUtcDays,
-  endOfUtcDay,
-  endOfUtcMonth,
-  endOfUtcWeek,
-  formatUtcDate,
-  formatUtcDateInput,
-  parseUtcDateInput,
-  startOfUtcDay,
-  startOfUtcMonth,
-  startOfUtcWeek,
-} from "./utc-dates";
+  addStoreDays,
+  endOfStoreDay,
+  endOfStoreMonth,
+  endOfStoreWeek,
+  formatStoreDate,
+  formatStoreDateInput,
+  parseStoreDateInput,
+  startOfStoreDay,
+  startOfStoreMonth,
+  startOfStoreWeek,
+  storeYear,
+} from "./store-dates";
 
 export type DatePreset = "this_week" | "last_week" | "this_month" | "all";
 
@@ -24,30 +25,30 @@ export function resolveDatePreset(
   preset: DatePreset,
   now = new Date()
 ): DateRange {
-  const today = startOfUtcDay(now);
+  const today = startOfStoreDay(now);
 
   switch (preset) {
     case "this_week":
       return {
-        from: startOfUtcWeek(today),
-        to: endOfUtcWeek(today),
-        payoutWeek: endOfUtcDay(today),
+        from: startOfStoreWeek(today),
+        to: endOfStoreWeek(today),
+        payoutWeek: endOfStoreDay(today),
         label: "This week",
       };
     case "last_week": {
-      const lastWeek = addUtcDays(today, -7);
+      const lastWeek = addStoreDays(today, -7);
       return {
-        from: startOfUtcWeek(lastWeek),
-        to: endOfUtcWeek(lastWeek),
-        payoutWeek: endOfUtcWeek(lastWeek),
+        from: startOfStoreWeek(lastWeek),
+        to: endOfStoreWeek(lastWeek),
+        payoutWeek: endOfStoreWeek(lastWeek),
         label: "Last week",
       };
     }
     case "this_month":
       return {
-        from: startOfUtcMonth(today),
-        to: endOfUtcMonth(today),
-        payoutWeek: endOfUtcDay(today),
+        from: startOfStoreMonth(today),
+        to: endOfStoreMonth(today),
+        payoutWeek: endOfStoreDay(today),
         label: "This month",
       };
     case "all":
@@ -55,7 +56,7 @@ export function resolveDatePreset(
       return {
         from: null,
         to: null,
-        payoutWeek: endOfUtcDay(today),
+        payoutWeek: endOfStoreDay(today),
         label: "All time",
       };
   }
@@ -63,31 +64,29 @@ export function resolveDatePreset(
 
 export function formatPeriodLabel(from: Date | null, to: Date | null) {
   if (!from || !to) return "All time";
-  const fromStr = formatUtcDate(from);
-  const toStr = formatUtcDate(to, {
-    month: "short",
-    day: "numeric",
-    year:
-      from.getUTCFullYear() !== to.getUTCFullYear() ? "numeric" : undefined,
-  });
+  const fromStr = formatStoreDate(from, "MMM d");
+  const toStr = formatStoreDate(
+    to,
+    storeYear(from) !== storeYear(to) ? "MMM d, yyyy" : "MMM d"
+  );
   return `${fromStr} – ${toStr}`;
 }
 
 export function toDateInputValue(date: Date) {
-  return formatUtcDateInput(date);
+  return formatStoreDateInput(date);
 }
 
 export function defaultPayoutPeriodStart(now = new Date()) {
-  return startOfUtcWeek(now);
+  return startOfStoreWeek(now);
 }
 
 export function defaultPayoutPeriodEnd(now = new Date()) {
-  return startOfUtcDay(now);
+  return startOfStoreDay(now);
 }
 
 export function parsePayoutPeriod(startInput: string, endInput: string) {
-  const periodStart = parseUtcDateInput(startInput);
-  const periodEnd = endOfUtcDay(parseUtcDateInput(endInput));
+  const periodStart = parseStoreDateInput(startInput);
+  const periodEnd = endOfStoreDay(parseStoreDateInput(endInput));
 
   if (
     Number.isNaN(periodStart.getTime()) ||

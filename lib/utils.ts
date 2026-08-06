@@ -1,6 +1,8 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+import { formatAppDate } from "@/lib/timezone";
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -13,18 +15,9 @@ export function formatCurrency(value: number | string) {
   }).format(num);
 }
 
-/**
- * Sale dates are stored as UTC instants and payout periods are matched in UTC,
- * so render them in UTC too. Using the viewer's timezone would show a sale on a
- * different day than the payout run that included it.
- */
+/** Sale dates render in the store timezone (WooCommerce / Pacific by default). */
 export function formatSaleDate(value: string | Date) {
-  return new Date(value).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "UTC",
-  });
+  return formatAppDate(value);
 }
 
 export function toNumber(value: unknown): number {

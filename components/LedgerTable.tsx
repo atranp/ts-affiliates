@@ -9,6 +9,7 @@ import {
   AWAITING_PAYMENT,
   effectiveLedgerStatus,
 } from "@/lib/payouts/status";
+import { formatAppDate } from "@/lib/timezone";
 import { formatCurrency, formatSaleDate, cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -65,13 +66,10 @@ function amountClass(status: string): string {
 
 function formatPayoutWeek(iso: string | null) {
   if (!iso) return "—";
-  // Payout weeks are stored in UTC, so render them in UTC rather than letting
-  // the viewer's timezone shift the date by a day.
-  return new Date(iso).toLocaleDateString("en-US", {
+  return formatAppDate(iso, {
     weekday: "short",
     month: "short",
     day: "numeric",
-    timeZone: "UTC",
   });
 }
 

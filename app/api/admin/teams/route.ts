@@ -1,7 +1,7 @@
-import { endOfDay, startOfDay } from "date-fns";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-auth";
 import { jsonCached } from "@/lib/api-cache";
+import { endOfStoreDay, startOfStoreDay } from "@/lib/payouts/store-dates";
 import { prisma } from "@/lib/prisma";
 import { getTeamsForSponsor } from "@/lib/teams/queries";
 
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     const toParam = searchParams.get("to");
     const period =
       fromParam && toParam
-        ? { from: startOfDay(new Date(fromParam)), to: endOfDay(new Date(toParam)) }
+        ? { from: startOfStoreDay(new Date(fromParam)), to: endOfStoreDay(new Date(toParam)) }
         : undefined;
 
     const teams = await getTeamsForSponsor(sponsorAffiliateId, period);

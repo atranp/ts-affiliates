@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatAppDate } from "@/lib/timezone";
 import { formatCurrency, formatSaleDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,13 +60,10 @@ function EntryTypeBadge({ type }: { type: string }) {
 
 function formatPayoutWeek(iso: string | null) {
   if (!iso) return "—";
-  // Payout weeks are stored in UTC; render them in UTC so the date matches what
-  // the payout period filter will actually match on.
-  return new Date(iso).toLocaleDateString("en-US", {
+  return formatAppDate(iso, {
     weekday: "short",
     month: "short",
     day: "numeric",
-    timeZone: "UTC",
   });
 }
 

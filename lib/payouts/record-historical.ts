@@ -3,8 +3,9 @@ import {
   LedgerEntryType,
   Prisma,
 } from "@prisma/client";
-import { startOfDay } from "date-fns";
 import { prisma } from "@/lib/prisma";
+import { startOfStoreDay } from "@/lib/payouts/store-dates";
+import { formatAppDate } from "@/lib/timezone";
 import { toNumber } from "@/lib/utils";
 
 export type RecordHistoricalPayoutInput = {
@@ -50,11 +51,7 @@ function buildUnpaidEntryWhere(
 }
 
 function defaultLabel(paidAt: Date, teamName?: string | null) {
-  const dateLabel = paidAt.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  const dateLabel = formatAppDate(paidAt);
   return teamName
     ? `${teamName} · Historical · ${dateLabel}`
     : `Historical payout · ${dateLabel}`;
@@ -63,7 +60,7 @@ function defaultLabel(paidAt: Date, teamName?: string | null) {
 export async function recordHistoricalPayout(
   input: RecordHistoricalPayoutInput
 ): Promise<RecordHistoricalPayoutResult> {
-  const paidAt = startOfDay(input.paidAt);
+  const paidAt = startOfStoreDay(input.paidAt);
   if (Number.isNaN(paidAt.getTime())) {
     throw new Error("Invalid paid date");
   }

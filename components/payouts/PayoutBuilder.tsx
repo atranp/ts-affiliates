@@ -43,6 +43,7 @@ import {
   payoutStatusClasses,
   payoutStatusLabel,
 } from "@/lib/payouts/status";
+import { formatAppDate, APP_TIMEZONE_LABEL } from "@/lib/timezone";
 import type {
   OutsideRange,
   PayoutTargetOption,
@@ -326,7 +327,7 @@ export function PayoutBuilder({
                 endValue={periodEnd}
                 onStartChange={setPeriodStart}
                 onEndChange={setPeriodEnd}
-                hint={`Sales made ${formatPeriodLabel(new Date(periodStart), new Date(periodEnd))} (UTC), matching what a partner sees in their own sales report.`}
+                hint={`Sales made ${formatPeriodLabel(new Date(periodStart), new Date(periodEnd))} (${APP_TIMEZONE_LABEL}), matching what a partner sees in their own sales report.`}
               />
             </div>
           </Step>
@@ -386,10 +387,10 @@ export function PayoutBuilder({
                   </span>{" "}
                   in unpaid sales
                   {outsideRange.oldestSaleDate
-                    ? ` going back to ${new Date(outsideRange.oldestSaleDate).toLocaleDateString(
-                        "en-US",
-                        { month: "short", day: "numeric", timeZone: "UTC" }
-                      )}`
+                    ? ` going back to ${formatAppDate(outsideRange.oldestSaleDate, {
+                        month: "short",
+                        day: "numeric",
+                      })}`
                     : ""}{" "}
                   falls outside these dates.
                 </p>
@@ -496,13 +497,9 @@ export function PayoutBuilder({
                       <p className="text-xs text-muted-foreground">
                         {batch.teamName ? `${batch.teamName} · ` : ""}
                         {batch.entryCount.toLocaleString("en-US")} sales ·{" "}
-                        {new Date(
+                        {formatAppDate(
                           batch.processedAt ?? batch.createdAt
-                        ).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
+                        )}
                       </p>
                     </Link>
                     <div className="flex shrink-0 items-center gap-2">

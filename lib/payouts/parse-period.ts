@@ -1,8 +1,8 @@
 import {
-  endOfUtcDay,
-  parseUtcDateInput,
-  startOfUtcDay,
-} from "./utc-dates";
+  endOfStoreDay,
+  parseStoreDateInput,
+  startOfStoreDay,
+} from "./store-dates";
 
 export function resolvePayoutPeriodFromRequest(options: {
   periodStart?: string | null;
@@ -11,17 +11,17 @@ export function resolvePayoutPeriodFromRequest(options: {
 }) {
   const endInput = options.periodEnd ?? options.payoutWeek;
   if (!endInput) {
-    const today = startOfUtcDay(new Date());
-    return { periodStart: today, periodEnd: endOfUtcDay(today) };
+    const today = startOfStoreDay(new Date());
+    return { periodStart: today, periodEnd: endOfStoreDay(today) };
   }
 
-  const periodEnd = endOfUtcDay(parseUtcDateInput(endInput));
+  const periodEnd = endOfStoreDay(parseStoreDateInput(endInput));
   if (Number.isNaN(periodEnd.getTime())) {
     throw new Error("Invalid end date");
   }
 
   if (options.periodStart) {
-    const periodStart = parseUtcDateInput(options.periodStart);
+    const periodStart = parseStoreDateInput(options.periodStart);
     if (Number.isNaN(periodStart.getTime())) {
       throw new Error("Invalid start date");
     }
@@ -31,5 +31,5 @@ export function resolvePayoutPeriodFromRequest(options: {
     return { periodStart, periodEnd };
   }
 
-  return { periodStart: parseUtcDateInput(endInput), periodEnd };
+  return { periodStart: parseStoreDateInput(endInput), periodEnd };
 }

@@ -1,6 +1,6 @@
-import { startOfDay } from "date-fns";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-auth";
+import { startOfStoreDay } from "@/lib/payouts/store-dates";
 import {
   previewHistoricalPayout,
   recordHistoricalPayout,
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
   try {
     const result = await recordHistoricalPayout({
       affiliateId,
-      paidAt: startOfDay(new Date(paidAt)),
+      paidAt: startOfStoreDay(new Date(paidAt)),
       label,
       teamId: teamId ?? null,
       mode,

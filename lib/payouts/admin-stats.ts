@@ -1,6 +1,6 @@
 import { CommissionStatus, PayoutBatchStatus } from "@prisma/client";
-import { startOfMonth } from "date-fns";
 import { prisma } from "@/lib/prisma";
+import { startOfStoreMonth } from "@/lib/payouts/store-dates";
 import { toNumber } from "@/lib/utils";
 
 function batchTotal(
@@ -18,7 +18,7 @@ export type PayoutAdminStats = {
 };
 
 export async function getPayoutAdminStats(): Promise<PayoutAdminStats> {
-  const monthStart = startOfMonth(new Date());
+  const monthStart = startOfStoreMonth(new Date());
 
   const [
     processingBatches,

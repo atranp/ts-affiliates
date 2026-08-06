@@ -11,6 +11,7 @@ import {
   payoutStatusLabel,
 } from "@/lib/payouts/status";
 import type { PayoutBatchListItem } from "@/lib/payouts/types";
+import { formatAppDate } from "@/lib/timezone";
 import { formatCurrency } from "@/lib/utils";
 
 export function PayoutsList({
@@ -96,13 +97,7 @@ export function PayoutsList({
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3.5 w-3.5" />
                       {paid ? "Paid " : "Created "}
-                      {new Date(
-                        batch.processedAt ?? batch.createdAt
-                      ).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
+                      {formatAppDate(batch.processedAt ?? batch.createdAt)}
                     </span>
                     <span>•</span>
                     <span>

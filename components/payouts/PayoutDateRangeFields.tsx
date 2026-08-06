@@ -3,6 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatPeriodLabel } from "@/lib/payouts/dates";
+import { APP_TIMEZONE_LABEL } from "@/lib/timezone";
 
 type PayoutDateRangeFieldsProps = {
   startValue: string;
@@ -68,7 +69,7 @@ export function PayoutDateRangeFields({
             endDate &&
             !Number.isNaN(startDate.getTime()) &&
             !Number.isNaN(endDate.getTime())
-              ? `Matches unpaid entries scheduled for payout between ${formatPeriodLabel(startDate, endDate)} (UTC) — not the dates the sales happened.`
+              ? `Matches unpaid entries scheduled for payout between ${formatPeriodLabel(startDate, endDate)} (${APP_TIMEZONE_LABEL}) — not the dates the sales happened.`
               : "Select start and end dates for this payout period")}
       </p>
     </div>

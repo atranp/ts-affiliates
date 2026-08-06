@@ -1,6 +1,6 @@
 import { CommissionStatus, LedgerEntryType, Prisma } from "@prisma/client";
 import type { PayoutScope } from "./types";
-import { endOfUtcDay, startOfUtcDay } from "./utc-dates";
+import { endOfStoreDay, startOfStoreDay } from "./store-dates";
 
 /**
  * Periods are always measured against the sale date. Partners reconcile against
@@ -28,10 +28,10 @@ export function buildPayoutEntryWhere(options: {
   } = options;
 
   const range: { lte: Date; gte?: Date } = {
-    lte: endOfUtcDay(periodEnd ?? payoutWeek!),
+    lte: endOfStoreDay(periodEnd ?? payoutWeek!),
   };
   if (periodStart) {
-    range.gte = startOfUtcDay(periodStart);
+    range.gte = startOfStoreDay(periodStart);
   }
 
   const base: Prisma.LedgerEntryWhereInput = {

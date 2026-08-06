@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/table";
 import { adminMutate } from "@/hooks/use-admin-query";
 import { isPayoutPaid, payoutStatusLabel } from "@/lib/payouts/status";
+import { formatAppDate } from "@/lib/timezone";
 import { cn, formatCurrency } from "@/lib/utils";
 
 export type PayoutBatchRow = {
@@ -61,10 +62,7 @@ const FILTERS: Array<{ id: PayoutStatusFilter; label: string }> = [
 ];
 
 function batchDate(batch: PayoutBatchRow) {
-  return new Date(batch.processedAt ?? batch.createdAt).toLocaleDateString(
-    "en-US",
-    { month: "short", day: "numeric", year: "numeric" }
-  );
+  return formatAppDate(batch.processedAt ?? batch.createdAt);
 }
 
 function batchCounts(batch: PayoutBatchRow) {
