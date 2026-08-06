@@ -2,6 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { formatPeriodLabel } from "@/lib/payouts/dates";
 import { APP_TIMEZONE_LABEL } from "@/lib/timezone";
 
@@ -32,10 +33,10 @@ export function PayoutDateRangeFields({
     startDate > endDate;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="payout-start" className="text-xs">
+          <Label htmlFor="payout-start" className="ts-field-label">
             Start date
           </Label>
           <Input
@@ -45,10 +46,11 @@ export function PayoutDateRangeFields({
             max={endValue || undefined}
             onChange={(e) => onStartChange(e.target.value)}
             disabled={disabled}
+            className="ts-input"
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="payout-end" className="text-xs">
+          <Label htmlFor="payout-end" className="ts-field-label">
             End date
           </Label>
           <Input
@@ -58,10 +60,16 @@ export function PayoutDateRangeFields({
             min={startValue || undefined}
             onChange={(e) => onEndChange(e.target.value)}
             disabled={disabled}
+            className="ts-input"
           />
         </div>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p
+        className={cn(
+          "text-xs leading-relaxed",
+          invalidRange ? "text-destructive" : "text-muted-foreground"
+        )}
+      >
         {invalidRange
           ? "Start date must be on or before end date."
           : hint ??
@@ -69,8 +77,8 @@ export function PayoutDateRangeFields({
             endDate &&
             !Number.isNaN(startDate.getTime()) &&
             !Number.isNaN(endDate.getTime())
-              ? `Matches unpaid entries scheduled for payout between ${formatPeriodLabel(startDate, endDate)} (${APP_TIMEZONE_LABEL}) — not the dates the sales happened.`
-              : "Select start and end dates for this payout period")}
+              ? `Sales made ${formatPeriodLabel(startDate, endDate)} (${APP_TIMEZONE_LABEL}).`
+              : "Pick the sale date range to include in this payout.")}
       </p>
     </div>
   );

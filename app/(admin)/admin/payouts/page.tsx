@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { PenLine } from "lucide-react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import type { AffiliateOption } from "@/components/admin/AffiliateSearchCombobox";
 import { ErrorState } from "@/components/admin/ErrorState";
@@ -24,9 +25,13 @@ export default function AdminPayoutsPage() {
   return (
     <Suspense
       fallback={
-        <div className="space-y-6 p-6">
-          <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-          <TableSkeleton columns={4} rows={2} />
+        <div className="space-y-8">
+          <div className="h-9 w-40 animate-pulse rounded-lg bg-muted" />
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-28 animate-pulse rounded-xl bg-muted" />
+            ))}
+          </div>
         </div>
       }
     >
@@ -104,7 +109,7 @@ function AdminPayoutsPageContent() {
     sponsor?.displayName ?? sponsor?.email ?? "Selected affiliate";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PageHeader
         title="Payouts"
         description="Record what ambassadors are owed, then confirm once money is sent."
@@ -125,31 +130,43 @@ function AdminPayoutsPageContent() {
         />
       )}
 
-      <div className="grid gap-6 xl:grid-cols-2 xl:items-start">
-        <div className="ts-card p-5">
-          <h2 className="mb-4 text-base font-semibold text-brand-dark">
-            Record payout
-          </h2>
-          {sponsorId && sponsorError ? (
-            <ErrorState
-              message={sponsorError.message}
-              onRetry={() => refetchSponsor()}
-            />
-          ) : sponsorId && sponsorLoading ? (
-            <TableSkeleton columns={3} rows={4} />
-          ) : (
-            <PayoutBuilder
-              affiliateId={sponsor?.id ?? null}
-              displayName={sponsor?.displayName ?? sponsor?.email ?? null}
-              selectedAffiliate={selectedOption}
-              onAffiliateChange={selectSponsor}
-              initialTeamId={initialTeamId}
-              embedHistory={false}
-              onBatchCreated={() => {
-                void refreshAll();
-              }}
-            />
-          )}
+      <div className="grid gap-6 xl:grid-cols-2 xl:items-start xl:gap-8">
+        <div className="ts-panel">
+          <div className="ts-panel-header">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <PenLine className="h-4 w-4" />
+              </div>
+              <div>
+                <h2 className="ts-section-title">Record payout</h2>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Select an ambassador, period, and scope
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="ts-panel-body">
+            {sponsorId && sponsorError ? (
+              <ErrorState
+                message={sponsorError.message}
+                onRetry={() => refetchSponsor()}
+              />
+            ) : sponsorId && sponsorLoading ? (
+              <TableSkeleton columns={3} rows={4} />
+            ) : (
+              <PayoutBuilder
+                affiliateId={sponsor?.id ?? null}
+                displayName={sponsor?.displayName ?? sponsor?.email ?? null}
+                selectedAffiliate={selectedOption}
+                onAffiliateChange={selectSponsor}
+                initialTeamId={initialTeamId}
+                embedHistory={false}
+                onBatchCreated={() => {
+                  void refreshAll();
+                }}
+              />
+            )}
+          </div>
         </div>
 
         <PayoutHistoryPanel

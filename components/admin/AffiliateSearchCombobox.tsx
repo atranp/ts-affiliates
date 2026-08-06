@@ -139,7 +139,9 @@ export function AffiliateSearchCombobox({
 
   return (
     <div ref={containerRef} className="relative space-y-2">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} className="ts-field-label">
+        {label}
+      </Label>
       <div className="relative">
         <input
           ref={inputRef}
@@ -164,7 +166,7 @@ export function AffiliateSearchCombobox({
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
           className={cn(
-            "flex h-10 w-full rounded-md border border-input bg-card py-2 pl-3 pr-16 text-sm text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            "ts-input flex w-full py-2 pl-3 pr-16 placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           )}
         />
         <div className="absolute inset-y-0 right-0 flex items-center gap-0.5 pr-2">

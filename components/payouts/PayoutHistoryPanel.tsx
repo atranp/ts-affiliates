@@ -210,24 +210,35 @@ export function PayoutHistoryPanel({
   }
 
   return (
-    <div className="ts-card flex min-h-[420px] flex-col">
-      <div className="border-b border-border px-5 py-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <History className="h-5 w-5 text-primary" />
-            <h2 className="text-base font-semibold text-brand-dark">
-              Payout history
-            </h2>
-            {sponsorAffiliateId && (
-              <Badge variant="secondary" className="font-normal">
-                Filtered
-              </Badge>
-            )}
+    <div className="ts-panel min-h-[420px]">
+      <div className="ts-panel-header space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <History className="h-4 w-4" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="ts-section-title">Payout history</h2>
+                {sponsorAffiliateId && (
+                  <Badge
+                    variant="secondary"
+                    className="h-5 rounded-md px-2 text-[10px] font-semibold uppercase tracking-wide"
+                  >
+                    Filtered
+                  </Badge>
+                )}
+              </div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {filtered.length} {filtered.length === 1 ? "batch" : "batches"}
+              </p>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {selected.size > 0 && (
               <Button
                 size="sm"
+                className="rounded-lg font-semibold shadow-xs"
                 disabled={bulkLoading}
                 onClick={() => void confirmSelectedSent()}
               >
@@ -237,35 +248,38 @@ export function PayoutHistoryPanel({
             <Button
               size="sm"
               variant="outline"
+              className="rounded-lg"
               onClick={() => exportAwaitingCsv(filtered)}
             >
-              <Download className="mr-2 h-4 w-4" />
-              Export awaiting
+              <Download className="mr-1.5 h-3.5 w-3.5" />
+              Export
             </Button>
           </div>
         </div>
 
-        <div className="ts-table-toolbar mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(event) => onSearchChange(event.target.value)}
-              placeholder="Search payouts, teams, affiliates..."
-              className="h-10 pl-9"
+              placeholder="Search payouts, teams, ambassadors…"
+              className="ts-input pl-9"
             />
           </div>
-          <div className="flex flex-wrap gap-1">
+          <div className="ts-segment" role="tablist" aria-label="Filter by status">
             {FILTERS.map((filter) => (
               <button
                 key={filter.id}
                 type="button"
+                role="tab"
+                aria-selected={statusFilter === filter.id}
                 onClick={() => onStatusFilterChange(filter.id)}
                 className={cn(
-                  "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                  "ts-segment-item",
                   statusFilter === filter.id
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    ? "ts-segment-item-active"
+                    : "ts-segment-item-inactive"
                 )}
               >
                 {filter.label}
@@ -275,7 +289,7 @@ export function PayoutHistoryPanel({
         </div>
       </div>
 
-      <div className="flex-1 p-5">
+      <div className="ts-panel-body flex-1">
         {loading && <TableSkeleton columns={5} rows={8} />}
         {!loading && filtered.length === 0 && (
           <EmptyState
@@ -291,13 +305,14 @@ export function PayoutHistoryPanel({
         {!loading && filtered.length > 0 && (
           <ResponsiveTable
             table={
-              <Table>
+              <div className="ts-table-wrap">
+                <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-10">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="w-10 bg-muted/40">
                       <input
                         type="checkbox"
-                        className="h-4 w-4 rounded border-border"
+                        className="h-4 w-4 rounded border-border accent-primary"
                         checked={allAwaitingSelected}
                         onChange={(event) =>
                           toggleAllAwaiting(event.target.checked)
@@ -305,12 +320,14 @@ export function PayoutHistoryPanel({
                         aria-label="Select all awaiting payouts"
                       />
                     </TableHead>
-                    <TableHead>Payout</TableHead>
-                    {!sponsorAffiliateId && <TableHead>Affiliate</TableHead>}
-                    <TableHead>Team</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="bg-muted/40">Payout</TableHead>
+                    {!sponsorAffiliateId && (
+                      <TableHead className="bg-muted/40">Ambassador</TableHead>
+                    )}
+                    <TableHead className="bg-muted/40">Team</TableHead>
+                    <TableHead className="bg-muted/40">Date</TableHead>
+                    <TableHead className="bg-muted/40 text-right">Total</TableHead>
+                    <TableHead className="bg-muted/40">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -319,14 +336,14 @@ export function PayoutHistoryPanel({
                     return (
                       <TableRow
                         key={batch.id}
-                        className="cursor-pointer"
+                        className="cursor-pointer hover:bg-muted/40"
                         onClick={() => router.push(`/admin/payouts/${batch.id}`)}
                       >
                         <TableCell onClick={(event) => event.stopPropagation()}>
                           {!paid && (
                             <input
                               type="checkbox"
-                              className="h-4 w-4 rounded border-border"
+                              className="h-4 w-4 rounded border-border accent-primary"
                               checked={selected.has(batch.id)}
                               onChange={(event) =>
                                 toggleOne(batch.id, event.target.checked)
@@ -336,19 +353,21 @@ export function PayoutHistoryPanel({
                           )}
                         </TableCell>
                         <TableCell>
-                          <p className="font-medium">{batch.label}</p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="font-semibold text-brand-dark">
+                            {batch.label}
+                          </p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
                             {batchCounts(batch)}
                           </p>
                         </TableCell>
                         {!sponsorAffiliateId && (
-                          <TableCell className="text-sm">
+                          <TableCell className="text-sm text-foreground/90">
                             {batch.sponsorName ?? (
                               <span className="text-muted-foreground">—</span>
                             )}
                           </TableCell>
                         )}
-                        <TableCell className="text-sm">
+                        <TableCell className="text-sm text-foreground/90">
                           {batch.teamName ?? (
                             <span className="text-muted-foreground">—</span>
                           )}
@@ -356,7 +375,7 @@ export function PayoutHistoryPanel({
                         <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                           {batchDate(batch)}
                         </TableCell>
-                        <TableCell className="whitespace-nowrap text-right font-medium tabular-nums">
+                        <TableCell className="whitespace-nowrap text-right text-sm font-semibold tabular-nums text-brand-dark">
                           {formatCurrency(batch.totalAmount)}
                         </TableCell>
                         <TableCell>
@@ -369,6 +388,7 @@ export function PayoutHistoryPanel({
                   })}
                 </TableBody>
               </Table>
+              </div>
             }
             cards={
               <DataCardList>
@@ -402,7 +422,7 @@ export function PayoutHistoryPanel({
                           {!paid && (
                             <input
                               type="checkbox"
-                              className="h-4 w-4 rounded border-border"
+                              className="h-4 w-4 rounded border-border accent-primary"
                               checked={selected.has(batch.id)}
                               onChange={(event) =>
                                 toggleOne(batch.id, event.target.checked)

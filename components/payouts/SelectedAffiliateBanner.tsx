@@ -16,17 +16,23 @@ export function SelectedAffiliateBanner({
   onClear,
 }: SelectedAffiliateBannerProps) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
-      <p className="text-sm">
-        <span className="text-muted-foreground">Paying:</span>{" "}
+    <div className="ts-banner">
+      <p className="text-sm leading-relaxed">
+        <span className="font-medium text-muted-foreground">Paying</span>{" "}
         <span className="font-semibold text-brand-dark">{displayName}</span>
-        <span className="text-muted-foreground"> · </span>
+        <span className="mx-1.5 text-border">·</span>
         <span className="font-semibold tabular-nums text-primary">
-          {formatCurrency(unpaidTotal)} owed
+          {formatCurrency(unpaidTotal)}
         </span>
+        <span className="text-muted-foreground"> owed</span>
       </p>
-      <Button size="sm" variant="ghost" onClick={onClear}>
-        <X className="mr-1.5 h-4 w-4" />
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-8 text-muted-foreground hover:text-foreground"
+        onClick={onClear}
+      >
+        <X className="mr-1.5 h-3.5 w-3.5" />
         Clear
       </Button>
     </div>

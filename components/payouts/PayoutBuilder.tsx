@@ -50,7 +50,7 @@ import type {
   UnpaidAffiliate,
 } from "@/lib/payouts/targets";
 import type { PayoutPreview, TeamSummary } from "@/lib/teams/queries";
-import { formatCurrency, formatSaleDate } from "@/lib/utils";
+import { cn, formatCurrency, formatSaleDate } from "@/lib/utils";
 
 type PayoutBuilderProps = {
   affiliateId: string | null;
@@ -284,21 +284,19 @@ export function PayoutBuilder({
     !running;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {onAffiliateChange && (
-        <div className="mb-4">
-          <AffiliateSearchCombobox
-            id="payout-sponsor"
-            label="Affiliate"
-            value={affiliateId ?? ""}
-            selected={selectedAffiliate}
-            onChange={(id) => {
-              setTargetKey(null);
-              autoSelected.current = true;
-              onAffiliateChange(id);
-            }}
-          />
-        </div>
+        <AffiliateSearchCombobox
+          id="payout-sponsor"
+          label="Ambassador"
+          value={affiliateId ?? ""}
+          selected={selectedAffiliate}
+          onChange={(id) => {
+            setTargetKey(null);
+            autoSelected.current = true;
+            onAffiliateChange(id);
+          }}
+        />
       )}
 
       {!affiliateId ? (
@@ -307,7 +305,7 @@ export function PayoutBuilder({
         <>
           <Step number={1} title="Pick the period">
             <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
                 {PRESETS.map((preset) => (
                   <Chip
                     key={preset.id}
@@ -317,8 +315,8 @@ export function PayoutBuilder({
                     {preset.label}
                   </Chip>
                 ))}
-                <span className="ml-1 hidden text-xs text-muted-foreground sm:inline">
-                  or set exact dates below
+                <span className="ml-1 hidden text-[11px] text-muted-foreground sm:inline">
+                  or custom dates
                 </span>
               </div>
 
@@ -380,8 +378,8 @@ export function PayoutBuilder({
             )}
 
             {!targetsLoading && outsideRange && outsideRange.entryCount > 0 && (
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-                <p className="text-sm text-amber-800">
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200/80 bg-warning-soft px-4 py-3">
+                <p className="text-sm leading-relaxed text-amber-900">
                   <span className="font-semibold">
                     {formatCurrency(outsideRange.amount)}
                   </span>{" "}
@@ -397,6 +395,7 @@ export function PayoutBuilder({
                 <Button
                   size="sm"
                   variant="outline"
+                  className="shrink-0 border-amber-300/80 bg-card hover:bg-card"
                   onClick={() => applyPreset("all")}
                 >
                   Include everything
@@ -428,9 +427,10 @@ export function PayoutBuilder({
                 preview={preview}
                 exportHref={`/api/admin/payouts/preview/export?${previewParams}`}
                 action={
-                  <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
                     <Button
                       size="lg"
+                      className="h-11 rounded-lg px-6 font-semibold shadow-xs"
                       disabled={!canCreate}
                       onClick={() => setConfirmOpen(true)}
                     >
@@ -438,9 +438,9 @@ export function PayoutBuilder({
                       Record payout ·{" "}
                       {formatCurrency(preview.totals.grandTotal)}
                     </Button>
-                    <p className="text-xs text-muted-foreground">
-                      Records what {displayName ?? "this affiliate"} is owed.
-                      Confirm sent after you transfer the money.
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      Confirms what {displayName ?? "this ambassador"} is owed.
+                      Mark sent after you transfer funds.
                     </p>
                   </div>
                 }
@@ -449,13 +449,14 @@ export function PayoutBuilder({
           </Step>
 
           {!embedHistory && affiliateId && (
-            <div className="flex justify-end border-t border-border pt-4">
+            <div className="flex justify-end border-t border-border/70 pt-5">
               <Button
                 size="sm"
                 variant="outline"
+                className="rounded-lg"
                 onClick={() => setRecordOpen(true)}
               >
-                <Clock className="mr-2 h-4 w-4" />
+                <Clock className="mr-2 h-3.5 w-3.5" />
                 Record historical payout
               </Button>
             </div>
@@ -649,7 +650,7 @@ function PreviewPanel({
 
       <ResponsiveTable
         table={
-          <div className="overflow-x-auto rounded-lg border border-border">
+          <div className="ts-table-wrap">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -716,7 +717,7 @@ function PreviewPanel({
       />
 
       {action && (
-        <div className="sticky bottom-0 z-10 -mx-1 border-t border-border bg-background/95 px-1 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="sticky bottom-0 z-10 -mx-1 border-t border-border/70 bg-card/95 px-1 py-4 backdrop-blur supports-[backdrop-filter]:bg-card/90">
           {action}
         </div>
       )}
@@ -757,25 +758,23 @@ function OwedShortlist({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">
-        Owed the most right now
-      </p>
+      <p className="ts-field-label">Owed the most</p>
       {data.affiliates.map((affiliate) => (
         <button
           key={affiliate.id}
           type="button"
           onClick={() => onSelect?.(affiliate.id)}
-          className="flex w-full items-center justify-between gap-3 rounded-lg border border-border px-4 py-3 text-left transition-colors hover:bg-muted/50"
+          className="ts-owed-row"
         >
           <div className="min-w-0">
-            <p className="truncate font-medium">
+            <p className="truncate text-sm font-semibold text-brand-dark">
               {affiliate.displayName ?? affiliate.email}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="mt-0.5 text-xs text-muted-foreground">
               {affiliate.entryCount.toLocaleString()} unpaid sales
             </p>
           </div>
-          <span className="shrink-0 font-semibold text-primary">
+          <span className="shrink-0 text-sm font-bold tabular-nums text-primary">
             {formatCurrency(affiliate.unpaidTotal)}
           </span>
         </button>
@@ -813,9 +812,9 @@ function TargetList({
               onSelect={() => onSelect(parent.key)}
             />
             {children.length > 0 && (
-              <div className="ml-4 space-y-2 border-l-2 border-border pl-4">
-                <p className="text-xs text-muted-foreground">
-                  Or pay for one recruit&apos;s sales only:
+              <div className="ml-3 space-y-2 border-l-2 border-primary/10 pl-4">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  One recruit only
                 </p>
                 {children.map((child) => (
                   <TargetRow
@@ -849,18 +848,16 @@ function TargetRow({
       role="radio"
       onClick={onSelect}
       aria-checked={selected}
-      className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
-        selected
-          ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-          : "border-border hover:border-primary/40 hover:bg-muted/50"
-      }`}
+      className={cn("ts-choice", selected && "ts-choice-selected")}
     >
       <div className="min-w-0">
-        <p className="truncate font-medium">{option.label}</p>
-        <p className="text-xs text-muted-foreground">{option.sublabel}</p>
+        <p className="truncate text-sm font-semibold text-brand-dark">
+          {option.label}
+        </p>
+        <p className="mt-0.5 text-xs text-muted-foreground">{option.sublabel}</p>
       </div>
-      <div className="flex shrink-0 items-center gap-2">
-        <span className="font-semibold text-primary">
+      <div className="flex shrink-0 items-center gap-2.5">
+        <span className="text-sm font-bold tabular-nums text-primary">
           {formatCurrency(option.amount)}
         </span>
         {selected && <Check className="h-4 w-4 text-primary" />}
@@ -891,14 +888,12 @@ function Step({
   last?: boolean;
 }) {
   return (
-    <section className={last ? "" : "border-b border-border pb-6"}>
-      <div className="mb-3 flex items-center gap-2">
-        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-          {number}
-        </span>
-        <h2 className="text-sm font-medium">{title}</h2>
+    <section className={cn("ts-step", !last && "ts-step-divider")}>
+      <div className="flex items-center gap-2.5">
+        <span className="ts-step-num">{number}</span>
+        <h2 className="ts-section-title">{title}</h2>
       </div>
-      {children}
+      <div className="pl-0 sm:pl-[calc(1.75rem+0.625rem)]">{children}</div>
     </section>
   );
 }
@@ -907,7 +902,6 @@ function Chip({
   active,
   onClick,
   children,
-  bare,
 }: {
   active: boolean;
   onClick: () => void;
@@ -919,13 +913,7 @@ function Chip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
-        bare ? "" : "border border-border"
-      } ${
-        active
-          ? "bg-primary text-primary-foreground"
-          : "text-muted-foreground hover:text-foreground"
-      }`}
+      className={cn("ts-chip", active ? "ts-chip-active" : "ts-chip-inactive")}
     >
       {children}
     </button>
@@ -942,9 +930,14 @@ function Figure({
   large?: boolean;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-muted/30 p-3">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`mt-0.5 font-semibold ${large ? "text-xl" : "text-base"}`}>
+    <div className={cn("ts-figure", large && "ts-figure-highlight")}>
+      <p className="ts-figure-label">{label}</p>
+      <p
+        className={cn(
+          "mt-1 font-bold tabular-nums tracking-tight text-brand-dark",
+          large ? "text-xl" : "text-base"
+        )}
+      >
         {value}
       </p>
     </div>

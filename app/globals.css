@@ -155,6 +155,106 @@
   .ts-type-team {
     @apply rounded-full border border-purple-200 bg-purple-50 px-2.5 py-1 text-[11px] font-semibold text-purple-800;
   }
+
+  .ts-panel {
+    @apply ts-card flex flex-col overflow-hidden;
+  }
+
+  .ts-panel-header {
+    @apply border-b border-border/70 bg-muted/30 px-5 py-4 sm:px-6;
+  }
+
+  .ts-panel-body {
+    @apply p-5 sm:p-6;
+  }
+
+  .ts-section-title {
+    @apply text-sm font-semibold tracking-tight text-brand-dark;
+  }
+
+  .ts-field-label {
+    @apply text-[11px] font-semibold uppercase tracking-wider text-muted-foreground;
+  }
+
+  .ts-segment {
+    @apply inline-flex shrink-0 rounded-lg border border-border bg-muted/50 p-0.5;
+  }
+
+  .ts-segment-item {
+    @apply rounded-md px-3 py-1.5 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+  }
+
+  .ts-segment-item-active {
+    @apply bg-card text-brand-dark shadow-xs;
+  }
+
+  .ts-segment-item-inactive {
+    @apply text-muted-foreground hover:text-foreground;
+  }
+
+  .ts-chip {
+    @apply rounded-md border px-2.5 py-1.5 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1;
+  }
+
+  .ts-chip-active {
+    @apply border-primary bg-primary text-primary-foreground shadow-xs;
+  }
+
+  .ts-chip-inactive {
+    @apply border-border/80 bg-card text-muted-foreground hover:border-primary/25 hover:text-foreground;
+  }
+
+  .ts-choice {
+    @apply flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3.5 text-left shadow-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+
+  .ts-choice-selected {
+    @apply border-primary/35 bg-primary-soft shadow-sm ring-1 ring-primary/10;
+  }
+
+  .ts-choice:hover:not(.ts-choice-selected) {
+    @apply border-primary/20 bg-muted/35;
+  }
+
+  .ts-step {
+    @apply space-y-4;
+  }
+
+  .ts-step-divider {
+    @apply border-b border-border/70 pb-6;
+  }
+
+  .ts-step-num {
+    @apply flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary;
+  }
+
+  .ts-figure {
+    @apply rounded-xl border border-border/70 bg-muted/30 p-3.5;
+  }
+
+  .ts-figure-highlight {
+    @apply border-primary/20 bg-primary-soft;
+  }
+
+  .ts-figure-label {
+    @apply text-[11px] font-semibold uppercase tracking-wider text-muted-foreground;
+  }
+
+  .ts-banner {
+    @apply flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/15 bg-primary-soft px-4 py-3 shadow-xs sm:px-5;
+  }
+
+  .ts-owed-row {
+    @apply flex w-full items-center justify-between gap-3 rounded-xl border border-border/80 bg-card px-4 py-3.5 text-left shadow-xs transition-all hover:border-primary/20 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+
+  .ts-input {
+    @apply h-10 rounded-lg border-input bg-card text-sm shadow-xs focus-visible:ring-2;
+  }
+
+  .ts-table-wrap {
+    @apply overflow-hidden rounded-xl border border-border/80;
+  }
 }
 
 @layer utilities {

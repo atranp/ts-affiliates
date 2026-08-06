@@ -84,7 +84,11 @@ function ClickableStatCard({
     <button
       type="button"
       onClick={onClick}
-      className={cn("w-full text-left", className)}
+      className={cn(
+        "w-full rounded-xl text-left transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "hover:shadow-sm active:scale-[0.995]",
+        className
+      )}
     >
       <StatCard {...props} />
     </button>
