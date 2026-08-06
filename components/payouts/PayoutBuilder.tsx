@@ -49,7 +49,7 @@ import type {
   UnpaidAffiliate,
 } from "@/lib/payouts/targets";
 import type { PayoutPreview, TeamSummary } from "@/lib/teams/queries";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatSaleDate } from "@/lib/utils";
 
 type PayoutBuilderProps = {
   affiliateId: string | null;
@@ -59,6 +59,8 @@ type PayoutBuilderProps = {
   selectedAffiliate?: AffiliateOption | null;
   initialTeamId?: string;
   onBatchCreated?: () => void;
+  /** When false, past payouts are shown on the page-level history panel instead. */
+  embedHistory?: boolean;
 };
 
 const PRESETS: Array<{ id: DatePreset; label: string }> = [
@@ -77,6 +79,7 @@ export function PayoutBuilder({
   selectedAffiliate,
   initialTeamId,
   onBatchCreated,
+  embedHistory = true,
 }: PayoutBuilderProps) {
   const [periodStart, setPeriodStart] = useState(() =>
     toDateInputValue(defaultPayoutPeriodStart())
@@ -172,7 +175,7 @@ export function PayoutBuilder({
     refetch: refetchBatches,
   } = useAdminQuery<{ batches: Array<{ id: string; label: string; status: string; teamName: string | null; entryCount: number; totalAmount: number; processedAt: string | null; createdAt: string }> }>(
     ["admin", "payout-batches", affiliateId ?? ""],
-    affiliateId
+    affiliateId && embedHistory
       ? `/api/admin/payouts/batches?sponsorAffiliateId=${affiliateId}`
       : null
   );
@@ -223,7 +226,7 @@ export function PayoutBuilder({
       );
 
       toast.success(`Payout created: ${result.label}`, {
-        description: `${result.entryCount.toLocaleString("en-US")} sales recorded. Mark it paid once you've sent the money.`,
+        description: `${result.entryCount.toLocaleString("en-US")} sales recorded. Confirm sent once you've transferred the money.`,
       });
       setConfirmOpen(false);
       setTargetKey(null);
@@ -243,7 +246,7 @@ export function PayoutBuilder({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ paid }),
       });
-      toast.success(paid ? "Marked as paid" : "Moved back to awaiting payment");
+      toast.success(paid ? "Confirmed sent" : "Moved back to awaiting payment");
       await refreshAll();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not update payout");
@@ -423,8 +426,6 @@ export function PayoutBuilder({
               <PreviewPanel
                 preview={preview}
                 exportHref={`/api/admin/payouts/preview/export?${previewParams}`}
-                // The action sits above the sales table: with up to 100 rows,
-                // putting it below would hide it behind a long scroll.
                 action={
                   <div className="flex flex-wrap items-center gap-3">
                     <Button
@@ -433,12 +434,12 @@ export function PayoutBuilder({
                       onClick={() => setConfirmOpen(true)}
                     >
                       <Check className="mr-2 h-4 w-4" />
-                      Create payout ·{" "}
+                      Record payout ·{" "}
                       {formatCurrency(preview.totals.grandTotal)}
                     </Button>
                     <p className="text-xs text-muted-foreground">
                       Records what {displayName ?? "this affiliate"} is owed.
-                      Mark it paid after you send the money.
+                      Confirm sent after you transfer the money.
                     </p>
                   </div>
                 }
@@ -446,6 +447,20 @@ export function PayoutBuilder({
             )}
           </Step>
 
+          {!embedHistory && affiliateId && (
+            <div className="flex justify-end border-t border-border pt-4">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setRecordOpen(true)}
+              >
+                <Clock className="mr-2 h-4 w-4" />
+                Record historical payout
+              </Button>
+            </div>
+          )}
+
+          {embedHistory && (
           <section className="space-y-3 border-t border-border pt-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-sm font-medium">
@@ -504,8 +519,8 @@ export function PayoutBuilder({
                         }
                       >
                         {isPayoutPaid(batch.status)
-                          ? "Mark unpaid"
-                          : "Mark paid"}
+                          ? "Undo sent"
+                          : "Confirm sent"}
                       </Button>
                       <Button
                         size="sm"
@@ -524,18 +539,19 @@ export function PayoutBuilder({
               </div>
             )}
           </section>
+          )}
         </>
       )}
 
       <ConfirmDialog
         open={confirmOpen}
-        title="Create this payout?"
+        title="Record this payout?"
         description={
           preview && target
-            ? `Records ${preview.totals.entryCount.toLocaleString("en-US")} sales (${formatCurrency(preview.totals.grandTotal)}) for ${target.label}. ${displayName ?? "The affiliate"} will see it as awaiting payment until you mark it paid. You can delete it if it's wrong.`
+            ? `Records ${preview.totals.entryCount.toLocaleString("en-US")} sales (${formatCurrency(preview.totals.grandTotal)}) for ${target.label}. ${displayName ?? "The affiliate"} will see it as awaiting payment until you confirm sent. You can delete it from the detail page if it's wrong.`
             : ""
         }
-        confirmLabel="Create payout"
+        confirmLabel="Record payout"
         loading={running}
         onConfirm={runPayout}
         onCancel={() => {
@@ -620,8 +636,6 @@ function PreviewPanel({
         />
       </div>
 
-      {action}
-
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
         <p className="text-xs text-muted-foreground">
           {preview.entriesTruncated
@@ -703,17 +717,14 @@ function PreviewPanel({
           </DataCardList>
         }
       />
+
+      {action && (
+        <div className="sticky bottom-0 z-10 -mx-1 border-t border-border bg-background/95 px-1 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          {action}
+        </div>
+      )}
     </div>
   );
-}
-
-function formatSaleDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "UTC",
-  });
 }
 
 function entryRate(entry: { amount: number; orderRevenue: number | null }) {

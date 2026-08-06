@@ -9,7 +9,7 @@ import {
   AWAITING_PAYMENT,
   effectiveLedgerStatus,
 } from "@/lib/payouts/status";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency, formatSaleDate, cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
   DataCard,
@@ -107,11 +107,7 @@ export function LedgerTable({
           <DataCard key={entry.id}>
             <DataCardHeader
               title={details}
-              subtitle={new Date(entry.occurredAt).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
+              subtitle={formatSaleDate(entry.occurredAt)}
               value={
                 <span className={affiliateView ? amountClass(status) : undefined}>
                   {formatCurrency(entry.amount)}
@@ -128,7 +124,7 @@ export function LedgerTable({
                 {formatCommissionStatus(status)}
               </Badge>
               <span>{formatCommissionType(entry.type)}</span>
-              {!affiliateView && entry.wooOrderId && (
+              {entry.wooOrderId && !details.includes(`#${entry.wooOrderId}`) && (
                 <span>Order #{entry.wooOrderId}</span>
               )}
               {showDetails && entry.payoutWeek && (
@@ -179,11 +175,7 @@ export function LedgerTable({
               className="text-xs hover:bg-muted/80"
             >
               <TableCell className="whitespace-nowrap font-medium">
-                {new Date(entry.occurredAt).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
+                {formatSaleDate(entry.occurredAt)}
               </TableCell>
               <TableCell>
                 {affiliateView ? (

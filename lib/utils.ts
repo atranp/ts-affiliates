@@ -13,6 +13,20 @@ export function formatCurrency(value: number | string) {
   }).format(num);
 }
 
+/**
+ * Sale dates are stored as UTC instants and payout periods are matched in UTC,
+ * so render them in UTC too. Using the viewer's timezone would show a sale on a
+ * different day than the payout run that included it.
+ */
+export function formatSaleDate(value: string | Date) {
+  return new Date(value).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 export function toNumber(value: unknown): number {
   if (value === null || value === undefined) return 0;
   const num = typeof value === "number" ? value : parseFloat(String(value));

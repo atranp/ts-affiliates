@@ -1,8 +1,28 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-auth";
 import { listPayoutBatchesForSponsor } from "@/lib/payouts/queries";
+import { prisma } from "@/lib/prisma";
 import { listPayoutBatches } from "@/lib/teams/queries";
 import { toNumber } from "@/lib/utils";
+
+async function sponsorNameMap(ids: Array<string | null>) {
+  const unique = Array.from(
+    new Set(ids.filter((id): id is string => !!id))
+  );
+  if (unique.length === 0) return new Map<string, string>();
+
+  const affiliates = await prisma.affiliate.findMany({
+    where: { id: { in: unique } },
+    select: { id: true, displayName: true, email: true },
+  });
+
+  return new Map(
+    affiliates.map((affiliate) => [
+      affiliate.id,
+      affiliate.displayName ?? affiliate.email,
+    ])
+  );
+}
 
 export async function GET(request: Request) {
   const auth = await requireAdmin();
@@ -17,6 +37,7 @@ export async function GET(request: Request) {
   }
 
   const batches = await listPayoutBatches(50);
+  const names = await sponsorNameMap(batches.map((batch) => batch.sponsorAffiliateId));
 
   return NextResponse.json({
     batches: batches.map((batch) => ({
@@ -30,6 +51,9 @@ export async function GET(request: Request) {
       teamId: batch.teamId,
       teamName: batch.team?.name ?? null,
       sponsorAffiliateId: batch.sponsorAffiliateId,
+      sponsorName: batch.sponsorAffiliateId
+        ? (names.get(batch.sponsorAffiliateId) ?? null)
+        : null,
       entryCount: batch._count.ledgerEntries,
       affiliateCount: batch.items.length,
       totalAmount: batch.items.reduce(

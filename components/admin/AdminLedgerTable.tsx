@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatSaleDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -294,7 +294,7 @@ export function AdminLedgerTable({
                   />
                 </TableCell>
                 <TableCell className="whitespace-nowrap">
-                  {new Date(entry.occurredAt).toLocaleDateString("en-US")}
+                  {formatSaleDate(entry.occurredAt)}
                 </TableCell>
                 <TableCell>
                   <EntryTypeBadge type={entry.type} />
@@ -365,7 +365,7 @@ export function AdminLedgerTable({
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">
-                      {new Date(entry.occurredAt).toLocaleDateString("en-US")}
+                      {formatSaleDate(entry.occurredAt)}
                     </p>
                     <EntryTypeBadge type={entry.type} />
                   </div>

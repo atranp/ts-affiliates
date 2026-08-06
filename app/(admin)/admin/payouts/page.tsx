@@ -2,71 +2,33 @@
 
 import { Suspense, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { toast } from "sonner";
-import { History, Users } from "lucide-react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import type { AffiliateOption } from "@/components/admin/AffiliateSearchCombobox";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { TableSkeleton } from "@/components/admin/TableSkeleton";
 import { PayoutBuilder } from "@/components/payouts/PayoutBuilder";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
-  DataCard,
-  DataCardHeader,
-  DataCardList,
-  DataCardMeta,
-  ResponsiveTable,
-} from "@/components/ui/data-cards";
+  PayoutHistoryPanel,
+  type PayoutBatchRow,
+} from "@/components/payouts/PayoutHistoryPanel";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { adminMutate, useAdminQuery } from "@/hooks/use-admin-query";
+  PayoutStatsCards,
+  type PayoutStatusFilter,
+} from "@/components/payouts/PayoutStatsCards";
+import { SelectedAffiliateBanner } from "@/components/payouts/SelectedAffiliateBanner";
+import { useAdminQuery } from "@/hooks/use-admin-query";
 import type { AdminAffiliateDetail } from "@/lib/admin/types";
-import { isPayoutPaid, payoutStatusLabel } from "@/lib/payouts/status";
-import { formatCurrency } from "@/lib/utils";
-
-type PayoutBatchListItem = {
-  id: string;
-  label: string;
-  status: string;
-  processedAt: string | null;
-  createdAt: string;
-  teamName: string | null;
-  entryCount: number;
-  affiliateCount: number;
-  totalAmount: number;
-};
-
-function batchCounts(batch: PayoutBatchListItem) {
-  const sales = `${batch.entryCount.toLocaleString("en-US")} sales`;
-  const people = `${batch.affiliateCount} ${batch.affiliateCount === 1 ? "affiliate" : "affiliates"}`;
-  return `${sales} · ${people}`;
-}
-
-/** Mobile has no Team column, so it gets folded into the subtitle instead. */
-function batchSummary(batch: PayoutBatchListItem) {
-  return batch.teamName
-    ? `${batch.teamName} · ${batchCounts(batch)}`
-    : batchCounts(batch);
-}
+import type { PayoutAdminStats } from "@/lib/payouts/admin-stats";
 
 export default function AdminPayoutsPage() {
   return (
     <Suspense
-      fallback={<p className="text-muted-foreground p-6">Loading payouts...</p>}
+      fallback={
+        <div className="space-y-6 p-6">
+          <div className="h-8 w-48 animate-pulse rounded bg-muted" />
+          <TableSkeleton columns={4} rows={2} />
+        </div>
+      }
     >
       <AdminPayoutsPageContent />
     </Suspense>
@@ -80,7 +42,17 @@ function AdminPayoutsPageContent() {
 
   const sponsorId = searchParams.get("sponsorAffiliateId") ?? "";
   const initialTeamId = searchParams.get("teamId") ?? undefined;
-  const [markingId, setMarkingId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<PayoutStatusFilter>("all");
+  const [search, setSearch] = useState("");
+
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    refetch: refetchStats,
+  } = useAdminQuery<PayoutAdminStats>(
+    ["admin", "payout-stats"],
+    "/api/admin/payouts/stats"
+  );
 
   const {
     data: sponsor,
@@ -96,13 +68,11 @@ function AdminPayoutsPageContent() {
     data: batchesData,
     isLoading: batchesLoading,
     refetch: refetchBatches,
-  } = useAdminQuery<{ batches: PayoutBatchListItem[] }>(
+  } = useAdminQuery<{ batches: PayoutBatchRow[] }>(
     ["admin", "payout-batches"],
     "/api/admin/payouts/batches"
   );
 
-  // Keeping the sponsor in the URL makes this page refreshable and linkable,
-  // which is what the teams page relies on.
   function selectSponsor(id: string) {
     const next = new URLSearchParams();
     if (id) next.set("sponsorAffiliateId", id);
@@ -112,21 +82,12 @@ function AdminPayoutsPageContent() {
     });
   }
 
-  async function markPaid(batchId: string) {
-    setMarkingId(batchId);
-    try {
-      await adminMutate(`/api/admin/payouts/batches/${batchId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paid: true }),
-      });
-      toast.success("Marked as paid");
-      await refetchBatches();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not update payout");
-    } finally {
-      setMarkingId(null);
-    }
+  function clearSponsor() {
+    selectSponsor("");
+  }
+
+  async function refreshAll() {
+    await Promise.all([refetchStats(), refetchSponsor(), refetchBatches()]);
   }
 
   const selectedOption: AffiliateOption | null = sponsor
@@ -139,21 +100,36 @@ function AdminPayoutsPageContent() {
       }
     : null;
 
+  const sponsorDisplayName =
+    sponsor?.displayName ?? sponsor?.email ?? "Selected affiliate";
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Payouts"
-        description="Record what an affiliate is owed, then mark it paid once you've sent the money."
+        description="Record what ambassadors are owed, then confirm once money is sent."
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Create payout
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <PayoutStatsCards
+        stats={stats}
+        loading={statsLoading}
+        onFilter={setStatusFilter}
+        onShowOwed={clearSponsor}
+      />
+
+      {sponsorId && sponsor && (
+        <SelectedAffiliateBanner
+          displayName={sponsorDisplayName}
+          unpaidTotal={sponsor.ledger.unpaidTotal}
+          onClear={clearSponsor}
+        />
+      )}
+
+      <div className="grid gap-6 xl:grid-cols-2 xl:items-start">
+        <div className="ts-card p-5">
+          <h2 className="mb-4 text-base font-semibold text-brand-dark">
+            Record payout
+          </h2>
           {sponsorId && sponsorError ? (
             <ErrorState
               message={sponsorError.message}
@@ -168,130 +144,27 @@ function AdminPayoutsPageContent() {
               selectedAffiliate={selectedOption}
               onAffiliateChange={selectSponsor}
               initialTeamId={initialTeamId}
+              embedHistory={false}
               onBatchCreated={() => {
-                void refetchSponsor();
-                void refetchBatches();
+                void refreshAll();
               }}
             />
           )}
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* While a sponsor is selected the builder already lists their payouts
-          with actions, so this cross-affiliate view would only repeat it. */}
-      {!sponsorId && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <History className="h-5 w-5" />
-              All payouts
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {batchesLoading && <TableSkeleton columns={4} rows={6} />}
-            {!batchesLoading && batchesData?.batches.length === 0 && (
-              <p className="text-sm text-muted-foreground">No payouts yet.</p>
-            )}
-            {!batchesLoading && batchesData && batchesData.batches.length > 0 && (
-              <ResponsiveTable
-                table={
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Payout</TableHead>
-                        <TableHead>Team</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="w-0" />
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {batchesData.batches.map((batch) => (
-                        <TableRow key={batch.id}>
-                          <TableCell>
-                            <Link
-                              href={`/admin/payouts/${batch.id}`}
-                              className="font-medium hover:text-primary hover:underline"
-                            >
-                              {batch.label}
-                            </Link>
-                            <p className="text-xs text-muted-foreground">
-                              {batchCounts(batch)}
-                            </p>
-                          </TableCell>
-                          <TableCell>
-                            {batch.teamName ?? (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-right font-medium tabular-nums">
-                            {formatCurrency(batch.totalAmount)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                isPayoutPaid(batch.status) ? "paid" : "pending"
-                              }
-                            >
-                              {payoutStatusLabel(batch.status)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {!isPayoutPaid(batch.status) && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                disabled={markingId === batch.id}
-                                onClick={() => markPaid(batch.id)}
-                              >
-                                Mark paid
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                }
-                cards={
-                  <DataCardList>
-                    {batchesData.batches.map((batch) => (
-                      <DataCard key={batch.id}>
-                        <Link href={`/admin/payouts/${batch.id}`}>
-                          <DataCardHeader
-                            title={batch.label}
-                            subtitle={batchSummary(batch)}
-                            value={formatCurrency(batch.totalAmount)}
-                          />
-                        </Link>
-                        <DataCardMeta className="justify-between">
-                          <Badge
-                            variant={
-                              isPayoutPaid(batch.status) ? "paid" : "pending"
-                            }
-                          >
-                            {payoutStatusLabel(batch.status)}
-                          </Badge>
-                          {!isPayoutPaid(batch.status) && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={markingId === batch.id}
-                              onClick={() => markPaid(batch.id)}
-                            >
-                              Mark paid
-                            </Button>
-                          )}
-                        </DataCardMeta>
-                      </DataCard>
-                    ))}
-                  </DataCardList>
-                }
-              />
-            )}
-          </CardContent>
-        </Card>
-      )}
+        <PayoutHistoryPanel
+          batches={batchesData?.batches ?? []}
+          loading={batchesLoading}
+          sponsorAffiliateId={sponsorId || undefined}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          search={search}
+          onSearchChange={setSearch}
+          onRefresh={() => {
+            void refreshAll();
+          }}
+        />
+      </div>
     </div>
   );
 }

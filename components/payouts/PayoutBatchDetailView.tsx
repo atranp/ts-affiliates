@@ -20,14 +20,10 @@ import {
 } from "@/components/ui/table";
 import { isPayoutPaid, payoutStatusLabel } from "@/lib/payouts/status";
 import type { PayoutBatchDetail } from "@/lib/payouts/types";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatSaleDate } from "@/lib/utils";
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return formatSaleDate(iso);
 }
 
 /** Rounded to one decimal so a 10% rule reads as "10%", not "9.9987%". */
@@ -249,7 +245,10 @@ export function PayoutBatchDetailView({
                     >
                       {entry.type === "OVERRIDE" ? "Bonus" : "Direct"}
                     </Badge>
-                    {entry.wooOrderId && <span>Order #{entry.wooOrderId}</span>}
+                    {entry.wooOrderId &&
+                      !entryDetails(entry).includes(`#${entry.wooOrderId}`) && (
+                        <span>Order #{entry.wooOrderId}</span>
+                      )}
                   </DataCardMeta>
                 </DataCard>
               ))}

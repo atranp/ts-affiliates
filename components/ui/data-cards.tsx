@@ -81,7 +81,9 @@ export function DataCardHeader({
   return (
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0 flex-1">
-        <div className="truncate font-medium text-foreground">{title}</div>
+        {/* Wraps rather than truncates: these titles end in the order number,
+            which is the part someone is usually looking for. */}
+        <div className="line-clamp-2 font-medium text-foreground">{title}</div>
         {subtitle && (
           <div className="truncate text-xs text-muted-foreground">
             {subtitle}
