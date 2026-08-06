@@ -10,17 +10,12 @@ import { LedgerTable } from "@/components/LedgerTable";
 import { TeamsPanel, useTeams } from "@/components/TeamsPanel";
 import { TeamPanel, useTeam } from "@/components/TeamPanel";
 import { ErrorState } from "@/components/admin/ErrorState";
-import { PartnerTabRail } from "@/components/layout/PartnerTabRail";
 import {
   CheckCircle2,
   ChevronRight,
   Clock,
-  CreditCard,
   DollarSign,
-  LayoutDashboard,
-  Receipt,
   Search,
-  Users,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -214,38 +209,7 @@ function DashboardPageContent() {
 
       {data && (
         <Tabs value={viewTab} onValueChange={setViewTab}>
-          <PartnerTabRail
-            activeTab={viewTab}
-            onTabChange={setViewTab}
-            tabs={[
-              {
-                id: "overview",
-                label: AFFILIATE_COPY.tabs.home,
-                icon: LayoutDashboard,
-              },
-              {
-                id: "ledger",
-                label: AFFILIATE_COPY.tabs.commissions,
-                icon: Receipt,
-              },
-              {
-                id: "teams",
-                label: AFFILIATE_COPY.tabs.team,
-                icon: Users,
-                suffix:
-                  teamsData?.teams && teamsData.teams.length > 0
-                    ? ` · ${teamsData.teams.length}`
-                    : undefined,
-              },
-              {
-                id: "payouts",
-                label: AFFILIATE_COPY.tabs.payouts,
-                icon: CreditCard,
-              },
-            ]}
-          />
-
-          <TabsContent value="overview" className="mt-6 space-y-6">
+          <TabsContent value="overview" className="space-y-6">
             <div>
               <h1 className="page-title">
                 {displayName ? `Welcome, ${displayName}` : "Welcome"}
@@ -438,7 +402,7 @@ function DashboardPageContent() {
             ) : null}
           </TabsContent>
 
-          <TabsContent value="ledger" className="mt-6 space-y-6">
+          <TabsContent value="ledger" className="space-y-6">
             <div>
               <h1 className="page-title">Commissions Ledger</h1>
               <p className="page-description">
@@ -595,7 +559,7 @@ function DashboardPageContent() {
             </div>
           </TabsContent>
 
-          <TabsContent value="teams" className="mt-6 space-y-6">
+          <TabsContent value="teams" className="space-y-6">
             <div>
               <h1 className="page-title">Your Team Roster</h1>
               <p className="page-description">
@@ -627,7 +591,7 @@ function DashboardPageContent() {
             )}
           </TabsContent>
 
-          <TabsContent value="payouts" className="mt-6 space-y-6">
+          <TabsContent value="payouts" className="space-y-6">
             <div>
               <h1 className="page-title">Payout History</h1>
               <p className="page-description">

@@ -4,14 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, KeyRound, LogOut, Menu, X } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
-import { BrandMark } from "@/components/layout/BrandMark";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 
 export type AppShellVariant = "partner" | "admin";
 
 type AppShellProps = {
   homeHref: string;
-  portalLabel: string;
+  portalLabel?: string;
   portalBadge?: string;
   variant?: AppShellVariant;
   syncBanner?: React.ReactNode;
@@ -51,29 +50,22 @@ export function AppShell({
 
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           <Link href={homeHref} className="min-w-0 flex-1">
-            <div className="flex items-center gap-2.5">
-              <BrandMark />
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="truncate text-base font-bold leading-none tracking-tight text-brand-dark sm:text-lg">
-                    TRUE SCIENCES
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="truncate text-base font-bold leading-none tracking-tight text-brand-dark sm:text-lg">
+                  TRUE SCIENCES
+                </span>
+                {portalBadge && (
+                  <span className="hidden rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary sm:inline">
+                    {portalBadge}
                   </span>
-                  {portalBadge && (
-                    <span className="hidden rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary sm:inline">
-                      {portalBadge}
-                    </span>
-                  )}
-                </div>
-                <div className="mt-0.5 flex items-center gap-2">
-                  <span className="truncate text-xs font-medium text-muted-foreground">
-                    {portalLabel}
-                  </span>
-                  <span className="hidden text-slate-300 md:inline">•</span>
-                  <span className="hidden text-[11px] font-medium italic text-brand md:inline">
-                    Premium Research · Simple Pricing
-                  </span>
-                </div>
+                )}
               </div>
+              {portalLabel && (
+                <p className="mt-0.5 truncate text-xs font-medium text-muted-foreground">
+                  {portalLabel}
+                </p>
+              )}
             </div>
           </Link>
 
