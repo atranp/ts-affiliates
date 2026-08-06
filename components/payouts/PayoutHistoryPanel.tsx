@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { Download, History, Search } from "lucide-react";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { TableSkeleton } from "@/components/admin/TableSkeleton";
-import type { PayoutStatusFilter } from "@/components/payouts/PayoutStatsCards";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +28,8 @@ import { adminMutate } from "@/hooks/use-admin-query";
 import { isPayoutPaid, payoutStatusLabel } from "@/lib/payouts/status";
 import { formatAppDate } from "@/lib/timezone";
 import { cn, formatCurrency } from "@/lib/utils";
+
+export type PayoutStatusFilter = "all" | "awaiting" | "paid";
 
 export type PayoutBatchRow = {
   id: string;

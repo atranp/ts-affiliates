@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/api-auth";
 import { jsonCached } from "@/lib/api-cache";
 import { prisma } from "@/lib/prisma";
 import { encryptOptional } from "@/lib/encryption";
+import { getSettings } from "@/lib/settings";
 
 export async function GET() {
   const auth = await requireAdmin();
@@ -11,8 +12,10 @@ export async function GET() {
   const settings = await prisma.settings.findUnique({
     where: { id: "default" },
   });
+  const resolved = await getSettings();
 
   return jsonCached({
+    wcStoreUrl: resolved.wcStoreUrl || null,
     hasWooCommerce:
       !!settings?.wcStoreUrlEncrypted && !!settings?.wcConsumerKeyEncrypted,
     hasSliceWP:

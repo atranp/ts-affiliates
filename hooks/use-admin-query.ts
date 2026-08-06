@@ -30,6 +30,7 @@ export type DealRuleListItem = {
 };
 
 export type SettingsResponse = {
+  wcStoreUrl: string | null;
   hasWooCommerce: boolean;
   hasSliceWP: boolean;
   lastAffiliateSyncAt: string | null;

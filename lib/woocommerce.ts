@@ -5,6 +5,12 @@ import {
   readApiError,
 } from "./wordpress-auth";
 
+/** WooCommerce admin edit screen (HPOS). */
+export function wooOrderAdminUrl(storeUrl: string, orderId: number): string {
+  const base = normalizeStoreUrl(storeUrl);
+  return `${base}/wp-admin/admin.php?page=wc-orders&action=edit&id=${orderId}`;
+}
+
 export interface WooOrder {
   id: number;
   total: string;

@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { WooOrderLink } from "@/components/admin/WooOrderLink";
 import { LEDGER_STATUSES } from "@/lib/ledger/statuses";
 import { isPayoutPaid } from "@/lib/payouts/status";
 import { Pencil, Plus } from "lucide-react";
@@ -301,7 +302,11 @@ export function AdminLedgerTable({
                   {entryDetails(entry)}
                 </TableCell>
                 <TableCell className="whitespace-nowrap tabular-nums">
-                  {entry.wooOrderId ? `#${entry.wooOrderId}` : "—"}
+                  {entry.wooOrderId ? (
+                    <WooOrderLink orderId={entry.wooOrderId} stopPropagation />
+                  ) : (
+                    "—"
+                  )}
                 </TableCell>
                 <TableCell className="whitespace-nowrap text-right tabular-nums">
                   {entry.orderRevenue
@@ -386,7 +391,9 @@ export function AdminLedgerTable({
                   {entryDetails(entry)}
                 </p>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                  {entry.wooOrderId && <span>Order #{entry.wooOrderId}</span>}
+                  {entry.wooOrderId && (
+                    <WooOrderLink orderId={entry.wooOrderId} className="text-xs" />
+                  )}
                   {entry.orderRevenue && (
                     <span>Sale {formatCurrency(entry.orderRevenue)}</span>
                   )}

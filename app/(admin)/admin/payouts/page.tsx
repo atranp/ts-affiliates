@@ -11,15 +11,11 @@ import { PayoutBuilder } from "@/components/payouts/PayoutBuilder";
 import {
   PayoutHistoryPanel,
   type PayoutBatchRow,
-} from "@/components/payouts/PayoutHistoryPanel";
-import {
-  PayoutStatsCards,
   type PayoutStatusFilter,
-} from "@/components/payouts/PayoutStatsCards";
+} from "@/components/payouts/PayoutHistoryPanel";
 import { SelectedAffiliateBanner } from "@/components/payouts/SelectedAffiliateBanner";
 import { useAdminQuery } from "@/hooks/use-admin-query";
 import type { AdminAffiliateDetail } from "@/lib/admin/types";
-import type { PayoutAdminStats } from "@/lib/payouts/admin-stats";
 
 export default function AdminPayoutsPage() {
   return (
@@ -27,10 +23,9 @@ export default function AdminPayoutsPage() {
       fallback={
         <div className="space-y-8">
           <div className="h-9 w-40 animate-pulse rounded-lg bg-muted" />
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-28 animate-pulse rounded-xl bg-muted" />
-            ))}
+          <div className="grid gap-6 xl:grid-cols-2">
+            <div className="h-96 animate-pulse rounded-xl bg-muted" />
+            <div className="h-96 animate-pulse rounded-xl bg-muted" />
           </div>
         </div>
       }
@@ -49,15 +44,6 @@ function AdminPayoutsPageContent() {
   const initialTeamId = searchParams.get("teamId") ?? undefined;
   const [statusFilter, setStatusFilter] = useState<PayoutStatusFilter>("all");
   const [search, setSearch] = useState("");
-
-  const {
-    data: stats,
-    isLoading: statsLoading,
-    refetch: refetchStats,
-  } = useAdminQuery<PayoutAdminStats>(
-    ["admin", "payout-stats"],
-    "/api/admin/payouts/stats"
-  );
 
   const {
     data: sponsor,
@@ -92,7 +78,7 @@ function AdminPayoutsPageContent() {
   }
 
   async function refreshAll() {
-    await Promise.all([refetchStats(), refetchSponsor(), refetchBatches()]);
+    await Promise.all([refetchSponsor(), refetchBatches()]);
   }
 
   const selectedOption: AffiliateOption | null = sponsor
@@ -113,13 +99,6 @@ function AdminPayoutsPageContent() {
       <PageHeader
         title="Payouts"
         description="Record what ambassadors are owed, then confirm once money is sent."
-      />
-
-      <PayoutStatsCards
-        stats={stats}
-        loading={statsLoading}
-        onFilter={setStatusFilter}
-        onShowOwed={clearSponsor}
       />
 
       {sponsorId && sponsor && (

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { WooOrderLink } from "@/components/admin/WooOrderLink";
 import {
   DataCard,
   DataCardHeader,
@@ -197,7 +198,15 @@ export function PayoutBatchDetailView({
                         {entryDetails(entry)}
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-sm tabular-nums">
-                        {entry.wooOrderId ? `#${entry.wooOrderId}` : "—"}
+                        {entry.wooOrderId ? (
+                          adminView ? (
+                            <WooOrderLink orderId={entry.wooOrderId} />
+                          ) : (
+                            `#${entry.wooOrderId}`
+                          )
+                        ) : (
+                          "—"
+                        )}
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">
                         {entry.orderRevenue == null
@@ -246,9 +255,15 @@ export function PayoutBatchDetailView({
                       {entry.type === "OVERRIDE" ? "Bonus" : "Direct"}
                     </Badge>
                     {entry.wooOrderId &&
-                      !entryDetails(entry).includes(`#${entry.wooOrderId}`) && (
+                      !entryDetails(entry).includes(`#${entry.wooOrderId}`) &&
+                      (adminView ? (
+                        <WooOrderLink
+                          orderId={entry.wooOrderId}
+                          className="text-xs"
+                        />
+                      ) : (
                         <span>Order #{entry.wooOrderId}</span>
-                      )}
+                      ))}
                   </DataCardMeta>
                 </DataCard>
               ))}

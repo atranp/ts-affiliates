@@ -9,6 +9,7 @@ import {
   type AffiliateOption,
 } from "@/components/admin/AffiliateSearchCombobox";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { WooOrderLink } from "@/components/admin/WooOrderLink";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { PayoutDateRangeFields } from "@/components/payouts/PayoutDateRangeFields";
@@ -672,7 +673,11 @@ function PreviewPanel({
                       {entry.sourceAffiliateName ?? "Direct sale"}
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-sm tabular-nums">
-                      {entry.wooOrderId ? `#${entry.wooOrderId}` : "—"}
+                      {entry.wooOrderId ? (
+                        <WooOrderLink orderId={entry.wooOrderId} />
+                      ) : (
+                        "—"
+                      )}
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">
                       {entry.orderRevenue == null
@@ -707,7 +712,7 @@ function PreviewPanel({
                 />
                 {entry.wooOrderId && (
                   <DataCardMeta>
-                    <span>Order #{entry.wooOrderId}</span>
+                    <WooOrderLink orderId={entry.wooOrderId} className="text-xs" />
                   </DataCardMeta>
                 )}
               </DataCard>
