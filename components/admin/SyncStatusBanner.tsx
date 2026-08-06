@@ -1,11 +1,12 @@
 "use client";
 
-import { CheckCircle2, RefreshCw } from "lucide-react";
+import { AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   syncStepLabel,
   type SyncStatus,
 } from "@/hooks/use-sync-status";
+import { describeSyncError } from "@/lib/sync-errors";
 
 function formatSyncTime(iso: string | null) {
   if (!iso) return "Never";
@@ -29,6 +30,8 @@ export function SyncStatusBanner({
   variant = "card",
 }: SyncStatusBannerProps) {
   if (!status) return null;
+
+  const syncError = describeSyncError(status.lastSyncError);
 
   if (variant === "header") {
     if (status.running) {
@@ -69,8 +72,14 @@ export function SyncStatusBanner({
               {formatSyncTime(status.lastCommissionSyncAt)}
             </strong>
           </span>
-          {status.lastSyncError && (
-            <span className="text-destructive">{status.lastSyncError}</span>
+          {syncError && (
+            <span
+              className="flex items-center gap-1.5 font-medium text-destructive"
+              title={syncError.detail ?? undefined}
+            >
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              {syncError.message}
+            </span>
           )}
         </div>
         <button
@@ -113,9 +122,13 @@ export function SyncStatusBanner({
             {formatSyncTime(status.lastCommissionSyncAt)}
           </span>
         </p>
-        {status.lastSyncError && (
-          <p className="mt-1 text-xs leading-relaxed text-destructive">
-            {status.lastSyncError}
+        {syncError && (
+          <p
+            className="mt-1 flex items-start gap-1.5 text-xs leading-relaxed text-destructive"
+            title={syncError.detail ?? undefined}
+          >
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            {syncError.message}
           </p>
         )}
         {!status.hasSliceWP && (

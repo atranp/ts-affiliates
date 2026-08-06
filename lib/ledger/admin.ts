@@ -13,7 +13,7 @@ const ledgerInclude = {
     select: { id: true, name: true },
   },
   payoutBatch: {
-    select: { id: true, label: true },
+    select: { id: true, label: true, status: true },
   },
 } as const;
 

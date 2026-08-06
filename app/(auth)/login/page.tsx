@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowRight, Lock, Mail } from "lucide-react";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { BrandMark } from "@/components/layout/BrandMark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NEXT_PARAM, safeNextPath } from "@/lib/routes";
 
 const blockMessages: Record<string, string> = {
   NO_PROFILE: "Your account is not set up. Contact an administrator.",
@@ -16,10 +17,12 @@ const blockMessages: Record<string, string> = {
     "Your affiliate account is not active. Contact an administrator.",
 };
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -30,7 +33,7 @@ export default function LoginPage() {
 
     const supabase = createClient();
     const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
+      email: email.trim(),
       password,
     });
 
@@ -61,13 +64,16 @@ export default function LoginPage() {
 
     await supabase.auth.refreshSession();
 
+    // Leave the button in its loading state: this component stays mounted
+    // until the route transition finishes, and resetting it here makes the
+    // form look idle mid-navigation and invites a second submit.
     if (me?.mustChangePassword) {
       router.push("/account/change-password");
     } else {
-      router.push(me?.role === "ADMIN" ? "/admin" : "/dashboard");
+      const next = safeNextPath(searchParams.get(NEXT_PARAM));
+      router.push(next ?? (me?.role === "ADMIN" ? "/admin" : "/dashboard"));
     }
     router.refresh();
-    setLoading(false);
   };
 
   return (
@@ -88,7 +94,13 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/*
+          method="post" is a safety net, not a real endpoint: if this form is
+          ever submitted before hydration attaches the handler below, a default
+          GET would put the password in the URL, browser history, and access
+          logs. POST keeps the credentials in the request body.
+        */}
+        <form onSubmit={handleSubmit} method="post" className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="email" className="text-xs font-semibold">
               Email Address
@@ -97,11 +109,17 @@ export default function LoginPage() {
               <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="email"
+                name="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="rounded-lg pl-9"
                 placeholder="name@company.com"
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                autoFocus
                 required
               />
             </div>
@@ -115,16 +133,37 @@ export default function LoginPage() {
               <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="password"
-                type="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="rounded-lg pl-9"
+                className="rounded-lg pl-9 pr-10"
+                autoComplete="current-password"
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((shown) => !shown)}
+                className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
             </div>
           </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && (
+            <p
+              role="alert"
+              className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+            >
+              {error}
+            </p>
+          )}
 
           <Button
             type="submit"
@@ -137,12 +176,24 @@ export default function LoginPage() {
         </form>
 
         <div className="border-t border-border pt-4 text-center text-[11px] text-muted-foreground">
-          <p>True Sciences Research Products · Partner Network</p>
+          <p>
+            Trouble signing in? Contact your True Sciences administrator to
+            reset your password.
+          </p>
+          <p className="mt-2">True Sciences Research Products · Partner Network</p>
           <p className="mt-0.5 text-[10px] italic text-brand">
             Premium Research · Simple Pricing
           </p>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }

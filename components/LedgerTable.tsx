@@ -5,6 +5,10 @@ import {
   formatCommissionType,
   AFFILIATE_COPY,
 } from "@/lib/affiliate/copy";
+import {
+  AWAITING_PAYMENT,
+  effectiveLedgerStatus,
+} from "@/lib/payouts/status";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -32,20 +36,22 @@ type LedgerEntry = {
     email: string;
   } | null;
   dealRule?: { id: string; name: string } | null;
+  payoutBatch?: { id: string; label: string; status: string } | null;
 };
 
 function statusVariant(
   status: string
 ): "paid" | "pending" | "unpaid" | "secondary" {
   if (status === "PAID") return "paid";
-  if (status === "PENDING") return "pending";
+  if (status === "PENDING" || status === AWAITING_PAYMENT) return "pending";
   if (status === "UNPAID") return "unpaid";
   return "secondary";
 }
 
 function amountClass(status: string): string {
   if (status === "PAID") return "text-emerald-700";
-  if (status === "PENDING") return "text-amber-700";
+  if (status === "PENDING" || status === AWAITING_PAYMENT)
+    return "text-amber-700";
   if (status === "UNPAID") return "text-primary";
   return "text-foreground";
 }
@@ -105,7 +111,12 @@ export function LedgerTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {entries.map((entry) => (
+          {entries.map((entry) => {
+            const status = effectiveLedgerStatus(
+              entry.status,
+              entry.payoutBatch
+            );
+            return (
             <TableRow
               key={entry.id}
               className="text-xs hover:bg-muted/80"
@@ -172,9 +183,7 @@ export function LedgerTable({
               <TableCell
                 className={cn(
                   "text-right text-sm font-bold tabular-nums",
-                  affiliateView
-                    ? amountClass(entry.status)
-                    : "text-emerald-700"
+                  affiliateView ? amountClass(status) : "text-emerald-700"
                 )}
               >
                 {formatCurrency(entry.amount)}
@@ -185,14 +194,13 @@ export function LedgerTable({
                 </TableCell>
               )}
               <TableCell>
-                <Badge variant={statusVariant(entry.status)}>
-                  {affiliateView
-                    ? formatCommissionStatus(entry.status)
-                    : entry.status}
+                <Badge variant={statusVariant(status)}>
+                  {formatCommissionStatus(status)}
                 </Badge>
               </TableCell>
             </TableRow>
-          ))}
+            );
+          })}
         </TableBody>
       </Table>
     </div>

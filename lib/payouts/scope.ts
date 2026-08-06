@@ -1,7 +1,12 @@
 import { CommissionStatus, LedgerEntryType, Prisma } from "@prisma/client";
-import type { PayoutDateBasis, PayoutScope } from "./types";
+import type { PayoutScope } from "./types";
 import { endOfUtcDay, startOfUtcDay } from "./utc-dates";
 
+/**
+ * Periods are always measured against the sale date. Partners reconcile against
+ * their own sales reports, so matching on the scheduled payout week instead
+ * would put a sale in a period the partner doesn't recognise.
+ */
 export function buildPayoutEntryWhere(options: {
   periodStart?: Date;
   periodEnd: Date;
@@ -11,7 +16,6 @@ export function buildPayoutEntryWhere(options: {
   sponsorAffiliateId?: string;
   sourceAffiliateId?: string;
   scope?: PayoutScope;
-  dateBasis?: PayoutDateBasis;
 }): Prisma.LedgerEntryWhereInput {
   const {
     periodStart,
@@ -20,7 +24,6 @@ export function buildPayoutEntryWhere(options: {
     teamId,
     sponsorAffiliateId,
     sourceAffiliateId,
-    dateBasis = "payout_week",
     scope = sourceAffiliateId ? "recruit" : teamId ? "team" : "all",
   } = options;
 
@@ -31,10 +34,10 @@ export function buildPayoutEntryWhere(options: {
     range.gte = startOfUtcDay(periodStart);
   }
 
-  const base: Prisma.LedgerEntryWhereInput =
-    dateBasis === "sale_date"
-      ? { status: CommissionStatus.UNPAID, occurredAt: range }
-      : { status: CommissionStatus.UNPAID, payoutWeek: range };
+  const base: Prisma.LedgerEntryWhereInput = {
+    status: CommissionStatus.UNPAID,
+    occurredAt: range,
+  };
 
   if (scope === "direct" && sponsorAffiliateId) {
     return {

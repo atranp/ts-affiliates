@@ -8,10 +8,20 @@ import {
   ROLE_COOKIE,
   roleFromRequest,
 } from "@/lib/auth-role";
-import { homePathForRole } from "@/lib/routes";
+import { homePathForRole, NEXT_PARAM, safeNextPath } from "@/lib/routes";
 
 const adminPaths = ["/admin"];
 const affiliatePaths = ["/dashboard", "/account"];
+
+/** Sends an unauthenticated visitor to sign in without losing the deep link. */
+function redirectToLogin(request: NextRequest) {
+  const loginUrl = new URL("/login", request.url);
+  const intended = request.nextUrl.pathname + request.nextUrl.search;
+  if (safeNextPath(intended)) {
+    loginUrl.searchParams.set(NEXT_PARAM, intended);
+  }
+  return NextResponse.redirect(loginUrl);
+}
 
 export async function middleware(request: NextRequest) {
   const { supabaseResponse, user } = await updateSession(request);
@@ -26,8 +36,9 @@ export async function middleware(request: NextRequest) {
 
   if (pathname.startsWith("/login") || pathname.startsWith("/auth")) {
     if (user) {
+      const next = safeNextPath(request.nextUrl.searchParams.get(NEXT_PARAM));
       return NextResponse.redirect(
-        new URL(homePathForRole(role), request.url)
+        new URL(next ?? homePathForRole(role), request.url)
       );
     }
     return supabaseResponse;
@@ -41,7 +52,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!user) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return redirectToLogin(request);
   }
 
   if (

@@ -18,6 +18,8 @@ type StatsRow = {
   unpaid_count: number;
   paid_total: string | null;
   paid_count: number;
+  awaiting_total: string | null;
+  awaiting_count: number;
   pending_total: string | null;
   deal_rules_total: number;
   deal_rules_active: number;
@@ -35,8 +37,32 @@ export async function getAdminStats(): Promise<AdminStats> {
       (SELECT COUNT(*)::int FROM "Profile" WHERE "affiliateId" IS NOT NULL) AS profiles_linked,
       (SELECT COALESCE(SUM(amount), 0) FROM "LedgerEntry" WHERE status = 'UNPAID') AS unpaid_total,
       (SELECT COUNT(*)::int FROM "LedgerEntry" WHERE status = 'UNPAID') AS unpaid_count,
-      (SELECT COALESCE(SUM(amount), 0) FROM "LedgerEntry" WHERE status = 'PAID') AS paid_total,
-      (SELECT COUNT(*)::int FROM "LedgerEntry" WHERE status = 'PAID') AS paid_count,
+      -- An entry is marked PAID as soon as a payout claims it, so "paid" here
+      -- means its payout has also been confirmed as sent.
+      (
+        SELECT COALESCE(SUM(le.amount), 0)
+        FROM "LedgerEntry" le
+        LEFT JOIN "PayoutBatch" pb ON pb.id = le."payoutBatchId"
+        WHERE le.status = 'PAID' AND (pb.id IS NULL OR pb.status = 'COMPLETED')
+      ) AS paid_total,
+      (
+        SELECT COUNT(*)::int
+        FROM "LedgerEntry" le
+        LEFT JOIN "PayoutBatch" pb ON pb.id = le."payoutBatchId"
+        WHERE le.status = 'PAID' AND (pb.id IS NULL OR pb.status = 'COMPLETED')
+      ) AS paid_count,
+      (
+        SELECT COALESCE(SUM(le.amount), 0)
+        FROM "LedgerEntry" le
+        JOIN "PayoutBatch" pb ON pb.id = le."payoutBatchId"
+        WHERE le.status = 'PAID' AND pb.status <> 'COMPLETED'
+      ) AS awaiting_total,
+      (
+        SELECT COUNT(*)::int
+        FROM "LedgerEntry" le
+        JOIN "PayoutBatch" pb ON pb.id = le."payoutBatchId"
+        WHERE le.status = 'PAID' AND pb.status <> 'COMPLETED'
+      ) AS awaiting_count,
       (SELECT COALESCE(SUM(amount), 0) FROM "LedgerEntry" WHERE status = 'PENDING') AS pending_total,
       (SELECT COUNT(*)::int FROM "DealRule") AS deal_rules_total,
       (SELECT COUNT(*)::int FROM "DealRule" WHERE active = true) AS deal_rules_active,
@@ -60,6 +86,8 @@ export async function getAdminStats(): Promise<AdminStats> {
     unpaid_count: 0,
     paid_total: "0",
     paid_count: 0,
+    awaiting_total: "0",
+    awaiting_count: 0,
     pending_total: "0",
     deal_rules_total: 0,
     deal_rules_active: 0,
@@ -80,6 +108,8 @@ export async function getAdminStats(): Promise<AdminStats> {
       unpaidCount: row.unpaid_count,
       paidTotal: toNumber(row.paid_total),
       paidCount: row.paid_count,
+      awaitingTotal: toNumber(row.awaiting_total),
+      awaitingCount: row.awaiting_count,
       pendingTotal: toNumber(row.pending_total),
     },
     dealRules: {

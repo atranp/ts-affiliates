@@ -168,7 +168,21 @@ async function fetchAllSliceWPPages<T>(
     waveStart += pageConcurrency * SLICEWP_PAGE_SIZE;
   }
 
-  return all;
+  return dedupeById(all);
+}
+
+/**
+ * Offset paging reads a live table, so a row inserted or removed mid-run
+ * shifts everything after it and the same record can come back on two pages.
+ * Downstream upserts treat that as a hard error, so collapse it here.
+ */
+function dedupeById<T>(items: T[]): T[] {
+  const byId = new Map<unknown, T>();
+  for (const item of items) {
+    const id = (item as { id?: unknown }).id;
+    byId.set(id ?? Symbol(), item);
+  }
+  return Array.from(byId.values());
 }
 
 export async function fetchSliceWPAffiliates(

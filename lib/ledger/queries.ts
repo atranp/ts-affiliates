@@ -189,7 +189,9 @@ export async function getPaginatedLedgerEntries(filters: LedgerFilters) {
         select: { id: true, name: true },
       },
       payoutBatch: {
-        select: { id: true, label: true },
+        // status distinguishes "in a payout we've actually sent" from
+        // "in a payout that's only been recorded so far".
+        select: { id: true, label: true, status: true },
       },
     },
     // Thousands of rows share a sync timestamp, so an unstable sort key would

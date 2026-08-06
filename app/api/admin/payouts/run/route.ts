@@ -4,7 +4,8 @@ import { formatPeriodLabel } from "@/lib/payouts/dates";
 import { resolvePayoutPeriodFromRequest } from "@/lib/payouts/parse-period";
 import { prisma } from "@/lib/prisma";
 import { buildPayoutEntryWhere } from "@/lib/payouts/scope";
-import type { PayoutDateBasis, PayoutScope } from "@/lib/payouts/types";
+import { AWAITING_PAYMENT_STATUS } from "@/lib/payouts/status";
+import type { PayoutScope } from "@/lib/payouts/types";
 import { toNumber } from "@/lib/utils";
 
 export async function POST(request: Request) {
@@ -17,8 +18,6 @@ export async function POST(request: Request) {
   const sourceAffiliateId: string | undefined = body.sourceAffiliateId;
   const scope: PayoutScope =
     body.scope ?? (sourceAffiliateId ? "recruit" : teamId ? "team" : "all");
-  const dateBasis: PayoutDateBasis =
-    body.dateBasis === "sale_date" ? "sale_date" : "payout_week";
 
   let periodStart: Date;
   let periodEnd: Date;
@@ -68,7 +67,6 @@ export async function POST(request: Request) {
     sponsorAffiliateId: resolvedSponsorId,
     sourceAffiliateId,
     scope,
-    dateBasis,
   });
 
   const entries = await prisma.ledgerEntry.findMany({
@@ -107,8 +105,8 @@ export async function POST(request: Request) {
         label,
         periodStart,
         periodEnd,
-        status: "COMPLETED",
-        processedAt: new Date(),
+        status: AWAITING_PAYMENT_STATUS,
+        processedAt: null,
         teamId: team?.id ?? null,
         sponsorAffiliateId: resolvedSponsorId ?? null,
       },
@@ -133,11 +131,14 @@ export async function POST(request: Request) {
       });
     }
 
+    // Entries are claimed by the batch immediately so a later run cannot pull
+    // them into a second payout. `paidAt` stays null until the money is
+    // actually sent, which is what marks the batch COMPLETED.
     await tx.ledgerEntry.updateMany({
       where: { id: { in: entries.map((entry) => entry.id) } },
       data: {
         status: "PAID",
-        paidAt: new Date(),
+        paidAt: null,
         payoutBatchId: createdBatch.id,
       },
     });
@@ -148,7 +149,7 @@ export async function POST(request: Request) {
   return NextResponse.json({
     batchId: batch.id,
     label: batch.label,
-    entriesPaid: entries.length,
+    entryCount: entries.length,
     teamId: batch.teamId,
     sponsorAffiliateId: batch.sponsorAffiliateId,
   });

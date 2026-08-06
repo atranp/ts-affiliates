@@ -1,8 +1,8 @@
-import { LedgerEntryType } from "@prisma/client";
+import { CommissionStatus, LedgerEntryType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { toNumber } from "@/lib/utils";
+import { formatCurrency, toNumber } from "@/lib/utils";
 import { buildPayoutEntryWhere } from "./scope";
-import type { PayoutDateBasis, PayoutScope } from "./types";
+import type { PayoutScope } from "./types";
 
 export type PayoutTargetOption = {
   /** Stable identity for selection, since scope alone is not unique. */
@@ -19,8 +19,66 @@ export type PayoutTargetOption = {
   parentKey?: string;
 };
 
+/**
+ * Unpaid money this sponsor has that the chosen dates exclude. Periods are
+ * measured on sale date, so a weekly range silently leaves older sales behind;
+ * surfacing the leftover stops it accumulating unnoticed.
+ */
+export type OutsideRange = {
+  amount: number;
+  entryCount: number;
+  oldestSaleDate: string | null;
+};
+
 function plural(n: number, one: string, many = `${one}s`) {
-  return `${n} ${n === 1 ? one : many}`;
+  return `${n.toLocaleString("en-US")} ${n === 1 ? one : many}`;
+}
+
+export type UnpaidAffiliate = {
+  id: string;
+  displayName: string | null;
+  email: string;
+  unpaidTotal: number;
+  entryCount: number;
+};
+
+/**
+ * Who currently owes the most, so the payouts page opens on the answer to
+ * "who needs paying?" instead of an empty search box.
+ */
+export async function getTopUnpaidAffiliates(
+  limit = 6
+): Promise<UnpaidAffiliate[]> {
+  const grouped = await prisma.ledgerEntry.groupBy({
+    by: ["affiliateId"],
+    where: { status: CommissionStatus.UNPAID },
+    _sum: { amount: true },
+    _count: { _all: true },
+    orderBy: { _sum: { amount: "desc" } },
+    take: limit,
+  });
+
+  if (grouped.length === 0) return [];
+
+  const affiliates = await prisma.affiliate.findMany({
+    where: { id: { in: grouped.map((row) => row.affiliateId) } },
+    select: { id: true, displayName: true, email: true },
+  });
+  const byId = new Map(affiliates.map((a) => [a.id, a]));
+
+  return grouped.flatMap((row) => {
+    const affiliate = byId.get(row.affiliateId);
+    if (!affiliate) return [];
+    return [
+      {
+        id: affiliate.id,
+        displayName: affiliate.displayName,
+        email: affiliate.email,
+        unpaidTotal: toNumber(row._sum.amount),
+        entryCount: row._count._all,
+      },
+    ];
+  });
 }
 
 /**
@@ -33,14 +91,12 @@ export async function getPayoutTargets(options: {
   sponsorAffiliateId: string;
   periodStart: Date;
   periodEnd: Date;
-  dateBasis?: PayoutDateBasis;
-}): Promise<{ targets: PayoutTargetOption[] }> {
+}): Promise<{ targets: PayoutTargetOption[]; outsideRange: OutsideRange }> {
   const where = buildPayoutEntryWhere({
     periodStart: options.periodStart,
     periodEnd: options.periodEnd,
     sponsorAffiliateId: options.sponsorAffiliateId,
     scope: "all",
-    dateBasis: options.dateBasis,
   });
 
   const entries = await prisma.ledgerEntry.findMany({
@@ -139,7 +195,7 @@ export async function getPayoutTargets(options: {
         teamId,
         sourceAffiliateId: recruitId,
         label: recruit.name,
-        sublabel: `${plural(recruit.entryCount, "sale")} · ${recruit.sourceRevenue > 0 ? `$${recruit.sourceRevenue.toFixed(2)} of sales` : "no sale value recorded"}`,
+        sublabel: `${plural(recruit.entryCount, "sale")} · ${recruit.sourceRevenue > 0 ? `${formatCurrency(recruit.sourceRevenue)} of sales` : "no sale value recorded"}`,
         amount: recruit.amount,
         entryCount: recruit.entryCount,
         sourceRevenue: recruit.sourceRevenue,
@@ -174,12 +230,40 @@ export async function getPayoutTargets(options: {
       key: "all",
       scope: "all",
       label: "Everything unpaid",
-      sublabel: `Team bonuses and direct sales together · ${plural(direct.entryCount + teamEntries, "entry", "entries")}`,
+      sublabel: `Team bonuses and direct sales together · ${plural(direct.entryCount + teamEntries, "sale")}`,
       amount: direct.amount + teamTotal,
       entryCount: direct.entryCount + teamEntries,
       sourceRevenue: direct.sourceRevenue,
     });
   }
 
-  return { targets };
+  const inRangeAmount = teamTotal + direct.amount;
+  const inRangeCount = teamEntries + direct.entryCount;
+
+  const allUnpaidWhere = {
+    status: CommissionStatus.UNPAID,
+    affiliateId: options.sponsorAffiliateId,
+  };
+
+  const [allUnpaid, oldest] = await Promise.all([
+    prisma.ledgerEntry.aggregate({
+      where: allUnpaidWhere,
+      _sum: { amount: true },
+      _count: { _all: true },
+    }),
+    prisma.ledgerEntry.findFirst({
+      where: { ...allUnpaidWhere, occurredAt: { lt: options.periodStart } },
+      orderBy: { occurredAt: "asc" },
+      select: { occurredAt: true },
+    }),
+  ]);
+
+  return {
+    targets,
+    outsideRange: {
+      amount: toNumber(allUnpaid._sum.amount) - inRangeAmount,
+      entryCount: allUnpaid._count._all - inRangeCount,
+      oldestSaleDate: oldest?.occurredAt.toISOString() ?? null,
+    },
+  };
 }

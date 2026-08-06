@@ -2,7 +2,6 @@ import { CommissionStatus, LedgerEntryType, Prisma } from "@prisma/client";
 import { getMilestoneProgress } from "../milestone";
 import { buildPayoutEntryWhere } from "../payouts/scope";
 import type {
-  PayoutDateBasis,
   PayoutPreviewEntry,
   PayoutRecruitLine,
   PayoutScope,
@@ -402,7 +401,6 @@ export type PayoutPreview = {
   sourceAffiliateId: string | null;
   sourceAffiliateName: string | null;
   scope: PayoutScope;
-  dateBasis: PayoutDateBasis;
   lines: PayoutPreviewLine[];
   recruitBreakdown: PayoutRecruitLine[];
   /** Most recent sales only; totals above always cover the whole selection. */
@@ -461,7 +459,6 @@ export async function getPayoutPreviewEntries(options: {
   sponsorAffiliateId?: string;
   sourceAffiliateId?: string;
   scope?: PayoutScope;
-  dateBasis?: PayoutDateBasis;
 }): Promise<PayoutPreviewEntry[]> {
   const team = options.teamId
     ? await prisma.team.findUnique({
@@ -478,7 +475,6 @@ export async function getPayoutPreviewEntries(options: {
       team?.sponsorAffiliateId ?? options.sponsorAffiliateId,
     sourceAffiliateId: options.sourceAffiliateId,
     scope: options.scope,
-    dateBasis: options.dateBasis,
   });
 
   const rows = await prisma.ledgerEntry.findMany({
@@ -499,7 +495,6 @@ export async function getPayoutPreview(options: {
   sponsorAffiliateId?: string;
   sourceAffiliateId?: string;
   scope?: PayoutScope;
-  dateBasis?: PayoutDateBasis;
 }): Promise<PayoutPreview> {
   const team = options.teamId
     ? await prisma.team.findUnique({
@@ -515,8 +510,6 @@ export async function getPayoutPreview(options: {
     options.scope ??
     (options.sourceAffiliateId ? "recruit" : options.teamId ? "team" : "all");
 
-  const dateBasis: PayoutDateBasis = options.dateBasis ?? "payout_week";
-
   const sourceAffiliate = options.sourceAffiliateId
     ? await prisma.affiliate.findUnique({
         where: { id: options.sourceAffiliateId },
@@ -531,7 +524,6 @@ export async function getPayoutPreview(options: {
     sponsorAffiliateId,
     sourceAffiliateId: options.sourceAffiliateId,
     scope,
-    dateBasis,
   });
 
   const entries = await prisma.ledgerEntry.findMany({
@@ -588,8 +580,14 @@ export async function getPayoutPreview(options: {
     entryCount += line.entryCount;
   }
 
-  const recruitMap = new Map<string, PayoutRecruitLine>();
+  // Counted across every entry, not just overrides, so a direct-sales payout
+  // still shows the sale value its commissions were calculated from.
   let sourceRevenue = 0;
+  for (const entry of entries) {
+    sourceRevenue += toNumber(entry.orderRevenue);
+  }
+
+  const recruitMap = new Map<string, PayoutRecruitLine>();
   for (const entry of entries) {
     if (entry.type !== LedgerEntryType.OVERRIDE || !entry.sourceAffiliate) continue;
     const id = entry.sourceAffiliate.id;
@@ -601,11 +599,9 @@ export async function getPayoutPreview(options: {
       overrideCount: 0,
       sourceRevenue: 0,
     };
-    const revenue = toNumber(entry.orderRevenue);
     current.overrideTotal += toNumber(entry.amount);
     current.overrideCount += 1;
-    current.sourceRevenue += revenue;
-    sourceRevenue += revenue;
+    current.sourceRevenue += toNumber(entry.orderRevenue);
     recruitMap.set(id, current);
   }
 
@@ -628,7 +624,6 @@ export async function getPayoutPreview(options: {
     sourceAffiliateName:
       sourceAffiliate?.displayName ?? sourceAffiliate?.email ?? null,
     scope,
-    dateBasis,
     lines,
     recruitBreakdown,
     entries: previewEntries,

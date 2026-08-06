@@ -1,9 +1,13 @@
 /** Affiliate-facing labels — keep admin jargon out of the partner portal. */
 
+import { AWAITING_PAYMENT } from "@/lib/payouts/status";
+
 export function formatCommissionStatus(status: string): string {
   switch (status) {
     case "PAID":
       return "Paid";
+    case AWAITING_PAYMENT:
+      return "Awaiting payment";
     case "UNPAID":
       return "Owed";
     case "PENDING":

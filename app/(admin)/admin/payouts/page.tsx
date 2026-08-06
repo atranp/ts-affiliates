@@ -1,8 +1,9 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 import { History, Users } from "lucide-react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import type { AffiliateOption } from "@/components/admin/AffiliateSearchCombobox";
@@ -10,6 +11,7 @@ import { ErrorState } from "@/components/admin/ErrorState";
 import { TableSkeleton } from "@/components/admin/TableSkeleton";
 import { PayoutBuilder } from "@/components/payouts/PayoutBuilder";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -24,8 +26,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useAdminQuery } from "@/hooks/use-admin-query";
+import { adminMutate, useAdminQuery } from "@/hooks/use-admin-query";
 import type { AdminAffiliateDetail } from "@/lib/admin/types";
+import { isPayoutPaid, payoutStatusLabel } from "@/lib/payouts/status";
 import { formatCurrency } from "@/lib/utils";
 
 type PayoutBatchListItem = {
@@ -57,6 +60,7 @@ function AdminPayoutsPageContent() {
 
   const sponsorId = searchParams.get("sponsorAffiliateId") ?? "";
   const initialTeamId = searchParams.get("teamId") ?? undefined;
+  const [markingId, setMarkingId] = useState<string | null>(null);
 
   const {
     data: sponsor,
@@ -88,6 +92,23 @@ function AdminPayoutsPageContent() {
     });
   }
 
+  async function markPaid(batchId: string) {
+    setMarkingId(batchId);
+    try {
+      await adminMutate(`/api/admin/payouts/batches/${batchId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paid: true }),
+      });
+      toast.success("Marked as paid");
+      await refetchBatches();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update payout");
+    } finally {
+      setMarkingId(null);
+    }
+  }
+
   const selectedOption: AffiliateOption | null = sponsor
     ? {
         id: sponsor.id,
@@ -102,7 +123,7 @@ function AdminPayoutsPageContent() {
     <div className="space-y-6">
       <PageHeader
         title="Payouts"
-        description="Pick a sponsor to review and run their team or direct payouts."
+        description="Record what an affiliate is owed, then mark it paid once you've sent the money."
       />
 
       <Card>
@@ -136,67 +157,87 @@ function AdminPayoutsPageContent() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <History className="h-5 w-5" />
-            All payouts
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {batchesLoading && <TableSkeleton columns={4} rows={6} />}
-          {!batchesLoading && batchesData?.batches.length === 0 && (
-            <p className="text-sm text-muted-foreground">No payouts run yet.</p>
-          )}
-          {!batchesLoading && batchesData && batchesData.batches.length > 0 && (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Batch</TableHead>
-                  <TableHead>Team</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {batchesData.batches.map((batch) => (
-                  <TableRow key={batch.id}>
-                    <TableCell>
-                      <Link
-                        href={`/admin/payouts/${batch.id}`}
-                        className="font-medium hover:text-primary hover:underline"
-                      >
-                        {batch.label}
-                      </Link>
-                      <p className="text-xs text-muted-foreground">
-                        {batch.entryCount} entries · {batch.affiliateCount}{" "}
-                        affiliates
-                      </p>
-                    </TableCell>
-                    <TableCell>
-                      {batch.teamName ?? (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(batch.totalAmount)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          batch.status === "COMPLETED" ? "paid" : "pending"
-                        }
-                      >
-                        {batch.status}
-                      </Badge>
-                    </TableCell>
+      {/* While a sponsor is selected the builder already lists their payouts
+          with actions, so this cross-affiliate view would only repeat it. */}
+      {!sponsorId && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              All payouts
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {batchesLoading && <TableSkeleton columns={4} rows={6} />}
+            {!batchesLoading && batchesData?.batches.length === 0 && (
+              <p className="text-sm text-muted-foreground">No payouts yet.</p>
+            )}
+            {!batchesLoading && batchesData && batchesData.batches.length > 0 && (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Payout</TableHead>
+                    <TableHead>Team</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-0" />
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {batchesData.batches.map((batch) => (
+                    <TableRow key={batch.id}>
+                      <TableCell>
+                        <Link
+                          href={`/admin/payouts/${batch.id}`}
+                          className="font-medium hover:text-primary hover:underline"
+                        >
+                          {batch.label}
+                        </Link>
+                        <p className="text-xs text-muted-foreground">
+                          {batch.entryCount.toLocaleString("en-US")} sales ·{" "}
+                          {batch.affiliateCount}{" "}
+                          {batch.affiliateCount === 1
+                            ? "affiliate"
+                            : "affiliates"}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        {batch.teamName ?? (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {formatCurrency(batch.totalAmount)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            isPayoutPaid(batch.status) ? "paid" : "pending"
+                          }
+                        >
+                          {payoutStatusLabel(batch.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {!isPayoutPaid(batch.status) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={markingId === batch.id}
+                            onClick={() => markPaid(batch.id)}
+                          >
+                            Mark paid
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

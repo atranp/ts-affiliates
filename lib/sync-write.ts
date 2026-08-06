@@ -30,7 +30,14 @@ export async function bulkUpsertCommissions(
 ): Promise<Commission[]> {
   if (rows.length === 0) return [];
 
-  const values = rows.map(
+  // Postgres rejects an upsert whose VALUES touch the same conflict target
+  // twice, and SliceWP's offset paging can hand us the same commission on two
+  // pages. Collapse duplicates, keeping the copy we saw last.
+  const unique = Array.from(
+    new Map(rows.map((row) => [row.slicewpId, row])).values()
+  );
+
+  const values = unique.map(
     (row) => Prisma.sql`(
       ${randomUUID()},
       ${row.slicewpId}::integer,

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { LEDGER_STATUSES } from "@/lib/ledger/statuses";
+import { isPayoutPaid } from "@/lib/payouts/status";
 import { Pencil, Plus } from "lucide-react";
 
 export type AdminLedgerEntry = {
@@ -30,7 +31,7 @@ export type AdminLedgerEntry = {
   paidAt: string | null;
   occurredAt: string;
   payoutBatchId?: string | null;
-  payoutBatch?: { id: string; label: string } | null;
+  payoutBatch?: { id: string; label: string; status: string } | null;
   sourceAffiliate?: {
     displayName: string | null;
     email: string;
@@ -69,7 +70,13 @@ function formatPayoutWeek(iso: string | null) {
 }
 
 function entryPayoutLabel(entry: AdminLedgerEntry) {
-  return entry.payoutBatch?.label ?? formatPayoutWeek(entry.payoutWeek) ?? "—";
+  const batch = entry.payoutBatch;
+  if (batch) {
+    return isPayoutPaid(batch.status)
+      ? batch.label
+      : `${batch.label} (awaiting payment)`;
+  }
+  return formatPayoutWeek(entry.payoutWeek) ?? "—";
 }
 
 type EditForm = {

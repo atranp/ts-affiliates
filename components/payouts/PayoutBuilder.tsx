@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Calculator, Check, Clock, Download, Plus } from "lucide-react";
+import { Check, Clock, Download, Plus, Trash2 } from "lucide-react";
 import {
   AffiliateSearchCombobox,
   type AffiliateOption,
@@ -31,8 +31,16 @@ import {
   toDateInputValue,
   type DatePreset,
 } from "@/lib/payouts/dates";
-import type { PayoutDateBasis } from "@/lib/payouts/types";
-import type { PayoutTargetOption } from "@/lib/payouts/targets";
+import {
+  isPayoutPaid,
+  payoutStatusClasses,
+  payoutStatusLabel,
+} from "@/lib/payouts/status";
+import type {
+  OutsideRange,
+  PayoutTargetOption,
+  UnpaidAffiliate,
+} from "@/lib/payouts/targets";
 import type { PayoutPreview, TeamSummary } from "@/lib/teams/queries";
 import { formatCurrency } from "@/lib/utils";
 
@@ -63,7 +71,6 @@ export function PayoutBuilder({
   initialTeamId,
   onBatchCreated,
 }: PayoutBuilderProps) {
-  const [dateBasis, setDateBasis] = useState<PayoutDateBasis>("payout_week");
   const [periodStart, setPeriodStart] = useState(() =>
     toDateInputValue(defaultPayoutPeriodStart())
   );
@@ -71,22 +78,29 @@ export function PayoutBuilder({
     toDateInputValue(defaultPayoutPeriodEnd())
   );
   const [targetKey, setTargetKey] = useState<string | null>(null);
-  const [calculated, setCalculated] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [running, setRunning] = useState(false);
   const [recordOpen, setRecordOpen] = useState(false);
+  const [pendingBatchId, setPendingBatchId] = useState<string | null>(null);
+  const [deleteBatch, setDeleteBatch] = useState<{
+    id: string;
+    label: string;
+  } | null>(null);
 
   const periodInvalid =
     !!periodStart && !!periodEnd && new Date(periodStart) > new Date(periodEnd);
 
-  const periodQuery = `periodStart=${periodStart}&periodEnd=${periodEnd}&dateBasis=${dateBasis}`;
+  const periodQuery = `periodStart=${periodStart}&periodEnd=${periodEnd}`;
 
   const {
     data: targetsData,
     isLoading: targetsLoading,
     error: targetsError,
     refetch: refetchTargets,
-  } = useAdminQuery<{ targets: PayoutTargetOption[] }>(
+  } = useAdminQuery<{
+    targets: PayoutTargetOption[];
+    outsideRange: OutsideRange;
+  }>(
     ["admin", "payout-targets", affiliateId ?? "", periodQuery],
     affiliateId && !periodInvalid
       ? `/api/admin/payouts/targets?sponsorAffiliateId=${affiliateId}&${periodQuery}`
@@ -94,23 +108,14 @@ export function PayoutBuilder({
   );
 
   const targets = useMemo(() => targetsData?.targets ?? [], [targetsData]);
+  const outsideRange = targetsData?.outsideRange ?? null;
   const target = targets.find((t) => t.key === targetKey) ?? null;
-
-  // Changing the affiliate or the period invalidates any selection and result.
-  const scopeSignature = `${affiliateId ?? ""}|${periodQuery}`;
-  const lastSignature = useRef(scopeSignature);
-  useEffect(() => {
-    if (lastSignature.current === scopeSignature) return;
-    lastSignature.current = scopeSignature;
-    setCalculated(false);
-  }, [scopeSignature]);
 
   // Drop a selection that no longer exists in the current period.
   useEffect(() => {
     if (!targetKey || targetsLoading) return;
     if (!targets.some((t) => t.key === targetKey)) {
       setTargetKey(null);
-      setCalculated(false);
     }
   }, [targetKey, targets, targetsLoading]);
 
@@ -124,11 +129,17 @@ export function PayoutBuilder({
     setTargetKey(match.key);
   }, [initialTeamId, targets]);
 
+  // With a single option there is nothing to choose, so skip the extra click
+  // and let the review section fill in straight away.
+  useEffect(() => {
+    if (targetKey || targetsLoading || targets.length !== 1) return;
+    setTargetKey(targets[0].key);
+  }, [targetKey, targets, targetsLoading]);
+
   const previewParams = target
     ? new URLSearchParams({
         periodStart,
         periodEnd,
-        dateBasis,
         scope: target.scope,
         ...(affiliateId ? { sponsorAffiliateId: affiliateId } : {}),
         ...(target.teamId ? { teamId: target.teamId } : {}),
@@ -145,16 +156,14 @@ export function PayoutBuilder({
     refetch: refetchPreview,
   } = useAdminQuery<PayoutPreview>(
     ["admin", "payout-preview", previewParams ?? ""],
-    calculated && previewParams
-      ? `/api/admin/payouts/preview?${previewParams}`
-      : null
+    previewParams ? `/api/admin/payouts/preview?${previewParams}` : null
   );
 
   const {
     data: batchesData,
     isLoading: batchesLoading,
     refetch: refetchBatches,
-  } = useAdminQuery<{ batches: Array<{ id: string; label: string; teamName: string | null; entryCount: number; totalAmount: number; processedAt: string | null; createdAt: string }> }>(
+  } = useAdminQuery<{ batches: Array<{ id: string; label: string; status: string; teamName: string | null; entryCount: number; totalAmount: number; processedAt: string | null; createdAt: string }> }>(
     ["admin", "payout-batches", affiliateId ?? ""],
     affiliateId
       ? `/api/admin/payouts/batches?sponsorAffiliateId=${affiliateId}`
@@ -171,10 +180,7 @@ export function PayoutBuilder({
   function applyPreset(preset: DatePreset) {
     const range = resolveDatePreset(preset);
     setPeriodStart(range.from ? toDateInputValue(range.from) : ALL_TIME_START);
-    setPeriodEnd(
-      toDateInputValue(range.to ?? defaultPayoutPeriodEnd())
-    );
-    setCalculated(false);
+    setPeriodEnd(toDateInputValue(range.to ?? defaultPayoutPeriodEnd()));
   }
 
   const activePreset = PRESETS.find((p) => {
@@ -184,11 +190,16 @@ export function PayoutBuilder({
     return from === periodStart && to === periodEnd;
   })?.id;
 
+  async function refreshAll() {
+    await Promise.all([refetchTargets(), refetchBatches(), refetchTeams()]);
+    onBatchCreated?.();
+  }
+
   async function runPayout() {
     if (!target || !affiliateId) return;
     setRunning(true);
     try {
-      const result = await adminMutate<{ label: string; entriesPaid: number }>(
+      const result = await adminMutate<{ label: string; entryCount: number }>(
         "/api/admin/payouts/run",
         {
           method: "POST",
@@ -196,7 +207,6 @@ export function PayoutBuilder({
           body: JSON.stringify({
             periodStart,
             periodEnd,
-            dateBasis,
             scope: target.scope,
             sponsorAffiliateId: affiliateId,
             teamId: target.teamId,
@@ -206,17 +216,11 @@ export function PayoutBuilder({
       );
 
       toast.success(`Payout created: ${result.label}`, {
-        description: `${result.entriesPaid} entries marked paid.`,
+        description: `${result.entryCount.toLocaleString("en-US")} sales recorded. Mark it paid once you've sent the money.`,
       });
       setConfirmOpen(false);
-      setCalculated(false);
       setTargetKey(null);
-      await Promise.all([
-        refetchTargets(),
-        refetchBatches(),
-        refetchTeams(),
-      ]);
-      onBatchCreated?.();
+      await refreshAll();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Payout failed");
     } finally {
@@ -224,12 +228,54 @@ export function PayoutBuilder({
     }
   }
 
-  const stepOffset = onAffiliateChange ? 1 : 0;
+  async function setPaid(batchId: string, paid: boolean) {
+    setPendingBatchId(batchId);
+    try {
+      await adminMutate(`/api/admin/payouts/batches/${batchId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paid }),
+      });
+      toast.success(paid ? "Marked as paid" : "Moved back to awaiting payment");
+      await refreshAll();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update payout");
+    } finally {
+      setPendingBatchId(null);
+    }
+  }
+
+  async function removeBatch() {
+    if (!deleteBatch) return;
+    setPendingBatchId(deleteBatch.id);
+    try {
+      const result = await adminMutate<{ entriesReleased: number }>(
+        `/api/admin/payouts/batches/${deleteBatch.id}`,
+        { method: "DELETE" }
+      );
+      toast.success("Payout deleted", {
+        description: `${result.entriesReleased.toLocaleString("en-US")} sales are unpaid again.`,
+      });
+      setDeleteBatch(null);
+      await refreshAll();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not delete payout");
+    } finally {
+      setPendingBatchId(null);
+    }
+  }
+
+  const canCreate =
+    !!preview &&
+    !!target &&
+    !previewLoading &&
+    preview.totals.entryCount > 0 &&
+    !running;
 
   return (
     <div className="space-y-6">
       {onAffiliateChange && (
-        <Step number={1} title="Choose an affiliate">
+        <div className="mb-4">
           <AffiliateSearchCombobox
             id="payout-sponsor"
             label="Affiliate"
@@ -237,22 +283,18 @@ export function PayoutBuilder({
             selected={selectedAffiliate}
             onChange={(id) => {
               setTargetKey(null);
-              setCalculated(false);
               autoSelected.current = true;
               onAffiliateChange(id);
             }}
           />
-        </Step>
+        </div>
       )}
 
       {!affiliateId ? (
-        <EmptyState
-          title="No affiliate selected"
-          description="Search above to see what this affiliate is owed and create a payout."
-        />
+        <OwedShortlist onSelect={onAffiliateChange} />
       ) : (
         <>
-          <Step number={stepOffset + 1} title="Pick the period">
+          <Step number={1} title="Pick the period">
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 {PRESETS.map((preset) => (
@@ -264,57 +306,22 @@ export function PayoutBuilder({
                     {preset.label}
                   </Chip>
                 ))}
+                <span className="ml-1 hidden text-xs text-muted-foreground sm:inline">
+                  or set exact dates below
+                </span>
               </div>
 
               <PayoutDateRangeFields
                 startValue={periodStart}
                 endValue={periodEnd}
-                onStartChange={(v) => {
-                  setPeriodStart(v);
-                  setCalculated(false);
-                }}
-                onEndChange={(v) => {
-                  setPeriodEnd(v);
-                  setCalculated(false);
-                }}
-                hint={
-                  dateBasis === "sale_date"
-                    ? `Covers sales made ${formatPeriodLabel(new Date(periodStart), new Date(periodEnd))} (UTC). Use this to match a partner's own sales report.`
-                    : `Covers entries scheduled for payout ${formatPeriodLabel(new Date(periodStart), new Date(periodEnd))} (UTC). This is the normal weekly run.`
-                }
+                onStartChange={setPeriodStart}
+                onEndChange={setPeriodEnd}
+                hint={`Sales made ${formatPeriodLabel(new Date(periodStart), new Date(periodEnd))} (UTC), matching what a partner sees in their own sales report.`}
               />
-
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-medium text-muted-foreground">
-                  Match dates on
-                </span>
-                <div className="inline-flex rounded-md border border-border bg-card p-0.5">
-                  <Chip
-                    active={dateBasis === "payout_week"}
-                    onClick={() => {
-                      setDateBasis("payout_week");
-                      setCalculated(false);
-                    }}
-                    bare
-                  >
-                    Payout week
-                  </Chip>
-                  <Chip
-                    active={dateBasis === "sale_date"}
-                    onClick={() => {
-                      setDateBasis("sale_date");
-                      setCalculated(false);
-                    }}
-                    bare
-                  >
-                    Sale date
-                  </Chip>
-                </div>
-              </div>
             </div>
           </Step>
 
-          <Step number={stepOffset + 2} title="Choose what to pay">
+          <Step number={2} title="Choose what to pay">
             {periodInvalid && (
               <p className="text-sm text-destructive">
                 Fix the date range to see what can be paid.
@@ -337,7 +344,7 @@ export function PayoutBuilder({
             {!periodInvalid && !targetsLoading && targets.length === 0 && (
               <EmptyState
                 title="Nothing unpaid in this period"
-                description="Try a wider period, or switch between payout week and sale date."
+                description="Try a wider date range — All time shows everything still owed."
                 action={
                   (teamsData?.teams.length ?? 0) === 0 && affiliateId ? (
                     <Button size="sm" asChild>
@@ -354,32 +361,44 @@ export function PayoutBuilder({
             )}
 
             {targets.length > 0 && (
-              <div className="space-y-2">
-                {targets.map((option) => (
-                  <TargetRow
-                    key={option.key}
-                    option={option}
-                    selected={targetKey === option.key}
-                    onSelect={() => {
-                      setTargetKey(option.key);
-                      setCalculated(false);
-                    }}
-                  />
-                ))}
+              <TargetList
+                targets={targets}
+                selectedKey={targetKey}
+                onSelect={setTargetKey}
+              />
+            )}
+
+            {!targetsLoading && outsideRange && outsideRange.entryCount > 0 && (
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                <p className="text-sm text-amber-800">
+                  <span className="font-semibold">
+                    {formatCurrency(outsideRange.amount)}
+                  </span>{" "}
+                  in unpaid sales
+                  {outsideRange.oldestSaleDate
+                    ? ` going back to ${new Date(outsideRange.oldestSaleDate).toLocaleDateString(
+                        "en-US",
+                        { month: "short", day: "numeric", timeZone: "UTC" }
+                      )}`
+                    : ""}{" "}
+                  falls outside these dates.
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => applyPreset("all")}
+                >
+                  Include everything
+                </Button>
               </div>
             )}
           </Step>
 
-          <Step number={stepOffset + 3} title="Review the sales">
+          <Step number={3} title="Review and create" last>
             {!target ? (
               <p className="text-sm text-muted-foreground">
-                Choose what to pay above, then calculate.
+                Pick something to pay above and its sales will show up here.
               </p>
-            ) : !calculated ? (
-              <Button onClick={() => setCalculated(true)}>
-                <Calculator className="mr-2 h-4 w-4" />
-                Calculate payout for {target.label}
-              </Button>
             ) : previewError ? (
               <ErrorState
                 message={previewError.message}
@@ -387,39 +406,37 @@ export function PayoutBuilder({
               />
             ) : previewLoading || !preview ? (
               <p className="text-sm text-muted-foreground">
-                Calculating...
+                Adding up {target.label}&apos;s sales...
+              </p>
+            ) : preview.totals.entryCount === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nothing left to pay for this selection.
               </p>
             ) : (
               <PreviewPanel
                 preview={preview}
                 exportHref={`/api/admin/payouts/preview/export?${previewParams}`}
+                // The action sits above the sales table: with up to 100 rows,
+                // putting it below would hide it behind a long scroll.
+                action={
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button
+                      size="lg"
+                      disabled={!canCreate}
+                      onClick={() => setConfirmOpen(true)}
+                    >
+                      <Check className="mr-2 h-4 w-4" />
+                      Create payout ·{" "}
+                      {formatCurrency(preview.totals.grandTotal)}
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Records what {displayName ?? "this affiliate"} is owed.
+                      Mark it paid after you send the money.
+                    </p>
+                  </div>
+                }
               />
             )}
-          </Step>
-
-          <Step number={stepOffset + 4} title="Create the payout" last>
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                disabled={
-                  !preview ||
-                  !calculated ||
-                  previewLoading ||
-                  preview.totals.entryCount === 0 ||
-                  running
-                }
-                onClick={() => setConfirmOpen(true)}
-              >
-                <Check className="mr-2 h-4 w-4" />
-                {preview && calculated && preview.totals.entryCount > 0
-                  ? `Pay ${formatCurrency(preview.totals.grandTotal)}`
-                  : "Pay"}
-              </Button>
-              {preview && calculated && preview.totals.entryCount === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  Nothing to pay for this selection.
-                </p>
-              )}
-            </div>
           </Step>
 
           <section className="space-y-3 border-t border-border pt-6">
@@ -445,15 +462,18 @@ export function PayoutBuilder({
             {!batchesLoading && batchesData && batchesData.batches.length > 0 && (
               <div className="divide-y divide-border rounded-lg border border-border">
                 {batchesData.batches.map((batch) => (
-                  <Link
+                  <div
                     key={batch.id}
-                    href={`/admin/payouts/${batch.id}`}
-                    className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-muted/50"
+                    className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
                   >
-                    <div className="min-w-0">
+                    <Link
+                      href={`/admin/payouts/${batch.id}`}
+                      className="min-w-0 flex-1 hover:underline"
+                    >
                       <p className="truncate font-medium">{batch.label}</p>
                       <p className="text-xs text-muted-foreground">
-                        {batch.teamName ?? "All"} · {batch.entryCount} entries ·{" "}
+                        {batch.teamName ? `${batch.teamName} · ` : ""}
+                        {batch.entryCount.toLocaleString("en-US")} sales ·{" "}
                         {new Date(
                           batch.processedAt ?? batch.createdAt
                         ).toLocaleDateString("en-US", {
@@ -462,11 +482,37 @@ export function PayoutBuilder({
                           year: "numeric",
                         })}
                       </p>
+                    </Link>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <StatusPill status={batch.status} />
+                      <span className="font-semibold">
+                        {formatCurrency(batch.totalAmount)}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={pendingBatchId === batch.id}
+                        onClick={() =>
+                          setPaid(batch.id, !isPayoutPaid(batch.status))
+                        }
+                      >
+                        {isPayoutPaid(batch.status)
+                          ? "Mark unpaid"
+                          : "Mark paid"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        aria-label={`Delete ${batch.label}`}
+                        disabled={pendingBatchId === batch.id}
+                        onClick={() =>
+                          setDeleteBatch({ id: batch.id, label: batch.label })
+                        }
+                      >
+                        <Trash2 className="h-4 w-4 text-muted-foreground" />
+                      </Button>
                     </div>
-                    <span className="shrink-0 font-semibold">
-                      {formatCurrency(batch.totalAmount)}
-                    </span>
-                  </Link>
+                  </div>
                 ))}
               </div>
             )}
@@ -479,7 +525,7 @@ export function PayoutBuilder({
         title="Create this payout?"
         description={
           preview && target
-            ? `Mark ${preview.totals.entryCount} entries (${formatCurrency(preview.totals.grandTotal)}) for ${target.label} as paid. This cannot be undone from the UI.`
+            ? `Records ${preview.totals.entryCount.toLocaleString("en-US")} sales (${formatCurrency(preview.totals.grandTotal)}) for ${target.label}. ${displayName ?? "The affiliate"} will see it as awaiting payment until you mark it paid. You can delete it if it's wrong.`
             : ""
         }
         confirmLabel="Create payout"
@@ -487,6 +533,22 @@ export function PayoutBuilder({
         onConfirm={runPayout}
         onCancel={() => {
           if (!running) setConfirmOpen(false);
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!deleteBatch}
+        title="Delete this payout?"
+        description={
+          deleteBatch
+            ? `"${deleteBatch.label}" will be removed and its sales go back to unpaid, so they can be included in a future payout.`
+            : ""
+        }
+        confirmLabel="Delete payout"
+        loading={pendingBatchId === deleteBatch?.id}
+        onConfirm={removeBatch}
+        onCancel={() => {
+          if (!pendingBatchId) setDeleteBatch(null);
         }}
       />
 
@@ -510,20 +572,24 @@ export function PayoutBuilder({
 function PreviewPanel({
   preview,
   exportHref,
+  action,
 }: {
   preview: PayoutPreview;
   exportHref: string;
+  action?: React.ReactNode;
 }) {
   const { totals } = preview;
+  // Blended across the whole payout, so mixed direct + override selections
+  // still answer "what share of these sales are we paying out?".
   const rate =
     totals.sourceRevenue > 0
-      ? (totals.overrideTotal / totals.sourceRevenue) * 100
+      ? (totals.grandTotal / totals.sourceRevenue) * 100
       : null;
 
   if (totals.entryCount === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No unpaid entries match this selection.
+        No unpaid sales match this selection.
       </p>
     );
   }
@@ -536,7 +602,10 @@ function PreviewPanel({
           label="Rate"
           value={rate == null ? "—" : `${rate.toFixed(1).replace(/\.0$/, "")}%`}
         />
-        <Figure label="Entries" value={String(totals.entryCount)} />
+        <Figure
+          label="Sales"
+          value={totals.entryCount.toLocaleString("en-US")}
+        />
         <Figure
           label="Total to pay"
           value={formatCurrency(totals.grandTotal)}
@@ -544,10 +613,12 @@ function PreviewPanel({
         />
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      {action}
+
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
         <p className="text-xs text-muted-foreground">
           {preview.entriesTruncated
-            ? `Showing the ${preview.entries.length} most recent of ${totals.entryCount} sales. Totals above cover all of them.`
+            ? `Showing the ${preview.entries.length} most recent of ${totals.entryCount.toLocaleString("en-US")} sales. Totals above cover all of them.`
             : `All ${preview.entries.length} sales in this payout.`}
         </p>
         <Button size="sm" variant="outline" asChild>
@@ -609,6 +680,111 @@ function PreviewPanel({
   );
 }
 
+/** Opens the page on "who needs paying?" rather than an empty search box. */
+function OwedShortlist({
+  onSelect,
+}: {
+  onSelect?: (affiliateId: string) => void;
+}) {
+  const { data, isLoading } = useAdminQuery<{ affiliates: UnpaidAffiliate[] }>(
+    ["admin", "payouts-owed"],
+    "/api/admin/payouts/owed"
+  );
+
+  if (isLoading) {
+    return (
+      <p className="text-sm text-muted-foreground">Checking who&apos;s owed...</p>
+    );
+  }
+
+  if (!data?.affiliates.length) {
+    return (
+      <EmptyState
+        title="Nothing outstanding"
+        description="Every commission has been included in a payout."
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-muted-foreground">
+        Owed the most right now
+      </p>
+      {data.affiliates.map((affiliate) => (
+        <button
+          key={affiliate.id}
+          type="button"
+          onClick={() => onSelect?.(affiliate.id)}
+          className="flex w-full items-center justify-between gap-3 rounded-lg border border-border px-4 py-3 text-left transition-colors hover:bg-muted/50"
+        >
+          <div className="min-w-0">
+            <p className="truncate font-medium">
+              {affiliate.displayName ?? affiliate.email}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {affiliate.entryCount.toLocaleString()} unpaid sales
+            </p>
+          </div>
+          <span className="shrink-0 font-semibold text-primary">
+            {formatCurrency(affiliate.unpaidTotal)}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Recruits are nested under their team so the repeated amount on a one-recruit
+ * team reads as "the same money, scoped differently" rather than a duplicate.
+ */
+function TargetList({
+  targets,
+  selectedKey,
+  onSelect,
+}: {
+  targets: PayoutTargetOption[];
+  selectedKey: string | null;
+  onSelect: (key: string) => void;
+}) {
+  const parents = targets.filter((option) => !option.parentKey);
+
+  return (
+    <div className="space-y-2" role="radiogroup" aria-label="What to pay">
+      {parents.map((parent) => {
+        const children = targets.filter(
+          (option) => option.parentKey === parent.key
+        );
+        return (
+          <div key={parent.key} className="space-y-2">
+            <TargetRow
+              option={parent}
+              selected={selectedKey === parent.key}
+              onSelect={() => onSelect(parent.key)}
+            />
+            {children.length > 0 && (
+              <div className="ml-4 space-y-2 border-l-2 border-border pl-4">
+                <p className="text-xs text-muted-foreground">
+                  Or pay for one recruit&apos;s sales only:
+                </p>
+                {children.map((child) => (
+                  <TargetRow
+                    key={child.key}
+                    option={child}
+                    selected={selectedKey === child.key}
+                    onSelect={() => onSelect(child.key)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function TargetRow({
   option,
   selected,
@@ -621,14 +797,13 @@ function TargetRow({
   return (
     <button
       type="button"
+      role="radio"
       onClick={onSelect}
-      aria-pressed={selected}
-      className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
-        option.parentKey ? "ml-6 w-[calc(100%-1.5rem)]" : ""
-      } ${
+      aria-checked={selected}
+      className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
         selected
-          ? "border-primary bg-primary/5"
-          : "border-border hover:bg-muted/50"
+          ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+          : "border-border hover:border-primary/40 hover:bg-muted/50"
       }`}
     >
       <div className="min-w-0">
@@ -642,6 +817,16 @@ function TargetRow({
         {selected && <Check className="h-4 w-4 text-primary" />}
       </div>
     </button>
+  );
+}
+
+export function StatusPill({ status }: { status: string }) {
+  return (
+    <span
+      className={`rounded-full border px-2 py-0.5 text-xs font-medium ${payoutStatusClasses(status)}`}
+    >
+      {payoutStatusLabel(status)}
+    </span>
   );
 }
 

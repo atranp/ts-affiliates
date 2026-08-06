@@ -3,7 +3,7 @@ import { requireAdmin } from "@/lib/api-auth";
 import { formatPeriodLabel } from "@/lib/payouts/dates";
 import { resolvePayoutPeriodFromRequest } from "@/lib/payouts/parse-period";
 import { getPayoutPreviewEntries } from "@/lib/teams/queries";
-import type { PayoutDateBasis, PayoutScope } from "@/lib/payouts/types";
+import type { PayoutScope } from "@/lib/payouts/types";
 
 const COLUMNS = [
   "Sale date",
@@ -27,8 +27,6 @@ export async function GET(request: Request) {
   if ("error" in auth) return auth.error;
 
   const { searchParams } = new URL(request.url);
-  const dateBasis: PayoutDateBasis =
-    searchParams.get("dateBasis") === "sale_date" ? "sale_date" : "payout_week";
 
   try {
     const { periodStart, periodEnd } = resolvePayoutPeriodFromRequest({
@@ -43,7 +41,6 @@ export async function GET(request: Request) {
       sponsorAffiliateId: searchParams.get("sponsorAffiliateId") ?? undefined,
       sourceAffiliateId: searchParams.get("sourceAffiliateId") ?? undefined,
       scope: (searchParams.get("scope") as PayoutScope | null) ?? undefined,
-      dateBasis,
     });
 
     const rows = entries.map((entry) =>
