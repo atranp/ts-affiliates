@@ -1,31 +1,42 @@
 /**
- * Pure ranking/segmentation helpers for the team roster UI.
+ * Pure filtering/ranking helpers for the team roster table.
  *
  * Rosters are heavily skewed — a handful of members usually account for nearly
- * all team sales — so the UI ranks by contribution and collapses the long tail
- * instead of listing everyone alphabetically at equal weight.
+ * all team sales — so the UI ranks by contribution and lets the long tail be
+ * filtered out rather than listing everyone at equal weight.
  */
 
-import { memberCountLabel } from "@/lib/affiliate/copy";
 import type { TeamMemberSummary, TeamRuleSummary } from "./queries";
 
 export const SEGMENT_ORDER = ["earning", "ramping", "inactive"] as const;
 export type MemberSegment = (typeof SEGMENT_ORDER)[number];
+export type SegmentFilter = "all" | MemberSegment;
 
-export const SORT_KEYS = ["revenue", "owed", "goal", "name"] as const;
+export const SORT_KEYS = [
+  "name",
+  "revenue",
+  "goal",
+  "owed",
+  "pending",
+] as const;
 export type SortKey = (typeof SORT_KEYS)[number];
+export type SortDirection = "asc" | "desc";
 
-/** Top contributors get the strongest tone so the biggest slice reads first. */
-const SHARE_TONES = [
-  "bg-primary",
-  "bg-primary/70",
-  "bg-primary/50",
-  "bg-primary/35",
-  "bg-primary/25",
-];
-const MAX_SHARE_SLICES = 5;
-const CONCENTRATION_NOTE_THRESHOLD = 50;
-const MIN_MEMBERS_FOR_CONCENTRATION_NOTE = 3;
+/** Names read naturally A–Z; every money column is most interesting at the top. */
+const DEFAULT_DIRECTIONS: Record<SortKey, SortDirection> = {
+  name: "asc",
+  revenue: "desc",
+  goal: "desc",
+  owed: "desc",
+  pending: "desc",
+};
+
+const CONCENTRATION_THRESHOLD = 50;
+const MIN_MEMBERS_FOR_CONCENTRATION = 3;
+
+export function defaultDirectionFor(key: SortKey): SortDirection {
+  return DEFAULT_DIRECTIONS[key];
+}
 
 export function memberName(member: TeamMemberSummary) {
   return member.displayName ?? member.email;
@@ -54,69 +65,6 @@ export function goalRatio(member: TeamMemberSummary) {
   return milestone.current / milestone.threshold;
 }
 
-export function sortMembers(members: TeamMemberSummary[], key: SortKey) {
-  const sorted = [...members];
-
-  switch (key) {
-    case "owed":
-      sorted.sort(
-        (a, b) =>
-          b.stats.unpaidTeamBonus - a.stats.unpaidTeamBonus ||
-          b.stats.totalRevenue - a.stats.totalRevenue
-      );
-      break;
-    case "goal":
-      sorted.sort(
-        (a, b) =>
-          goalRatio(b) - goalRatio(a) ||
-          b.stats.totalRevenue - a.stats.totalRevenue
-      );
-      break;
-    case "name":
-      sorted.sort((a, b) => memberName(a).localeCompare(memberName(b)));
-      break;
-    default:
-      sorted.sort(
-        (a, b) =>
-          b.stats.totalRevenue - a.stats.totalRevenue ||
-          b.stats.unpaidTeamBonus - a.stats.unpaidTeamBonus
-      );
-  }
-
-  return sorted;
-}
-
-export function groupMembers(
-  members: TeamMemberSummary[],
-  { search, sortKey }: { search: string; sortKey: SortKey }
-): Record<MemberSegment, TeamMemberSummary[]> {
-  const term = search.trim().toLowerCase();
-  const matched = term
-    ? members.filter(
-        (member) =>
-          memberName(member).toLowerCase().includes(term) ||
-          member.email.toLowerCase().includes(term)
-      )
-    : members;
-
-  const grouped: Record<MemberSegment, TeamMemberSummary[]> = {
-    earning: [],
-    ramping: [],
-    inactive: [],
-  };
-  for (const member of matched) grouped[segmentOf(member)].push(member);
-
-  for (const segment of SEGMENT_ORDER) {
-    // The tail has no numbers to rank by, so it always reads alphabetically.
-    grouped[segment] = sortMembers(
-      grouped[segment],
-      segment === "inactive" ? "name" : sortKey
-    );
-  }
-
-  return grouped;
-}
-
 export function countSegments(
   members: TeamMemberSummary[]
 ): Record<MemberSegment, number> {
@@ -129,71 +77,71 @@ export function countSegments(
   return counts;
 }
 
-export function segmentSummaryLabel(counts: Record<MemberSegment, number>) {
-  const total = counts.earning + counts.ramping + counts.inactive;
-  const parts = [memberCountLabel(total)];
+export function filterMembers(
+  members: TeamMemberSummary[],
+  { search, segment }: { search: string; segment: SegmentFilter }
+) {
+  const term = search.trim().toLowerCase();
 
-  if (counts.earning > 0) parts.push(`${counts.earning} earning`);
-  if (counts.ramping > 0) parts.push(`${counts.ramping} working toward goal`);
-  if (counts.inactive > 0) parts.push(`${counts.inactive} no sales yet`);
-
-  return parts.join(" · ");
+  return members.filter((member) => {
+    if (segment !== "all" && segmentOf(member) !== segment) return false;
+    if (!term) return true;
+    return (
+      memberName(member).toLowerCase().includes(term) ||
+      member.email.toLowerCase().includes(term)
+    );
+  });
 }
 
-export type ShareSlice = {
-  id: string;
-  label: string;
-  percent: number;
-  tone: string;
+const COMPARATORS: Record<
+  SortKey,
+  (a: TeamMemberSummary, b: TeamMemberSummary) => number
+> = {
+  name: (a, b) => memberName(a).localeCompare(memberName(b)),
+  revenue: (a, b) => a.stats.totalRevenue - b.stats.totalRevenue,
+  goal: (a, b) => goalRatio(a) - goalRatio(b),
+  owed: (a, b) => a.stats.unpaidTeamBonus - b.stats.unpaidTeamBonus,
+  pending: (a, b) => a.stats.pendingTeamBonus - b.stats.pendingTeamBonus,
 };
 
-export function buildShareSlices(members: TeamMemberSummary[]): ShareSlice[] {
-  const producing = members
-    .filter((member) => member.stats.totalRevenue > 0)
-    .sort((a, b) => b.stats.totalRevenue - a.stats.totalRevenue);
+export function sortMembers(
+  members: TeamMemberSummary[],
+  key: SortKey,
+  direction: SortDirection
+) {
+  const compare = COMPARATORS[key];
 
-  const total = producing.reduce(
+  return [...members].sort((a, b) => {
+    const result = compare(a, b);
+    if (result !== 0) return direction === "asc" ? result : -result;
+    // Ties keep a stable, predictable order instead of shuffling on re-sort.
+    return memberName(a).localeCompare(memberName(b));
+  });
+}
+
+/**
+ * The single dominant contributor, when one member carries most of the team.
+ * Returns null for evenly distributed teams, where the fact isn't noteworthy.
+ */
+export function topContributor(
+  members: TeamMemberSummary[]
+): { name: string; percent: number } | null {
+  if (members.length < MIN_MEMBERS_FOR_CONCENTRATION) return null;
+
+  const total = members.reduce(
     (sum, member) => sum + member.stats.totalRevenue,
     0
   );
-  if (total <= 0) return [];
+  if (total <= 0) return null;
 
-  const slices: ShareSlice[] = producing
-    .slice(0, MAX_SHARE_SLICES)
-    .map((member, index) => ({
-      id: member.id,
-      label: memberName(member),
-      percent: (member.stats.totalRevenue / total) * 100,
-      tone: SHARE_TONES[index],
-    }));
+  const top = members.reduce((best, member) =>
+    member.stats.totalRevenue > best.stats.totalRevenue ? member : best
+  );
 
-  const rest = producing.slice(MAX_SHARE_SLICES);
-  if (rest.length > 0) {
-    const restTotal = rest.reduce(
-      (sum, member) => sum + member.stats.totalRevenue,
-      0
-    );
-    slices.push({
-      id: "other",
-      label: `${rest.length} others`,
-      percent: (restTotal / total) * 100,
-      tone: "bg-muted-foreground/30",
-    });
-  }
+  const percent = (top.stats.totalRevenue / total) * 100;
+  if (percent < CONCENTRATION_THRESHOLD) return null;
 
-  return slices;
-}
-
-/** The single dominant contributor, if one member carries most of the team. */
-export function concentrationLeader(
-  slices: ShareSlice[],
-  memberCount: number
-): ShareSlice | null {
-  const leader = slices[0];
-  if (!leader || leader.id === "other") return null;
-  if (memberCount < MIN_MEMBERS_FOR_CONCENTRATION_NOTE) return null;
-  if (leader.percent < CONCENTRATION_NOTE_THRESHOLD) return null;
-  return leader;
+  return { name: memberName(top), percent };
 }
 
 /**

@@ -94,37 +94,28 @@ export const AFFILIATE_COPY = {
     paid: "Paid",
     salesGoal: "Sales goal",
     goalReached: "Goal reached",
+    goalReachedShort: "Reached",
     inactive: "Inactive",
     active: "Active",
+    owedToYou: "Owed to you",
     teamDeal: "Team deal",
     searchPlaceholder: "Search team members…",
-    noMatches: "No team members match your search.",
-    sortLabel: "Sort by",
-    sort: {
-      revenue: "Most sales",
-      owed: "Most owed",
-      goal: "Closest to goal",
-      name: "Name (A–Z)",
-    },
+    noMatches: "No team members match these filters.",
+    allMembers: "All",
     segments: {
-      earning: {
-        title: "Earning",
-        description: "Hit their sales goal and are generating team earnings.",
-      },
-      ramping: {
-        title: "Working toward goal",
-        description: "Making sales but not at their goal yet.",
-      },
-      inactive: {
-        title: "No sales yet",
-        description: "No sales recorded.",
-      },
+      earning: "Earning",
+      ramping: "Working toward goal",
+      inactive: "No sales yet",
+    },
+    columns: {
+      member: "Member",
+      sales: "Sales",
+      goal: "Sales goal",
+      owed: "Owed",
+      pending: "Pending",
     },
     concentration: (name: string, percent: number) =>
-      `${name} accounts for ${percent}% of team sales.`,
-    showInactive: (count: number) =>
-      `Show ${count} member${count === 1 ? "" : "s"} with no sales yet`,
-    hideInactive: "Hide members with no sales yet",
+      `${name} drove ${percent}% of team sales.`,
   },
   commissions: {
     title: "Commissions",
