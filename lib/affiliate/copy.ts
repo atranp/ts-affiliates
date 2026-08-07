@@ -9,9 +9,9 @@ export function formatCommissionStatus(status: string): string {
     case AWAITING_PAYMENT:
       return "Awaiting payment";
     case "UNPAID":
-      return "Owed";
+      return "Payout";
     case "PENDING":
-      return "Pending";
+      return "Awaiting milestone";
     default:
       return status;
   }
@@ -57,7 +57,7 @@ export const AFFILIATE_COPY = {
   },
   stats: {
     owed: {
-      label: "Owed to you",
+      label: "Ready for payout",
       hint: "Included in the next payout run",
       action: "Commissions",
     },
@@ -67,7 +67,7 @@ export const AFFILIATE_COPY = {
       action: "Payouts",
     },
     pending: {
-      label: "Pending",
+      label: "Awaiting milestone",
       hint: "Unlocks when a team member hits their sales goal",
       action: "Team",
     },
@@ -87,25 +87,25 @@ export const AFFILIATE_COPY = {
     empty: "No team members yet.",
     loading: "Loading team members...",
     viewCommissions: "View commissions",
-    viewUnpaid: "View owed",
+    viewUnpaid: "View payout",
     teamRevenue: "Team sales",
-    owed: "Owed",
-    pending: "Pending",
+    payout: "Payout",
+    awaitingMilestone: "Awaiting milestone",
     paid: "Paid",
     salesGoal: "Sales milestone",
     goalReached: "Milestone reached",
     goalReachedShort: "Reached",
     inactive: "Inactive",
     active: "Active",
-    owedToYou: "Owed to you",
+    readyForPayout: "Ready for payout",
     teamDeal: "Team deal",
     searchPlaceholder: "Search team members…",
     noMatches: "No team members match these filters.",
     allMembers: "All",
     statsHints: {
-      owed: "From members who reached their sales goal",
+      payout: "From members who reached their sales goal",
       teamRevenue: "Combined sales across your team",
-      pending: "Waiting on members to hit their goal",
+      awaitingMilestone: "Unlocks when a member hits their sales milestone",
       paid: "Already included in a payout",
       teamDeal: "Your cut of team member sales",
     },
@@ -118,8 +118,8 @@ export const AFFILIATE_COPY = {
       member: "Member",
       sales: "Sales",
       goal: "Sales milestone",
-      owed: "Owed",
-      pending: "Pending",
+      payout: "Payout",
+      awaitingMilestone: "Awaiting milestone",
     },
   },
   commissions: {
@@ -133,7 +133,7 @@ export const AFFILIATE_COPY = {
     clearFilters: "Clear filters",
     tabs: {
       all: "All",
-      owed: "Owed",
+      payout: "Payout",
       paid: "Paid",
       teamEarnings: "Team earnings",
     },

@@ -132,8 +132,8 @@ function TeamStats({
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <AffiliateStatCard
-        label={affiliateView ? AFFILIATE_COPY.team.owedToYou : "Unpaid"}
-        hint={AFFILIATE_COPY.team.statsHints.owed}
+        label={affiliateView ? AFFILIATE_COPY.team.readyForPayout : "Unpaid"}
+        hint={AFFILIATE_COPY.team.statsHints.payout}
         value={unpaidTeamBonus}
         tone="primary"
         icon={DollarSign}
@@ -161,8 +161,8 @@ function TeamStats({
       />
       {pendingTeamBonus > 0 && (
         <AffiliateStatCard
-          label={AFFILIATE_COPY.team.pending}
-          hint={AFFILIATE_COPY.team.statsHints.pending}
+          label={AFFILIATE_COPY.team.awaitingMilestone}
+          hint={AFFILIATE_COPY.team.statsHints.awaitingMilestone}
           value={pendingTeamBonus}
           tone="warning"
           icon={Clock}
@@ -555,7 +555,7 @@ function TeamRoster({
                   onSort={handleSort}
                   align="right"
                 >
-                  {AFFILIATE_COPY.team.columns.owed}
+                  {AFFILIATE_COPY.team.columns.payout}
                 </SortableHead>
                 <SortableHead
                   sortKey="pending"
@@ -564,7 +564,7 @@ function TeamRoster({
                   onSort={handleSort}
                   align="right"
                 >
-                  {AFFILIATE_COPY.team.columns.pending}
+                  {AFFILIATE_COPY.team.columns.awaitingMilestone}
                 </SortableHead>
               </TableRow>
             </TableHeader>

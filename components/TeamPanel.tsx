@@ -127,14 +127,14 @@ export function TeamPanel({
                   </strong>
                 </span>
                 <span className="text-muted-foreground">
-                  {AFFILIATE_COPY.team.owed}{" "}
+                  {AFFILIATE_COPY.team.payout}{" "}
                   <strong className="text-primary">
                     {formatCurrency(member.stats.unpaidTeamBonus)}
                   </strong>
                 </span>
                 {member.stats.pendingTeamBonus > 0 && (
                   <span className="text-muted-foreground">
-                    {AFFILIATE_COPY.team.pending}{" "}
+                    {AFFILIATE_COPY.team.awaitingMilestone}{" "}
                     <strong className="text-warning">
                       {formatCurrency(member.stats.pendingTeamBonus)}
                     </strong>

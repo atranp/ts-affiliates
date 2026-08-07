@@ -319,7 +319,7 @@ function DashboardPageContent() {
                         <div className="mt-3 space-y-1">
                           <p className="text-sm">
                             <span className="text-muted-foreground">
-                              {AFFILIATE_COPY.team.owed}:{" "}
+                              {AFFILIATE_COPY.team.payout}:{" "}
                             </span>
                             <span className="font-semibold text-primary">
                               {formatCurrency(team.stats.unpaidTeamBonus)}
@@ -327,7 +327,7 @@ function DashboardPageContent() {
                           </p>
                           {team.stats.pendingTeamBonus > 0 && (
                             <p className="text-xs text-muted-foreground">
-                              {AFFILIATE_COPY.team.pending}{" "}
+                              {AFFILIATE_COPY.team.awaitingMilestone}{" "}
                               {formatCurrency(team.stats.pendingTeamBonus)}
                             </p>
                           )}
@@ -350,7 +350,7 @@ function DashboardPageContent() {
                 <CardContent className="space-y-4">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <AffiliateStatCard
-                      label={AFFILIATE_COPY.team.owed}
+                      label={AFFILIATE_COPY.team.payout}
                       hint={AFFILIATE_COPY.stats.owed.hint}
                       value={data.overrideSummary.unpaidTotal}
                       tone="primary"
@@ -391,13 +391,13 @@ function DashboardPageContent() {
                                   }
                                   className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/15"
                                 >
-                                  {AFFILIATE_COPY.team.owed}{" "}
+                                  {AFFILIATE_COPY.team.payout}{" "}
                                   {formatCurrency(bonus.unpaidTotal)}
                                 </button>
                               )}
                               {bonus.pendingTotal > 0 && (
                                 <span className="rounded-full bg-warning/10 px-3 py-1 text-xs font-medium text-warning">
-                                  {AFFILIATE_COPY.team.pending}{" "}
+                                  {AFFILIATE_COPY.team.awaitingMilestone}{" "}
                                   {formatCurrency(bonus.pendingTotal)}
                                 </span>
                               )}
@@ -499,7 +499,7 @@ function DashboardPageContent() {
                   {(
                     [
                       ["all", AFFILIATE_COPY.commissions.tabs.all],
-                      ["unpaid", AFFILIATE_COPY.commissions.tabs.owed],
+                      ["unpaid", AFFILIATE_COPY.commissions.tabs.payout],
                       ["paid", AFFILIATE_COPY.commissions.tabs.paid],
                       [
                         "overrides",
