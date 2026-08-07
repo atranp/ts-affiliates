@@ -590,12 +590,11 @@ function DashboardPageContent() {
             </div>
           </TabsContent>
 
-          <TabsContent value="teams" className="space-y-6">
+          <TabsContent value="teams" className="space-y-5">
             <div>
               <h1 className="page-title">Your Team Roster</h1>
               <p className="page-description">
-                Manage sponsored affiliates, track milestone sales goals, and
-                monitor team earnings.
+                Track sales goals, team earnings, and who&apos;s producing.
               </p>
             </div>
             {teamsLoading ? (

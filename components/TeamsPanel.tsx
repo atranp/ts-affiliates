@@ -2,8 +2,21 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, ChevronUp, ExternalLink, Search } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Clock,
+  DollarSign,
+  ExternalLink,
+  Search,
+  Sparkles,
+  Target,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import { useMemo, useState } from "react";
+import { AffiliateStatCard } from "@/components/affiliate/AffiliateStatCard";
 import { apiFetch } from "@/lib/api-client";
 import {
   AFFILIATE_COPY,
@@ -19,10 +32,12 @@ import {
   memberName,
   memberSpecificRules,
   SEGMENT_ORDER,
+  segmentOf,
   sortMembers,
   teamWideRules,
   topContributor,
   unlockedBonus,
+  type MemberSegment,
   type SegmentFilter,
   type SortDirection,
   type SortKey,
@@ -88,25 +103,6 @@ function formatRuleSummary(rule: TeamRule, affiliateView: boolean) {
   return parts.join(" · ");
 }
 
-function Stat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone?: string;
-}) {
-  return (
-    <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={cn("text-base font-medium tabular-nums", tone)}>
-        {formatCurrency(value)}
-      </p>
-    </div>
-  );
-}
-
 function TeamStats({
   team,
   affiliateView,
@@ -120,43 +116,51 @@ function TeamStats({
     team.stats;
 
   return (
-    <div className="flex flex-wrap items-start gap-x-10 gap-y-4">
-      <div>
-        <p className="text-xs text-muted-foreground">
-          {affiliateView ? AFFILIATE_COPY.team.owedToYou : "Unpaid"}
-        </p>
-        <p className="text-2xl font-semibold tabular-nums text-primary">
-          {formatCurrency(unpaidTeamBonus)}
-        </p>
-        {onViewTeamLedger && unpaidTeamBonus > 0 && (
-          <button
-            type="button"
-            onClick={() => onViewTeamLedger(team.id)}
-            className="text-xs font-medium text-primary hover:underline"
-          >
-            {affiliateView ? AFFILIATE_COPY.team.viewUnpaid : "View unpaid"}
-          </button>
-        )}
-      </div>
-
-      <Stat
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <AffiliateStatCard
+        label={affiliateView ? AFFILIATE_COPY.team.owedToYou : "Unpaid"}
+        hint={AFFILIATE_COPY.team.statsHints.owed}
+        value={unpaidTeamBonus}
+        tone="primary"
+        icon={DollarSign}
+        actionLabel={
+          onViewTeamLedger && unpaidTeamBonus > 0
+            ? affiliateView
+              ? AFFILIATE_COPY.team.viewUnpaid
+              : "View unpaid"
+            : undefined
+        }
+        onAction={
+          onViewTeamLedger && unpaidTeamBonus > 0
+            ? () => onViewTeamLedger(team.id)
+            : undefined
+        }
+      />
+      <AffiliateStatCard
         label={
           affiliateView ? AFFILIATE_COPY.team.teamRevenue : "Team revenue"
         }
+        hint={AFFILIATE_COPY.team.statsHints.teamRevenue}
         value={totalRevenue}
+        tone="primary"
+        icon={TrendingUp}
       />
       {pendingTeamBonus > 0 && (
-        <Stat
+        <AffiliateStatCard
           label={AFFILIATE_COPY.team.pending}
+          hint={AFFILIATE_COPY.team.statsHints.pending}
           value={pendingTeamBonus}
-          tone="text-warning"
+          tone="warning"
+          icon={Clock}
         />
       )}
       {paidTeamBonus > 0 && (
-        <Stat
+        <AffiliateStatCard
           label={AFFILIATE_COPY.team.paid}
+          hint={AFFILIATE_COPY.team.statsHints.paid}
           value={paidTeamBonus}
-          tone="text-success"
+          tone="success"
+          icon={Users}
         />
       )}
     </div>
@@ -182,7 +186,10 @@ function SortableHead({
 
   return (
     <TableHead
-      className={align === "right" ? "text-right" : undefined}
+      className={cn(
+        "h-11 bg-muted/40 px-4 first:pl-5 last:pr-5",
+        align === "right" && "text-right"
+      )}
       aria-sort={
         active
           ? direction === "asc"
@@ -195,20 +202,47 @@ function SortableHead({
         type="button"
         onClick={() => onSort(sortKey)}
         className={cn(
-          "inline-flex items-center gap-1 uppercase tracking-wider transition-colors hover:text-foreground",
+          "inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:text-brand-dark",
           align === "right" && "flex-row-reverse",
-          active && "text-foreground"
+          active ? "text-brand-dark" : "text-muted-foreground"
         )}
       >
         {children}
         {active &&
           (direction === "asc" ? (
-            <ChevronUp className="h-3 w-3" />
+            <ChevronUp className="h-3 w-3 text-primary" />
           ) : (
-            <ChevronDown className="h-3 w-3" />
+            <ChevronDown className="h-3 w-3 text-primary" />
           ))}
       </button>
     </TableHead>
+  );
+}
+
+function MemberAvatar({
+  name,
+  segment,
+}: {
+  name: string;
+  segment: MemberSegment;
+}) {
+  const initial = name.trim().charAt(0).toUpperCase() || "?";
+
+  return (
+    <span
+      className={cn(
+        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ring-1",
+        segment === "earning" &&
+          "bg-success-soft text-emerald-800 ring-emerald-200/80",
+        segment === "ramping" &&
+          "bg-warning-soft text-amber-800 ring-amber-200/80",
+        segment === "inactive" &&
+          "bg-muted text-muted-foreground ring-border/80"
+      )}
+      aria-hidden
+    >
+      {initial}
+    </span>
   );
 }
 
@@ -216,11 +250,15 @@ function GoalCell({ member }: { member: TeamMemberDetail }) {
   const milestone = member.stats.milestone;
 
   if (!milestone?.threshold) {
-    return <span className="text-muted-foreground">—</span>;
+    return <span className="text-muted-foreground/70">—</span>;
   }
 
   if (milestone.met) {
-    return <Badge variant="paid">{AFFILIATE_COPY.team.goalReachedShort}</Badge>;
+    return (
+      <Badge variant="paid" className="font-semibold">
+        {AFFILIATE_COPY.team.goalReachedShort}
+      </Badge>
+    );
   }
 
   const percent = Math.min(
@@ -228,20 +266,32 @@ function GoalCell({ member }: { member: TeamMemberDetail }) {
     Math.round((milestone.current / milestone.threshold) * 100)
   );
 
+  const barTone =
+    percent >= 50
+      ? "bg-primary"
+      : percent > 0
+        ? "bg-amber-500"
+        : "bg-transparent";
+
   return (
     <div
-      className="flex items-center gap-2"
+      className="flex min-w-[7.5rem] items-center gap-2.5"
       title={`${formatCurrency(milestone.current)} / ${formatCurrency(
         milestone.threshold
       )}`}
     >
-      <div className="h-1.5 w-16 shrink-0 overflow-hidden rounded-full bg-border">
+      <div className="h-2 w-20 shrink-0 overflow-hidden rounded-full bg-border/80">
         <div
-          className="h-full rounded-full bg-primary"
-          style={{ width: `${percent}%` }}
+          className={cn("h-full rounded-full transition-all", barTone)}
+          style={{ width: `${Math.max(percent, percent > 0 ? 8 : 0)}%` }}
         />
       </div>
-      <span className="text-xs tabular-nums text-muted-foreground">
+      <span
+        className={cn(
+          "text-xs font-medium tabular-nums",
+          percent >= 50 ? "text-primary" : "text-muted-foreground"
+        )}
+      >
         {percent}%
       </span>
     </div>
@@ -258,67 +308,134 @@ function MemberRow({
   onViewLedger?: (recruitId: string) => void;
 }) {
   const name = memberName(member);
+  const segment = segmentOf(member);
   const ownRules = memberSpecificRules(member);
-  // The ledger link filters to unpaid, so members with only locked bonuses
-  // would land on an empty view.
   const canViewLedger = !!onViewLedger && unlockedBonus(member) > 0;
 
   return (
-    <TableRow>
-      <TableCell>
-        {canViewLedger ? (
-          <button
-            type="button"
-            onClick={() => onViewLedger?.(member.id)}
-            className="text-left font-medium hover:text-primary hover:underline"
-          >
-            {name}
-          </button>
-        ) : (
-          <span className="font-medium">{name}</span>
-        )}
-        <span className="block text-xs text-muted-foreground">
-          {affiliateView
-            ? member.email
-            : `${member.email} · SliceWP #${member.slicewpId}`}
-        </span>
-        {ownRules.length > 0 && (
-          <span className="block text-xs text-muted-foreground">
-            {ownRules
-              .map((rule) => formatRuleSummary(rule, affiliateView))
-              .join(" · ")}
-          </span>
-        )}
+    <TableRow
+      className={cn(
+        "border-border/60 transition-colors",
+        segment === "earning" && "bg-success-soft/25 hover:bg-success-soft/40",
+        segment === "ramping" && "bg-warning-soft/20 hover:bg-warning-soft/35",
+        segment === "inactive" && "hover:bg-muted/50"
+      )}
+    >
+      <TableCell className="px-4 py-3.5 first:pl-5">
+        <div className="flex items-start gap-3">
+          <MemberAvatar name={name} segment={segment} />
+          <div className="min-w-0">
+            {canViewLedger ? (
+              <button
+                type="button"
+                onClick={() => onViewLedger?.(member.id)}
+                className="truncate text-left font-semibold text-brand-dark transition-colors hover:text-primary hover:underline"
+              >
+                {name}
+              </button>
+            ) : (
+              <span className="truncate font-semibold text-brand-dark">
+                {name}
+              </span>
+            )}
+            <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+              {affiliateView
+                ? member.email
+                : `${member.email} · SliceWP #${member.slicewpId}`}
+            </span>
+            {ownRules.length > 0 && (
+              <span className="mt-1 block text-xs text-muted-foreground">
+                {ownRules
+                  .map((rule) => formatRuleSummary(rule, affiliateView))
+                  .join(" · ")}
+              </span>
+            )}
+          </div>
+        </div>
       </TableCell>
-      <TableCell className="text-right tabular-nums">
+      <TableCell className="px-4 py-3.5 text-right tabular-nums">
         {member.stats.totalRevenue > 0 ? (
-          formatCurrency(member.stats.totalRevenue)
+          <span className="font-medium text-brand-dark">
+            {formatCurrency(member.stats.totalRevenue)}
+          </span>
         ) : (
-          <span className="text-muted-foreground">—</span>
+          <span className="text-muted-foreground/70">—</span>
         )}
       </TableCell>
-      <TableCell>
+      <TableCell className="px-4 py-3.5">
         <GoalCell member={member} />
       </TableCell>
-      <TableCell className="text-right tabular-nums">
+      <TableCell className="px-4 py-3.5 text-right tabular-nums">
         {member.stats.unpaidTeamBonus > 0 ? (
-          <span className="font-medium text-primary">
+          <span className="font-semibold text-primary">
             {formatCurrency(member.stats.unpaidTeamBonus)}
           </span>
         ) : (
-          <span className="text-muted-foreground">—</span>
+          <span className="text-muted-foreground/70">—</span>
         )}
       </TableCell>
-      <TableCell className="text-right tabular-nums">
+      <TableCell className="px-4 py-3.5 text-right tabular-nums last:pr-5">
         {member.stats.pendingTeamBonus > 0 ? (
-          <span className="text-warning">
+          <span className="font-medium text-amber-700">
             {formatCurrency(member.stats.pendingTeamBonus)}
           </span>
         ) : (
-          <span className="text-muted-foreground">—</span>
+          <span className="text-muted-foreground/70">—</span>
         )}
       </TableCell>
     </TableRow>
+  );
+}
+
+function TeamContext({
+  sharedRules,
+  leader,
+  affiliateView,
+}: {
+  sharedRules: TeamRule[];
+  leader: { name: string; percent: number } | null;
+  affiliateView: boolean;
+}) {
+  if (sharedRules.length === 0 && !leader) return null;
+
+  return (
+    <div className="grid gap-3 lg:grid-cols-2">
+      {sharedRules.length > 0 && (
+        <div className="ts-figure flex gap-3">
+          <div className="ts-icon-box shrink-0 bg-primary/10 text-primary">
+            <Target className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 space-y-1">
+            <p className="ts-figure-label">{AFFILIATE_COPY.team.teamDeal}</p>
+            <p className="text-sm leading-relaxed text-brand-dark">
+              {sharedRules
+                .map((rule) =>
+                  affiliateView
+                    ? teamDealLabel(
+                        rule.ratePercent,
+                        rule.milestoneRevenueThreshold,
+                        formatCurrency
+                      )
+                    : formatRuleSummary(rule, affiliateView)
+                )
+                .join(" · ")}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {leader && (
+        <div className="ts-banner items-start gap-3 sm:items-center">
+          <div className="ts-icon-box shrink-0 bg-primary/10 text-primary">
+            <Sparkles className="h-4 w-4" />
+          </div>
+          <p className="text-sm leading-relaxed text-brand-dark">
+            <span className="font-semibold">{leader.name}</span> drove{" "}
+            {Math.round(leader.percent)}% of team sales.
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -338,7 +455,6 @@ function TeamRoster({
   const [sortKey, setSortKey] = useState<SortKey>("revenue");
   const [direction, setDirection] = useState<SortDirection>("desc");
 
-  const counts = useMemo(() => countSegments(members), [members]);
   const leader = useMemo(() => topContributor(members), [members]);
   const sharedRules = useMemo(() => teamWideRules(rules), [rules]);
 
@@ -352,18 +468,22 @@ function TeamRoster({
     [members, search, segment, sortKey, direction]
   );
 
-  const filters: Array<{ key: SegmentFilter; label: string; count: number }> = [
-    {
-      key: "all",
-      label: AFFILIATE_COPY.team.allMembers,
-      count: members.length,
-    },
-    ...SEGMENT_ORDER.filter((key) => counts[key] > 0).map((key) => ({
-      key: key as SegmentFilter,
-      label: AFFILIATE_COPY.team.segments[key],
-      count: counts[key],
-    })),
-  ];
+  const filters: Array<{ key: SegmentFilter; label: string; count: number }> =
+    useMemo(() => {
+      const counts = countSegments(members);
+      return [
+        {
+          key: "all",
+          label: AFFILIATE_COPY.team.allMembers,
+          count: members.length,
+        },
+        ...SEGMENT_ORDER.filter((key) => counts[key] > 0).map((key) => ({
+          key: key as SegmentFilter,
+          label: AFFILIATE_COPY.team.segments[key],
+          count: counts[key],
+        })),
+      ];
+    }, [members]);
 
   function handleSort(key: SortKey) {
     if (key === sortKey) {
@@ -375,77 +495,62 @@ function TeamRoster({
   }
 
   return (
-    <div className="space-y-3">
-      {sharedRules.length > 0 && (
-        <p className="text-xs text-muted-foreground">
-          <span className="font-semibold">{AFFILIATE_COPY.team.teamDeal}:</span>{" "}
-          {sharedRules
-            .map((rule) =>
-              affiliateView
-                ? teamDealLabel(
-                    rule.ratePercent,
-                    rule.milestoneRevenueThreshold,
-                    formatCurrency
-                  )
-                : formatRuleSummary(rule, affiliateView)
-            )
-            .join(" · ")}
-        </p>
-      )}
+    <div className="space-y-4">
+      <TeamContext
+        sharedRules={sharedRules}
+        leader={leader}
+        affiliateView={affiliateView}
+      />
 
-      {leader && (
-        <p className="text-xs text-muted-foreground">
-          {AFFILIATE_COPY.team.concentration(
-            leader.name,
-            Math.round(leader.percent)
-          )}
-        </p>
-      )}
+      <div className="ts-table-wrap">
+        <div className="ts-table-toolbar flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="ts-segment flex-wrap">
+            {filters.map((filter) => (
+              <button
+                key={filter.key}
+                type="button"
+                onClick={() => setSegment(filter.key)}
+                aria-pressed={segment === filter.key}
+                className={cn(
+                  "ts-segment-item",
+                  segment === filter.key
+                    ? "ts-segment-item-active"
+                    : "ts-segment-item-inactive"
+                )}
+              >
+                {filter.label}
+                <span className="ml-1.5 tabular-nums opacity-70">
+                  {filter.count}
+                </span>
+              </button>
+            ))}
+          </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-        <div className="flex flex-wrap gap-1">
-          {filters.map((filter) => (
-            <button
-              key={filter.key}
-              type="button"
-              onClick={() => setSegment(filter.key)}
-              aria-pressed={segment === filter.key}
-              className={cn(
-                "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-                segment === filter.key
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-            >
-              {filter.label}
-              <span className="ml-1.5 tabular-nums opacity-70">
-                {filter.count}
-              </span>
-            </button>
-          ))}
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={AFFILIATE_COPY.team.searchPlaceholder}
+              className="ts-input pl-9"
+              aria-label={AFFILIATE_COPY.team.searchPlaceholder}
+            />
+          </div>
         </div>
 
-        <div className="relative w-full sm:w-56">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder={AFFILIATE_COPY.team.searchPlaceholder}
-            className="pl-8"
-            aria-label={AFFILIATE_COPY.team.searchPlaceholder}
-          />
-        </div>
-      </div>
-
-      {rows.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted-foreground">
-          {AFFILIATE_COPY.team.noMatches}
-        </p>
-      ) : (
-        <div className="rounded-lg border border-border">
+        {rows.length === 0 ? (
+          <div className="px-6 py-12 text-center">
+            <p className="text-sm font-medium text-brand-dark">
+              {AFFILIATE_COPY.team.noMatches}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Try another filter or search term.
+            </p>
+          </div>
+        ) : (
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="border-border/80 hover:bg-transparent">
                 <SortableHead
                   sortKey="name"
                   activeKey={sortKey}
@@ -502,8 +607,8 @@ function TeamRoster({
               ))}
             </TableBody>
           </Table>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -525,17 +630,27 @@ function TeamRosterLoader({
 
   if (isLoading) {
     return (
-      <p className="text-sm text-muted-foreground">
-        {affiliateView ? AFFILIATE_COPY.team.loading : "Loading recruits..."}
-      </p>
+      <div className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {[0, 1, 2].map((key) => (
+            <div
+              key={key}
+              className="h-[7.5rem] animate-pulse rounded-xl border border-border bg-muted/40"
+            />
+          ))}
+        </div>
+        <div className="h-64 animate-pulse rounded-xl border border-border bg-muted/30" />
+      </div>
     );
   }
 
   if (!data || data.team.members.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        {affiliateView ? AFFILIATE_COPY.team.empty : "No recruits yet."}
-      </p>
+      <div className="rounded-xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center">
+        <p className="text-sm font-medium text-brand-dark">
+          {affiliateView ? AFFILIATE_COPY.team.empty : "No recruits yet."}
+        </p>
+      </div>
     );
   }
 
@@ -568,6 +683,43 @@ function OpenTeamLink({
   );
 }
 
+function TeamMeta({
+  team,
+  affiliateView,
+  adminView,
+  sponsorAffiliateId,
+  showAdminLink = true,
+}: {
+  team: TeamSummary;
+  affiliateView: boolean;
+  adminView: boolean;
+  sponsorAffiliateId?: string;
+  showAdminLink?: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex min-w-0 items-start gap-3">
+        <div className="ts-icon-box shrink-0 bg-primary/10 text-primary">
+          <Users className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 space-y-0.5">
+          <p className="text-sm font-semibold text-brand-dark">
+            {memberCountLabel(team.memberCount)}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {affiliateView
+              ? "Filter by status or search by name and email."
+              : `${team.ruleCount} active rule${team.ruleCount === 1 ? "" : "s"}`}
+          </p>
+        </div>
+      </div>
+      {adminView && sponsorAffiliateId && showAdminLink && (
+        <OpenTeamLink sponsorAffiliateId={sponsorAffiliateId} teamId={team.id} />
+      )}
+    </div>
+  );
+}
+
 function TeamCard({
   team,
   expanded,
@@ -588,12 +740,12 @@ function TeamCard({
   const affiliateView = !adminView;
 
   return (
-    <Card className={!team.active ? "opacity-70" : undefined}>
+    <Card className={cn(!team.active && "opacity-70")}>
       <CardHeader
         role="button"
         tabIndex={0}
         aria-expanded={expanded}
-        className="cursor-pointer pb-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="cursor-pointer pb-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={onToggle}
         onKeyDown={(event) => {
           if (event.target !== event.currentTarget) return;
@@ -607,11 +759,11 @@ function TeamCard({
           <div className="min-w-0 space-y-1">
             <CardTitle className="flex items-center gap-2 text-lg">
               {expanded ? (
-                <ChevronDown className="h-4 w-4 shrink-0" />
+                <ChevronDown className="h-4 w-4 shrink-0 text-primary" />
               ) : (
-                <ChevronRight className="h-4 w-4 shrink-0" />
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
               )}
-              <span className="truncate">{team.name}</span>
+              <span className="truncate text-brand-dark">{team.name}</span>
               {!team.active && (
                 <Badge variant="secondary" className="ml-1 shrink-0">
                   {affiliateView ? AFFILIATE_COPY.team.inactive : "Inactive"}
@@ -633,14 +785,12 @@ function TeamCard({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4 pt-0">
-        <div className="border-t pt-3">
-          <TeamStats
-            team={team}
-            affiliateView={affiliateView}
-            onViewTeamLedger={onViewTeamLedger}
-          />
-        </div>
+      <CardContent className="space-y-5 pt-0">
+        <TeamStats
+          team={team}
+          affiliateView={affiliateView}
+          onViewTeamLedger={onViewTeamLedger}
+        />
         <TeamRosterLoader
           teamId={team.id}
           enabled={expanded}
@@ -681,53 +831,61 @@ export function TeamsPanel({
     );
   }
 
-  // A lone team needs no container chrome — the page is already about it.
   if (teams.length === 1) {
     const team = teams[0];
-    // "X's Downline" restates the page for the person whose downline it is.
     const showName =
-      !affiliateView || !isSlicewpDownlineTeam({ slicewpKey: team.slicewpKey ?? null });
+      !affiliateView ||
+      !isSlicewpDownlineTeam({ slicewpKey: team.slicewpKey ?? null });
 
     return (
-      <section className="space-y-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 space-y-1">
-            {showName && (
-              <h2 className="flex items-center gap-2 text-lg font-semibold">
-                <span className="truncate">{team.name}</span>
-                {!team.active && (
-                  <Badge variant="secondary" className="shrink-0">
-                    {affiliateView ? AFFILIATE_COPY.team.inactive : "Inactive"}
-                  </Badge>
-                )}
-              </h2>
-            )}
-            <p className="text-xs text-muted-foreground">
-              {affiliateView
-                ? memberCountLabel(team.memberCount)
-                : `${team.memberCount} recruit${team.memberCount === 1 ? "" : "s"} · ${team.ruleCount} rule${team.ruleCount === 1 ? "" : "s"}`}
-            </p>
+      <section className="ts-panel">
+        {showName && (
+          <div className="ts-panel-header">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0 space-y-1">
+                <h2 className="ts-section-title flex items-center gap-2 text-base">
+                  <span className="truncate">{team.name}</span>
+                  {!team.active && (
+                    <Badge variant="secondary" className="shrink-0">
+                      {affiliateView
+                        ? AFFILIATE_COPY.team.inactive
+                        : "Inactive"}
+                    </Badge>
+                  )}
+                </h2>
+              </div>
+              {adminView && sponsorAffiliateId && (
+                <OpenTeamLink
+                  sponsorAffiliateId={sponsorAffiliateId}
+                  teamId={team.id}
+                />
+              )}
+            </div>
           </div>
-          {adminView && sponsorAffiliateId && (
-            <OpenTeamLink
-              sponsorAffiliateId={sponsorAffiliateId}
-              teamId={team.id}
-            />
-          )}
+        )}
+
+        <div className="ts-panel-body space-y-6">
+          <TeamMeta
+            team={team}
+            affiliateView={affiliateView}
+            adminView={adminView}
+            sponsorAffiliateId={sponsorAffiliateId}
+            showAdminLink={!showName}
+          />
+
+          <TeamStats
+            team={team}
+            affiliateView={affiliateView}
+            onViewTeamLedger={onViewTeamLedger}
+          />
+
+          <TeamRosterLoader
+            teamId={team.id}
+            enabled
+            affiliateView={affiliateView}
+            onViewLedger={onViewLedger}
+          />
         </div>
-
-        <TeamStats
-          team={team}
-          affiliateView={affiliateView}
-          onViewTeamLedger={onViewTeamLedger}
-        />
-
-        <TeamRosterLoader
-          teamId={team.id}
-          enabled
-          affiliateView={affiliateView}
-          onViewLedger={onViewLedger}
-        />
       </section>
     );
   }

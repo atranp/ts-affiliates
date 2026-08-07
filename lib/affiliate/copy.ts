@@ -102,6 +102,12 @@ export const AFFILIATE_COPY = {
     searchPlaceholder: "Search team members…",
     noMatches: "No team members match these filters.",
     allMembers: "All",
+    statsHints: {
+      owed: "From members who reached their sales goal",
+      teamRevenue: "Combined sales across your team",
+      pending: "Waiting on members to hit their goal",
+      paid: "Already included in a payout",
+    },
     segments: {
       earning: "Earning",
       ramping: "Working toward goal",
@@ -114,8 +120,6 @@ export const AFFILIATE_COPY = {
       owed: "Owed",
       pending: "Pending",
     },
-    concentration: (name: string, percent: number) =>
-      `${name} drove ${percent}% of team sales.`,
   },
   commissions: {
     title: "Commissions",
