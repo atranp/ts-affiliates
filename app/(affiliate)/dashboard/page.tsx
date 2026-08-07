@@ -202,13 +202,17 @@ function DashboardPageContent() {
     urlQuery !== "";
 
   return (
-    <div className="space-y-6">
+    <div className="flex min-h-0 flex-1 flex-col">
       {error && (
         <ErrorState message={error.message} onRetry={() => refetch()} />
       )}
 
       {data && (
-        <Tabs value={viewTab} onValueChange={setViewTab}>
+        <Tabs
+          value={viewTab}
+          onValueChange={setViewTab}
+          className="flex min-h-0 flex-1 flex-col"
+        >
           <TabsContent value="overview" className="space-y-6">
             <div>
               <h1 className="page-title">
@@ -590,8 +594,8 @@ function DashboardPageContent() {
             </div>
           </TabsContent>
 
-          <TabsContent value="teams" className="space-y-5">
-            <div>
+          <TabsContent value="teams" className="mt-4 flex min-h-0 flex-1 flex-col gap-5">
+            <div className="shrink-0">
               <h1 className="page-title">Your Team Roster</h1>
               <p className="page-description">
                 Track sales goals, team earnings, and who&apos;s producing.
@@ -606,6 +610,8 @@ function DashboardPageContent() {
                 teams={teamsData.teams}
                 onViewLedger={(memberId) => focusTeamMember(memberId, "unpaid")}
                 onViewTeamLedger={focusTeam}
+                fillHeight
+                className="min-h-0 flex-1"
               />
             ) : legacyTeamData?.team && legacyTeamData.team.length > 0 ? (
               <TeamPanel team={legacyTeamData.team} />

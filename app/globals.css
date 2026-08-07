@@ -256,6 +256,14 @@
     @apply overflow-hidden rounded-xl border border-border/80;
   }
 
+  .ts-table-fill {
+    @apply flex min-h-0 flex-1 flex-col;
+  }
+
+  .ts-table-body-scroll {
+    @apply min-h-0 flex-1 overflow-y-auto overscroll-contain;
+  }
+
   .ts-workspace {
     @apply -my-6 mb-0 flex min-h-0 flex-1 flex-col overflow-hidden;
   }

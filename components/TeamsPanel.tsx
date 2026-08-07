@@ -187,7 +187,7 @@ function SortableHead({
   return (
     <TableHead
       className={cn(
-        "h-11 bg-muted/40 px-4 first:pl-5 last:pr-5",
+        "sticky top-0 z-10 h-11 bg-muted/95 px-4 backdrop-blur-sm first:pl-5 last:pr-5",
         align === "right" && "text-right"
       )}
       aria-sort={
@@ -444,11 +444,13 @@ function TeamRoster({
   rules,
   affiliateView,
   onViewLedger,
+  fillHeight = false,
 }: {
   members: TeamMemberDetail[];
   rules: TeamRule[];
   affiliateView: boolean;
   onViewLedger?: (recruitId: string) => void;
+  fillHeight?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [segment, setSegment] = useState<SegmentFilter>("all");
@@ -495,15 +497,23 @@ function TeamRoster({
   }
 
   return (
-    <div className="space-y-4">
-      <TeamContext
-        sharedRules={sharedRules}
-        leader={leader}
-        affiliateView={affiliateView}
-      />
+    <div
+      className={cn(
+        fillHeight ? "flex min-h-0 flex-1 flex-col gap-4" : "space-y-4"
+      )}
+    >
+      <div className={cn(fillHeight && "shrink-0")}>
+        <TeamContext
+          sharedRules={sharedRules}
+          leader={leader}
+          affiliateView={affiliateView}
+        />
+      </div>
 
-      <div className="ts-table-wrap">
-        <div className="ts-table-toolbar flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div
+        className={cn("ts-table-wrap", fillHeight && "ts-table-fill min-h-0")}
+      >
+        <div className="ts-table-toolbar flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="ts-segment flex-wrap">
             {filters.map((filter) => (
               <button
@@ -539,7 +549,12 @@ function TeamRoster({
         </div>
 
         {rows.length === 0 ? (
-          <div className="px-6 py-12 text-center">
+          <div
+            className={cn(
+              "px-6 py-12 text-center",
+              fillHeight && "flex min-h-0 flex-1 flex-col items-center justify-center"
+            )}
+          >
             <p className="text-sm font-medium text-brand-dark">
               {AFFILIATE_COPY.team.noMatches}
             </p>
@@ -548,7 +563,9 @@ function TeamRoster({
             </p>
           </div>
         ) : (
-          <Table>
+          <Table
+            containerClassName={cn(fillHeight && "ts-table-body-scroll")}
+          >
             <TableHeader>
               <TableRow className="border-border/80 hover:bg-transparent">
                 <SortableHead
@@ -618,11 +635,13 @@ function TeamRosterLoader({
   enabled,
   affiliateView,
   onViewLedger,
+  fillHeight = false,
 }: {
   teamId: string;
   enabled: boolean;
   affiliateView: boolean;
   onViewLedger?: (recruitId: string) => void;
+  fillHeight?: boolean;
 }) {
   const { data, isLoading } = useTeamDetail(teamId, enabled);
 
@@ -630,17 +649,12 @@ function TeamRosterLoader({
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {[0, 1, 2].map((key) => (
-            <div
-              key={key}
-              className="h-[7.5rem] animate-pulse rounded-xl border border-border bg-muted/40"
-            />
-          ))}
-        </div>
-        <div className="h-64 animate-pulse rounded-xl border border-border bg-muted/30" />
-      </div>
+      <div
+        className={cn(
+          "animate-pulse rounded-xl border border-border bg-muted/30",
+          fillHeight ? "min-h-0 flex-1" : "h-64"
+        )}
+      />
     );
   }
 
@@ -660,6 +674,7 @@ function TeamRosterLoader({
       rules={data.team.rules}
       affiliateView={affiliateView}
       onViewLedger={onViewLedger}
+      fillHeight={fillHeight}
     />
   );
 }
@@ -808,12 +823,17 @@ export function TeamsPanel({
   onViewTeamLedger,
   adminView = false,
   sponsorAffiliateId,
+  fillHeight = false,
+  className,
 }: {
   teams: TeamSummary[];
   onViewLedger?: (recruitId: string) => void;
   onViewTeamLedger?: (teamId: string) => void;
   adminView?: boolean;
   sponsorAffiliateId?: string;
+  /** Stretch the member table to the remaining viewport height. */
+  fillHeight?: boolean;
+  className?: string;
 }) {
   const affiliateView = !adminView;
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -838,9 +858,15 @@ export function TeamsPanel({
       !isSlicewpDownlineTeam({ slicewpKey: team.slicewpKey ?? null });
 
     return (
-      <section className="ts-panel">
+      <section
+        className={cn(
+          "ts-panel",
+          fillHeight && "flex min-h-0 flex-1 flex-col",
+          className
+        )}
+      >
         {showName && (
-          <div className="ts-panel-header">
+          <div className="ts-panel-header shrink-0">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 space-y-1">
                 <h2 className="ts-section-title flex items-center gap-2 text-base">
@@ -864,27 +890,37 @@ export function TeamsPanel({
           </div>
         )}
 
-        <div className="ts-panel-body space-y-6">
-          <TeamMeta
-            team={team}
-            affiliateView={affiliateView}
-            adminView={adminView}
-            sponsorAffiliateId={sponsorAffiliateId}
-            showAdminLink={!showName}
-          />
+        <div
+          className={cn(
+            "ts-panel-body space-y-6",
+            fillHeight && "flex min-h-0 flex-1 flex-col"
+          )}
+        >
+          <div className={cn("space-y-6", fillHeight && "shrink-0")}>
+            <TeamMeta
+              team={team}
+              affiliateView={affiliateView}
+              adminView={adminView}
+              sponsorAffiliateId={sponsorAffiliateId}
+              showAdminLink={!showName}
+            />
 
-          <TeamStats
-            team={team}
-            affiliateView={affiliateView}
-            onViewTeamLedger={onViewTeamLedger}
-          />
+            <TeamStats
+              team={team}
+              affiliateView={affiliateView}
+              onViewTeamLedger={onViewTeamLedger}
+            />
+          </div>
 
-          <TeamRosterLoader
-            teamId={team.id}
-            enabled
-            affiliateView={affiliateView}
-            onViewLedger={onViewLedger}
-          />
+          <div className={cn(fillHeight && "flex min-h-0 flex-1 flex-col")}>
+            <TeamRosterLoader
+              teamId={team.id}
+              enabled
+              affiliateView={affiliateView}
+              onViewLedger={onViewLedger}
+              fillHeight={fillHeight}
+            />
+          </div>
         </div>
       </section>
     );
