@@ -6,11 +6,11 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronUp,
+  Check,
   Clock,
   DollarSign,
   ExternalLink,
   Search,
-  Sparkles,
   Target,
   TrendingUp,
   Users,
@@ -35,7 +35,6 @@ import {
   segmentOf,
   sortMembers,
   teamWideRules,
-  topContributor,
   unlockedBonus,
   type MemberSegment,
   type SegmentFilter,
@@ -97,7 +96,7 @@ function formatRuleSummary(rule: TeamRule, affiliateView: boolean) {
   const parts = [`${rule.ratePercent}% team earnings`];
   if (rule.milestoneRevenueThreshold) {
     parts.push(
-      `${formatCurrency(Number(rule.milestoneRevenueThreshold))} sales goal`
+      `${formatCurrency(Number(rule.milestoneRevenueThreshold))} sales milestone`
     );
   }
   return parts.join(" · ");
@@ -255,9 +254,13 @@ function GoalCell({ member }: { member: TeamMemberDetail }) {
 
   if (milestone.met) {
     return (
-      <Badge variant="paid" className="font-semibold">
-        {AFFILIATE_COPY.team.goalReachedShort}
-      </Badge>
+      <span
+        className="inline-flex items-center text-emerald-700"
+        title={AFFILIATE_COPY.team.goalReached}
+      >
+        <Check className="h-4 w-4 stroke-[2.5]" aria-hidden />
+        <span className="sr-only">{AFFILIATE_COPY.team.goalReached}</span>
+      </span>
     );
   }
 
@@ -389,52 +392,34 @@ function MemberRow({
 
 function TeamContext({
   sharedRules,
-  leader,
   affiliateView,
 }: {
   sharedRules: TeamRule[];
-  leader: { name: string; percent: number } | null;
   affiliateView: boolean;
 }) {
-  if (sharedRules.length === 0 && !leader) return null;
+  if (sharedRules.length === 0) return null;
 
   return (
-    <div className="grid gap-3 lg:grid-cols-2">
-      {sharedRules.length > 0 && (
-        <div className="ts-figure flex gap-3">
-          <div className="ts-icon-box shrink-0 bg-primary/10 text-primary">
-            <Target className="h-4 w-4" />
-          </div>
-          <div className="min-w-0 space-y-1">
-            <p className="ts-figure-label">{AFFILIATE_COPY.team.teamDeal}</p>
-            <p className="text-sm leading-relaxed text-brand-dark">
-              {sharedRules
-                .map((rule) =>
-                  affiliateView
-                    ? teamDealLabel(
-                        rule.ratePercent,
-                        rule.milestoneRevenueThreshold,
-                        formatCurrency
-                      )
-                    : formatRuleSummary(rule, affiliateView)
-                )
-                .join(" · ")}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {leader && (
-        <div className="ts-banner items-start gap-3 sm:items-center">
-          <div className="ts-icon-box shrink-0 bg-primary/10 text-primary">
-            <Sparkles className="h-4 w-4" />
-          </div>
-          <p className="text-sm leading-relaxed text-brand-dark">
-            <span className="font-semibold">{leader.name}</span> drove{" "}
-            {Math.round(leader.percent)}% of team sales.
-          </p>
-        </div>
-      )}
+    <div className="ts-figure flex gap-3">
+      <div className="ts-icon-box shrink-0 bg-primary/10 text-primary">
+        <Target className="h-4 w-4" />
+      </div>
+      <div className="min-w-0 space-y-1">
+        <p className="ts-figure-label">{AFFILIATE_COPY.team.teamDeal}</p>
+        <p className="text-sm leading-relaxed text-brand-dark">
+          {sharedRules
+            .map((rule) =>
+              affiliateView
+                ? teamDealLabel(
+                    rule.ratePercent,
+                    rule.milestoneRevenueThreshold,
+                    formatCurrency
+                  )
+                : formatRuleSummary(rule, affiliateView)
+            )
+            .join(" · ")}
+        </p>
+      </div>
     </div>
   );
 }
@@ -457,7 +442,6 @@ function TeamRoster({
   const [sortKey, setSortKey] = useState<SortKey>("revenue");
   const [direction, setDirection] = useState<SortDirection>("desc");
 
-  const leader = useMemo(() => topContributor(members), [members]);
   const sharedRules = useMemo(() => teamWideRules(rules), [rules]);
 
   const rows = useMemo(
@@ -505,7 +489,6 @@ function TeamRoster({
       <div className={cn(fillHeight && "shrink-0")}>
         <TeamContext
           sharedRules={sharedRules}
-          leader={leader}
           affiliateView={affiliateView}
         />
       </div>

@@ -31,9 +31,6 @@ const DEFAULT_DIRECTIONS: Record<SortKey, SortDirection> = {
   pending: "desc",
 };
 
-const CONCENTRATION_THRESHOLD = 50;
-const MIN_MEMBERS_FOR_CONCENTRATION = 3;
-
 export function defaultDirectionFor(key: SortKey): SortDirection {
   return DEFAULT_DIRECTIONS[key];
 }
@@ -44,7 +41,7 @@ export function memberName(member: TeamMemberSummary) {
 
 /**
  * Bonus the sponsor can actually collect. PENDING is deliberately excluded —
- * those overrides stay locked until the member clears their sales goal, so a
+ * those overrides stay locked until the member clears their sales milestone, so a
  * pending balance means "still ramping", not "earning".
  */
 export function unlockedBonus(member: TeamMemberSummary) {
@@ -57,7 +54,7 @@ export function segmentOf(member: TeamMemberSummary): MemberSegment {
   return "inactive";
 }
 
-/** 0–1. Members without a goal count as complete once they have any sales. */
+/** 0–1. Members without a milestone count as complete once they have any sales. */
 export function goalRatio(member: TeamMemberSummary) {
   const milestone = member.stats.milestone;
   if (!milestone?.threshold) return member.stats.totalRevenue > 0 ? 1 : 0;
@@ -117,31 +114,6 @@ export function sortMembers(
     // Ties keep a stable, predictable order instead of shuffling on re-sort.
     return memberName(a).localeCompare(memberName(b));
   });
-}
-
-/**
- * The single dominant contributor, when one member carries most of the team.
- * Returns null for evenly distributed teams, where the fact isn't noteworthy.
- */
-export function topContributor(
-  members: TeamMemberSummary[]
-): { name: string; percent: number } | null {
-  if (members.length < MIN_MEMBERS_FOR_CONCENTRATION) return null;
-
-  const total = members.reduce(
-    (sum, member) => sum + member.stats.totalRevenue,
-    0
-  );
-  if (total <= 0) return null;
-
-  const top = members.reduce((best, member) =>
-    member.stats.totalRevenue > best.stats.totalRevenue ? member : best
-  );
-
-  const percent = (top.stats.totalRevenue / total) * 100;
-  if (percent < CONCENTRATION_THRESHOLD) return null;
-
-  return { name: memberName(top), percent };
 }
 
 /**
