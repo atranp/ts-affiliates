@@ -32,6 +32,18 @@ export function memberCountLabel(count: number): string {
   return `${count} team member${count === 1 ? "" : "s"}`;
 }
 
+export function teamDealLabel(
+  ratePercent: string,
+  milestoneRevenueThreshold: string | null,
+  formatAmount: (value: number) => string
+): string {
+  const rate = `${ratePercent}% of team earnings`;
+  if (!milestoneRevenueThreshold) return rate;
+  return `${rate} once a member reaches ${formatAmount(
+    Number(milestoneRevenueThreshold)
+  )} in sales`;
+}
+
 export const AFFILIATE_COPY = {
   portal: {
     label: "Partner Portal",
@@ -84,6 +96,35 @@ export const AFFILIATE_COPY = {
     goalReached: "Goal reached",
     inactive: "Inactive",
     active: "Active",
+    teamDeal: "Team deal",
+    searchPlaceholder: "Search team members…",
+    noMatches: "No team members match your search.",
+    sortLabel: "Sort by",
+    sort: {
+      revenue: "Most sales",
+      owed: "Most owed",
+      goal: "Closest to goal",
+      name: "Name (A–Z)",
+    },
+    segments: {
+      earning: {
+        title: "Earning",
+        description: "Hit their sales goal and are generating team earnings.",
+      },
+      ramping: {
+        title: "Working toward goal",
+        description: "Making sales but not at their goal yet.",
+      },
+      inactive: {
+        title: "No sales yet",
+        description: "No sales recorded.",
+      },
+    },
+    concentration: (name: string, percent: number) =>
+      `${name} accounts for ${percent}% of team sales.`,
+    showInactive: (count: number) =>
+      `Show ${count} member${count === 1 ? "" : "s"} with no sales yet`,
+    hideInactive: "Hide members with no sales yet",
   },
   commissions: {
     title: "Commissions",
