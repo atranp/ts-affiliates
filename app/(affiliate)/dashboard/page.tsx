@@ -6,7 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { AffiliateStatCard } from "@/components/affiliate/AffiliateStatCard";
 import { DashboardSkeleton } from "@/components/affiliate/DashboardSkeleton";
 import { MilestoneProgress } from "@/components/affiliate/MilestoneProgress";
-import { LedgerTable } from "@/components/LedgerTable";
+import { CommissionsPanel, type CommissionsTab } from "@/components/CommissionsPanel";
 import { TeamsPanel, useTeams } from "@/components/TeamsPanel";
 import { TeamPanel, useTeam } from "@/components/TeamPanel";
 import { ErrorState } from "@/components/admin/ErrorState";
@@ -15,9 +15,7 @@ import {
   ChevronRight,
   Clock,
   DollarSign,
-  Search,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -33,7 +31,7 @@ import { AFFILIATE_COPY, memberCountLabel } from "@/lib/affiliate/copy";
 import { formatCurrency } from "@/lib/utils";
 
 type DashboardTab = "overview" | "ledger" | "teams" | "payouts";
-type LedgerStatusTab = "all" | "unpaid" | "paid" | "overrides";
+type LedgerStatusTab = CommissionsTab;
 
 const DASHBOARD_TABS: DashboardTab[] = [
   "overview",
@@ -41,7 +39,13 @@ const DASHBOARD_TABS: DashboardTab[] = [
   "teams",
   "payouts",
 ];
-const LEDGER_TABS: LedgerStatusTab[] = ["all", "unpaid", "paid", "overrides"];
+const LEDGER_TABS: LedgerStatusTab[] = [
+  "all",
+  "unpaid",
+  "paid",
+  "overrides",
+  "pending",
+];
 
 function resolveTab(value: string | null): DashboardTab {
   if (value === "commissions") return "ledger";
@@ -178,8 +182,14 @@ function DashboardPageContent() {
     setParams({ member: value === "all" ? null : value, page: null });
   }
 
-  function handleLedgerTab(value: string) {
+  function handleLedgerTab(value: CommissionsTab) {
     setParams({ status: value === "all" ? null : value, page: null });
+  }
+
+  function handleLedgerPageChange(nextPage: number) {
+    setParams({
+      page: nextPage <= 1 ? null : String(nextPage),
+    });
   }
 
   function clearLedgerFilters() {
@@ -437,161 +447,33 @@ function DashboardPageContent() {
             ) : null}
           </TabsContent>
 
-          <TabsContent value="ledger" className="space-y-6">
-            <div>
-              <h1 className="page-title">Commissions Ledger</h1>
+          <TabsContent value="ledger" className="mt-4 flex min-h-0 flex-1 flex-col gap-5">
+            <div className="shrink-0">
+              <h1 className="page-title">{AFFILIATE_COPY.commissions.title}</h1>
               <p className="page-description">
                 {AFFILIATE_COPY.commissions.description}
               </p>
             </div>
 
-            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
-              <div className="ts-table-toolbar">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="relative min-w-[220px] flex-1">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder={AFFILIATE_COPY.commissions.searchPlaceholder}
-                      value={q}
-                      onChange={(e) => setQ(e.target.value)}
-                      className="rounded-lg bg-card pl-9"
-                    />
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {teamsData?.teams && teamsData.teams.length > 0 && (
-                      <select
-                        aria-label={AFFILIATE_COPY.commissions.allTeams}
-                        className="select-field w-full sm:max-w-xs"
-                        value={teamFilter}
-                        onChange={(e) => handleTeamFilter(e.target.value)}
-                      >
-                        <option value="all">
-                          {AFFILIATE_COPY.commissions.allTeams}
-                        </option>
-                        {teamsData.teams.map((team) => (
-                          <option key={team.id} value={team.id}>
-                            {team.name}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                    {data.sourceAffiliates.length > 0 && (
-                      <select
-                        aria-label={AFFILIATE_COPY.commissions.allMembers}
-                        className="select-field w-full sm:max-w-xs"
-                        value={sourceFilter}
-                        onChange={(e) => handleSourceFilter(e.target.value)}
-                      >
-                        <option value="all">
-                          {AFFILIATE_COPY.commissions.allMembers}
-                        </option>
-                        {data.sourceAffiliates.map((affiliate) => (
-                          <option key={affiliate.id} value={affiliate.id}>
-                            {affiliate.displayName ?? affiliate.email}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
-                  {(
-                    [
-                      ["all", AFFILIATE_COPY.commissions.tabs.all],
-                      ["unpaid", AFFILIATE_COPY.commissions.tabs.payout],
-                      ["paid", AFFILIATE_COPY.commissions.tabs.paid],
-                      [
-                        "overrides",
-                        AFFILIATE_COPY.commissions.tabs.teamEarnings,
-                      ],
-                    ] as const
-                  ).map(([value, label]) => (
-                    <button
-                      key={value}
-                      type="button"
-                      aria-pressed={ledgerTab === value}
-                      onClick={() => handleLedgerTab(value)}
-                      className={
-                        ledgerTab === value
-                          ? "filter-pill filter-pill-active"
-                          : "filter-pill filter-pill-inactive"
-                      }
-                    >
-                      {label}
-                    </button>
-                  ))}
-                  {filtersActive && (
-                    <button
-                      type="button"
-                      onClick={clearLedgerFilters}
-                      className="ml-auto text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
-                    >
-                      {AFFILIATE_COPY.commissions.clearFilters}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 text-xs">
-                <p className="text-muted-foreground">
-                  {data.filtered.count}{" "}
-                  {data.filtered.count === 1 ? "entry" : "entries"}
-                  {isFetching && (
-                    <span className="text-muted-foreground"> · updating…</span>
-                  )}
-                </p>
-                <p className="font-semibold text-brand-dark">
-                  {AFFILIATE_COPY.commissions.columns.amount}:{" "}
-                  <span className="text-primary">
-                    {formatCurrency(data.filtered.amount)}
-                  </span>
-                </p>
-              </div>
-
-              {data.entries.length === 0 && filtersActive ? (
-                <div className="space-y-3 px-4 py-10 text-center">
-                  <p className="text-sm text-muted-foreground">
-                    {AFFILIATE_COPY.commissions.noMatches}
-                  </p>
-                  <Button variant="outline" size="sm" onClick={clearLedgerFilters}>
-                    {AFFILIATE_COPY.commissions.clearFilters}
-                  </Button>
-                </div>
-              ) : (
-                <LedgerTable entries={data.entries} showDetails affiliateView />
-              )}
-
-              {data.totalPages > 1 && (
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/50 p-4 text-xs text-muted-foreground">
-                  <p>
-                    Page {data.page} of {data.totalPages}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={page <= 1}
-                      onClick={() =>
-                        setParams({
-                          page: page - 1 <= 1 ? null : String(page - 1),
-                        })
-                      }
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={page >= data.totalPages}
-                      onClick={() => setParams({ page: String(page + 1) })}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
+            <CommissionsPanel
+              data={data}
+              teams={teamsData?.teams}
+              ledgerTab={ledgerTab}
+              sourceFilter={sourceFilter}
+              teamFilter={teamFilter}
+              q={q}
+              page={page}
+              isFetching={isFetching}
+              filtersActive={filtersActive}
+              onLedgerTab={handleLedgerTab}
+              onTeamFilter={handleTeamFilter}
+              onSourceFilter={handleSourceFilter}
+              onSearchChange={setQ}
+              onClearFilters={clearLedgerFilters}
+              onPageChange={handleLedgerPageChange}
+              fillHeight
+              className="min-h-0 flex-1"
+            />
           </TabsContent>
 
           <TabsContent value="teams" className="mt-4 flex min-h-0 flex-1 flex-col gap-5">

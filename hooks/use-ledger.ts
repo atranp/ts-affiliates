@@ -42,6 +42,30 @@ export type LedgerData = {
     pendingTotal: number;
     unpaidCount: number;
     paidCount: number;
+    pendingCount: number;
+  };
+  accountSummary: {
+    unpaidTotal: number;
+    paidTotal: number;
+    pendingTotal: number;
+    unpaidCount: number;
+    paidCount: number;
+    pendingCount: number;
+  };
+  overrideAccountSummary: {
+    unpaidTotal: number;
+    paidTotal: number;
+    pendingTotal: number;
+    unpaidCount: number;
+    paidCount: number;
+    pendingCount: number;
+  };
+  tabCounts: {
+    all: number;
+    unpaid: number;
+    paid: number;
+    pending: number;
+    overrides: number;
   };
   overrideSummary: {
     unpaidTotal: number;

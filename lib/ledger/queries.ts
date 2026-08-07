@@ -96,13 +96,14 @@ function summaryFromGroups(
     status?: CommissionStatus;
     sourceAffiliateId?: string;
   }
-): LedgerSummary {
-  const summary: LedgerSummary = {
+): LedgerSummary & { pendingCount: number } {
+  const summary: LedgerSummary & { pendingCount: number } = {
     unpaidTotal: 0,
     paidTotal: 0,
     pendingTotal: 0,
     unpaidCount: 0,
     paidCount: 0,
+    pendingCount: 0,
   };
 
   for (const row of groups) {
@@ -118,10 +119,32 @@ function summaryFromGroups(
       summary.unpaidCount += count;
     } else if (row.status === CommissionStatus.PENDING) {
       summary.pendingTotal += amount;
+      summary.pendingCount += count;
     }
   }
 
   return summary;
+}
+
+function tabCountsFromGroups(groups: LedgerGroupRow[]) {
+  const counts = {
+    all: 0,
+    unpaid: 0,
+    paid: 0,
+    pending: 0,
+    overrides: 0,
+  };
+
+  for (const row of groups) {
+    const count = row._count._all;
+    counts.all += count;
+    if (row.status === CommissionStatus.UNPAID) counts.unpaid += count;
+    if (row.status === CommissionStatus.PAID) counts.paid += count;
+    if (row.status === CommissionStatus.PENDING) counts.pending += count;
+    if (row.type === LedgerEntryType.OVERRIDE) counts.overrides += count;
+  }
+
+  return counts;
 }
 
 function teamBonusesFromGroups(
@@ -246,9 +269,15 @@ export async function getLedgerResponse(filters: LedgerFilters) {
     sourceAffiliateId: filters.sourceAffiliateId,
   });
 
+  const accountSummary = summaryFromGroups(groups);
+
   const overrideSummary = summaryFromGroups(groups, {
     type: LedgerEntryType.OVERRIDE,
     sourceAffiliateId: filters.sourceAffiliateId,
+  });
+
+  const overrideAccountSummary = summaryFromGroups(groups, {
+    type: LedgerEntryType.OVERRIDE,
   });
 
   const sourceIds = Array.from(
@@ -332,8 +361,11 @@ export async function getLedgerResponse(filters: LedgerFilters) {
     ...pageData,
     filtered,
     summary,
+    accountSummary,
     overrideSummary,
+    overrideAccountSummary,
     teamBonuses,
     sourceAffiliates,
+    tabCounts: tabCountsFromGroups(groups),
   };
 }

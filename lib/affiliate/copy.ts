@@ -123,7 +123,7 @@ export const AFFILIATE_COPY = {
     },
   },
   commissions: {
-    title: "Commissions",
+    title: "Your Commissions",
     description: "Every sale and team earning tied to your account.",
     empty: "No commissions yet.",
     noMatches: "No commissions match these filters.",
@@ -131,11 +131,18 @@ export const AFFILIATE_COPY = {
     allTeams: "All teams",
     allMembers: "All team members",
     clearFilters: "Clear filters",
+    statsHints: {
+      payout: "Ready for your next payout run",
+      paid: "Already sent to you",
+      awaitingMilestone: "Unlocks when a team member hits their sales milestone",
+      teamEarnings: "Bonuses from your team members' sales",
+    },
     tabs: {
       all: "All",
       payout: "Payout",
       paid: "Paid",
       teamEarnings: "Team earnings",
+      awaitingMilestone: "Awaiting milestone",
     },
     columns: {
       date: "Date",
