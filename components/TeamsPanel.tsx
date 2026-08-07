@@ -21,7 +21,6 @@ import { apiFetch } from "@/lib/api-client";
 import {
   AFFILIATE_COPY,
   memberCountLabel,
-  teamDealLabel,
 } from "@/lib/affiliate/copy";
 import { isSlicewpDownlineTeam } from "@/lib/teams/constants";
 import type { TeamDetail, TeamSummary } from "@/lib/teams/queries";
@@ -102,17 +101,33 @@ function formatRuleSummary(rule: TeamRule, affiliateView: boolean) {
   return parts.join(" · ");
 }
 
+function teamDealHint(rule: TeamRule, affiliateView: boolean) {
+  if (!affiliateView) {
+    return formatRuleSummary(rule, affiliateView);
+  }
+
+  if (rule.milestoneRevenueThreshold) {
+    return `After ${formatCurrency(Number(rule.milestoneRevenueThreshold))} in member sales`;
+  }
+
+  return AFFILIATE_COPY.team.statsHints.teamDeal;
+}
+
 function TeamStats({
   team,
   affiliateView,
   onViewTeamLedger,
+  sharedRules = [],
 }: {
   team: TeamSummary;
   affiliateView: boolean;
   onViewTeamLedger?: (teamId: string) => void;
+  sharedRules?: TeamRule[];
 }) {
   const { totalRevenue, unpaidTeamBonus, pendingTeamBonus, paidTeamBonus } =
     team.stats;
+
+  const dealRules = teamWideRules(sharedRules);
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -162,6 +177,16 @@ function TeamStats({
           icon={Users}
         />
       )}
+      {dealRules.map((rule) => (
+        <AffiliateStatCard
+          key={rule.id}
+          label={AFFILIATE_COPY.team.teamDeal}
+          hint={teamDealHint(rule, affiliateView)}
+          value={`${rule.ratePercent}%`}
+          tone="primary"
+          icon={Target}
+        />
+      ))}
     </div>
   );
 }
@@ -254,13 +279,10 @@ function GoalCell({ member }: { member: TeamMemberDetail }) {
 
   if (milestone.met) {
     return (
-      <span
-        className="inline-flex items-center text-emerald-700"
-        title={AFFILIATE_COPY.team.goalReached}
-      >
-        <Check className="h-4 w-4 stroke-[2.5]" aria-hidden />
-        <span className="sr-only">{AFFILIATE_COPY.team.goalReached}</span>
-      </span>
+      <Badge variant="paid" className="gap-1 font-semibold">
+        <Check className="h-3 w-3 stroke-[2.5]" aria-hidden />
+        {AFFILIATE_COPY.team.goalReachedShort}
+      </Badge>
     );
   }
 
@@ -390,49 +412,13 @@ function MemberRow({
   );
 }
 
-function TeamContext({
-  sharedRules,
-  affiliateView,
-}: {
-  sharedRules: TeamRule[];
-  affiliateView: boolean;
-}) {
-  if (sharedRules.length === 0) return null;
-
-  return (
-    <div className="ts-figure flex gap-3">
-      <div className="ts-icon-box shrink-0 bg-primary/10 text-primary">
-        <Target className="h-4 w-4" />
-      </div>
-      <div className="min-w-0 space-y-1">
-        <p className="ts-figure-label">{AFFILIATE_COPY.team.teamDeal}</p>
-        <p className="text-sm leading-relaxed text-brand-dark">
-          {sharedRules
-            .map((rule) =>
-              affiliateView
-                ? teamDealLabel(
-                    rule.ratePercent,
-                    rule.milestoneRevenueThreshold,
-                    formatCurrency
-                  )
-                : formatRuleSummary(rule, affiliateView)
-            )
-            .join(" · ")}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function TeamRoster({
   members,
-  rules,
   affiliateView,
   onViewLedger,
   fillHeight = false,
 }: {
   members: TeamMemberDetail[];
-  rules: TeamRule[];
   affiliateView: boolean;
   onViewLedger?: (recruitId: string) => void;
   fillHeight?: boolean;
@@ -441,8 +427,6 @@ function TeamRoster({
   const [segment, setSegment] = useState<SegmentFilter>("all");
   const [sortKey, setSortKey] = useState<SortKey>("revenue");
   const [direction, setDirection] = useState<SortDirection>("desc");
-
-  const sharedRules = useMemo(() => teamWideRules(rules), [rules]);
 
   const rows = useMemo(
     () =>
@@ -482,20 +466,8 @@ function TeamRoster({
 
   return (
     <div
-      className={cn(
-        fillHeight ? "flex min-h-0 flex-1 flex-col gap-4" : "space-y-4"
-      )}
+      className={cn("ts-table-wrap", fillHeight && "ts-table-fill min-h-0")}
     >
-      <div className={cn(fillHeight && "shrink-0")}>
-        <TeamContext
-          sharedRules={sharedRules}
-          affiliateView={affiliateView}
-        />
-      </div>
-
-      <div
-        className={cn("ts-table-wrap", fillHeight && "ts-table-fill min-h-0")}
-      >
         <div className="ts-table-toolbar flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="ts-segment flex-wrap">
             {filters.map((filter) => (
@@ -608,57 +580,76 @@ function TeamRoster({
             </TableBody>
           </Table>
         )}
-      </div>
     </div>
   );
 }
 
-function TeamRosterLoader({
+function TeamDetailSection({
+  team,
   teamId,
   enabled,
   affiliateView,
   onViewLedger,
+  onViewTeamLedger,
   fillHeight = false,
+  showStats = true,
 }: {
+  team: TeamSummary;
   teamId: string;
   enabled: boolean;
   affiliateView: boolean;
   onViewLedger?: (recruitId: string) => void;
+  onViewTeamLedger?: (teamId: string) => void;
   fillHeight?: boolean;
+  showStats?: boolean;
 }) {
   const { data, isLoading } = useTeamDetail(teamId, enabled);
 
   if (!enabled) return null;
 
-  if (isLoading) {
-    return (
-      <div
-        className={cn(
-          "animate-pulse rounded-xl border border-border bg-muted/30",
-          fillHeight ? "min-h-0 flex-1" : "h-64"
-        )}
-      />
-    );
-  }
-
-  if (!data || data.team.members.length === 0) {
-    return (
-      <div className="rounded-xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center">
-        <p className="text-sm font-medium text-brand-dark">
-          {affiliateView ? AFFILIATE_COPY.team.empty : "No recruits yet."}
-        </p>
-      </div>
-    );
-  }
+  const sharedRules = data?.team.rules ?? [];
 
   return (
-    <TeamRoster
-      members={data.team.members}
-      rules={data.team.rules}
-      affiliateView={affiliateView}
-      onViewLedger={onViewLedger}
-      fillHeight={fillHeight}
-    />
+    <div
+      className={cn(
+        fillHeight ? "flex min-h-0 flex-1 flex-col gap-6" : "space-y-6"
+      )}
+    >
+      {showStats && (
+        <div className={cn(fillHeight && "shrink-0")}>
+          <TeamStats
+            team={team}
+            affiliateView={affiliateView}
+            onViewTeamLedger={onViewTeamLedger}
+            sharedRules={sharedRules}
+          />
+        </div>
+      )}
+
+      {isLoading ? (
+        <div
+          className={cn(
+            "animate-pulse rounded-xl border border-border bg-muted/30",
+            fillHeight ? "min-h-0 flex-1" : "h-64"
+          )}
+        />
+      ) : !data || data.team.members.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center">
+          <p className="text-sm font-medium text-brand-dark">
+            {affiliateView ? AFFILIATE_COPY.team.empty : "No recruits yet."}
+          </p>
+        </div>
+      ) : (
+        <div className={cn(fillHeight && "flex min-h-0 flex-1 flex-col")}>
+          <TeamRoster
+            members={data.team.members}
+            affiliateView={affiliateView}
+            onViewLedger={onViewLedger}
+            fillHeight={fillHeight}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -784,17 +775,22 @@ function TeamCard({
       </CardHeader>
 
       <CardContent className="space-y-5 pt-0">
-        <TeamStats
-          team={team}
-          affiliateView={affiliateView}
-          onViewTeamLedger={onViewTeamLedger}
-        />
-        <TeamRosterLoader
-          teamId={team.id}
-          enabled={expanded}
-          affiliateView={affiliateView}
-          onViewLedger={onViewLedger}
-        />
+        {expanded ? (
+          <TeamDetailSection
+            team={team}
+            teamId={team.id}
+            enabled
+            affiliateView={affiliateView}
+            onViewLedger={onViewLedger}
+            onViewTeamLedger={onViewTeamLedger}
+          />
+        ) : (
+          <TeamStats
+            team={team}
+            affiliateView={affiliateView}
+            onViewTeamLedger={onViewTeamLedger}
+          />
+        )}
       </CardContent>
     </Card>
   );
@@ -879,7 +875,7 @@ export function TeamsPanel({
             fillHeight && "flex min-h-0 flex-1 flex-col"
           )}
         >
-          <div className={cn("space-y-6", fillHeight && "shrink-0")}>
+          <div className={cn(fillHeight && "shrink-0")}>
             <TeamMeta
               team={team}
               affiliateView={affiliateView}
@@ -887,23 +883,17 @@ export function TeamsPanel({
               sponsorAffiliateId={sponsorAffiliateId}
               showAdminLink={!showName}
             />
-
-            <TeamStats
-              team={team}
-              affiliateView={affiliateView}
-              onViewTeamLedger={onViewTeamLedger}
-            />
           </div>
 
-          <div className={cn(fillHeight && "flex min-h-0 flex-1 flex-col")}>
-            <TeamRosterLoader
-              teamId={team.id}
-              enabled
-              affiliateView={affiliateView}
-              onViewLedger={onViewLedger}
-              fillHeight={fillHeight}
-            />
-          </div>
+          <TeamDetailSection
+            team={team}
+            teamId={team.id}
+            enabled
+            affiliateView={affiliateView}
+            onViewLedger={onViewLedger}
+            onViewTeamLedger={onViewTeamLedger}
+            fillHeight={fillHeight}
+          />
         </div>
       </section>
     );

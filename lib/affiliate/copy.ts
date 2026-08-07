@@ -94,6 +94,7 @@ export const AFFILIATE_COPY = {
     paid: "Paid",
     salesGoal: "Sales milestone",
     goalReached: "Milestone reached",
+    goalReachedShort: "Reached",
     inactive: "Inactive",
     active: "Active",
     owedToYou: "Owed to you",
@@ -106,6 +107,7 @@ export const AFFILIATE_COPY = {
       teamRevenue: "Combined sales across your team",
       pending: "Waiting on members to hit their goal",
       paid: "Already included in a payout",
+      teamDeal: "Your cut of team member sales",
     },
     segments: {
       earning: "Earning",
