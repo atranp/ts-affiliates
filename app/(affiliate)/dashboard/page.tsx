@@ -447,10 +447,7 @@ function DashboardPageContent() {
             ) : null}
           </TabsContent>
 
-          <TabsContent
-            value="ledger"
-            className="ts-workspace mt-0 flex min-h-0 flex-1 flex-col gap-5"
-          >
+          <TabsContent value="ledger" className="mt-4 flex min-h-0 flex-1 flex-col gap-5">
             <div className="shrink-0">
               <h1 className="page-title">{AFFILIATE_COPY.commissions.title}</h1>
               <p className="page-description">

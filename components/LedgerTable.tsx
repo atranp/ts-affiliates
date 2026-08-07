@@ -197,9 +197,7 @@ export function LedgerTable({
   const table = (
     <Table
       containerClassName={cn(
-        affiliateView &&
-          fillHeight &&
-          "ts-table-body-scroll min-h-0 flex-1 basis-0"
+        affiliateView && fillHeight && "ts-table-body-scroll min-h-0 flex-1"
       )}
     >
       <TableHeader>
@@ -347,14 +345,10 @@ export function LedgerTable({
 
   if (affiliateView && fillHeight) {
     return (
-      <>
-        <div className="hidden min-h-0 flex-1 basis-0 flex-col md:flex">
-          {table}
-        </div>
-        <div className="min-h-0 flex-1 basis-0 overflow-y-auto overscroll-contain md:hidden">
-          {cards}
-        </div>
-      </>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="hidden min-h-0 flex-1 flex-col md:flex">{table}</div>
+        {cards}
+      </div>
     );
   }
 
