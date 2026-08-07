@@ -10,23 +10,19 @@ import {
 import { AffiliateStatCard } from "@/components/affiliate/AffiliateStatCard";
 import { LedgerTable } from "@/components/LedgerTable";
 import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
-import type { LedgerData } from "@/hooks/use-ledger";
+import type { LedgerData, LedgerTypeFilter } from "@/hooks/use-ledger";
 import type { TeamSummary } from "@/lib/teams/queries";
 import { cn, formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export type CommissionsTab =
-  | "all"
-  | "unpaid"
-  | "paid"
-  | "overrides"
-  | "pending";
+export type CommissionsTab = "all" | "unpaid" | "paid" | "pending";
 
 type CommissionsPanelProps = {
   data: LedgerData;
   teams?: TeamSummary[];
   ledgerTab: CommissionsTab;
+  typeFilter: LedgerTypeFilter;
   sourceFilter: string;
   teamFilter: string;
   q: string;
@@ -34,6 +30,7 @@ type CommissionsPanelProps = {
   isFetching: boolean;
   filtersActive: boolean;
   onLedgerTab: (tab: CommissionsTab) => void;
+  onTypeFilter: (value: LedgerTypeFilter) => void;
   onTeamFilter: (value: string) => void;
   onSourceFilter: (value: string) => void;
   onSearchChange: (value: string) => void;
@@ -60,11 +57,6 @@ const TAB_ORDER: Array<{
     countKey: "paid",
   },
   {
-    key: "overrides",
-    label: AFFILIATE_COPY.commissions.tabs.teamEarnings,
-    countKey: "overrides",
-  },
-  {
     key: "pending",
     label: AFFILIATE_COPY.commissions.tabs.awaitingMilestone,
     countKey: "pending",
@@ -75,6 +67,7 @@ export function CommissionsPanel({
   data,
   teams,
   ledgerTab,
+  typeFilter,
   sourceFilter,
   teamFilter,
   q,
@@ -82,6 +75,7 @@ export function CommissionsPanel({
   isFetching,
   filtersActive,
   onLedgerTab,
+  onTypeFilter,
   onTeamFilter,
   onSourceFilter,
   onSearchChange,
@@ -156,11 +150,9 @@ export function CommissionsPanel({
             value={overrideAccountSummary.unpaidTotal}
             tone="primary"
             icon={Users}
-            actionLabel={ledgerTab === "overrides" ? undefined : "View"}
+            actionLabel={typeFilter === "team" ? undefined : "View"}
             onAction={
-              ledgerTab === "overrides"
-                ? undefined
-                : () => onLedgerTab("overrides")
+              typeFilter === "team" ? undefined : () => onTypeFilter("team")
             }
           />
         )}
@@ -208,8 +200,28 @@ export function CommissionsPanel({
             </div>
           </div>
 
-          {(teams?.length || data.sourceAffiliates.length > 0 || filtersActive) && (
-            <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
+          <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
+              <select
+                aria-label={AFFILIATE_COPY.commissions.allTypes}
+                className="select-field w-full sm:max-w-xs"
+                value={typeFilter}
+                onChange={(event) =>
+                  onTypeFilter(event.target.value as LedgerTypeFilter)
+                }
+              >
+                <option value="all">
+                  {AFFILIATE_COPY.commissions.allTypes} (
+                  {tabCounts.all.toLocaleString()})
+                </option>
+                <option value="direct">
+                  {AFFILIATE_COPY.commissions.typeDirect} (
+                  {tabCounts.direct.toLocaleString()})
+                </option>
+                <option value="team">
+                  {AFFILIATE_COPY.commissions.typeTeam} (
+                  {tabCounts.overrides.toLocaleString()})
+                </option>
+              </select>
               {teams && teams.length > 0 && (
                 <select
                   aria-label={AFFILIATE_COPY.commissions.allTeams}
@@ -254,7 +266,6 @@ export function CommissionsPanel({
                 </button>
               )}
             </div>
-          )}
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border/70 bg-muted/20 px-4 py-2.5 text-xs">

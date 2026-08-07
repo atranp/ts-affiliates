@@ -66,6 +66,7 @@ export type LedgerData = {
     paid: number;
     pending: number;
     overrides: number;
+    direct: number;
   };
   overrideSummary: {
     unpaidTotal: number;
@@ -139,13 +140,40 @@ export function useLedger(options: LedgerQueryOptions = {}) {
   });
 }
 
+export type LedgerStatusTab = "all" | "unpaid" | "paid" | "pending";
+
+/** Affiliate-facing entry type filter (maps to ledger API types). */
+export type LedgerTypeFilter = "all" | "direct" | "team";
+
+export function resolveLedgerStatusTab(
+  value: string | null
+): LedgerStatusTab {
+  if (value === "overrides") return "all";
+  const tabs: LedgerStatusTab[] = ["all", "unpaid", "paid", "pending"];
+  return tabs.find((tab) => tab === value) ?? "all";
+}
+
+export function resolveLedgerTypeFilter(
+  typeParam: string | null,
+  statusParam: string | null
+): LedgerTypeFilter {
+  if (typeParam === "direct" || typeParam === "team") return typeParam;
+  if (statusParam === "overrides") return "team";
+  return "all";
+}
+
+export function ledgerTypeFilterToApi(
+  filter: LedgerTypeFilter
+): string | undefined {
+  if (filter === "direct") return "DIRECT";
+  if (filter === "team") return "OVERRIDE";
+  return undefined;
+}
+
 export type LedgerTab =
-  | "all"
-  | "unpaid"
-  | "paid"
-  | "pending"
-  | "rejected"
-  | "overrides";
+  | LedgerStatusTab
+  | "overrides"
+  | "rejected";
 
 export function ledgerTabToFilters(
   tab: LedgerTab,

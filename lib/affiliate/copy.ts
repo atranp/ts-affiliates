@@ -130,6 +130,9 @@ export const AFFILIATE_COPY = {
     searchPlaceholder: "Search order or description…",
     allTeams: "All teams",
     allMembers: "All team members",
+    allTypes: "All types",
+    typeDirect: "Direct sale",
+    typeTeam: "Team earnings",
     clearFilters: "Clear filters",
     statsHints: {
       payout: "Ready for your next payout run",

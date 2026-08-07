@@ -133,6 +133,7 @@ function tabCountsFromGroups(groups: LedgerGroupRow[]) {
     paid: 0,
     pending: 0,
     overrides: 0,
+    direct: 0,
   };
 
   for (const row of groups) {
@@ -142,6 +143,7 @@ function tabCountsFromGroups(groups: LedgerGroupRow[]) {
     if (row.status === CommissionStatus.PAID) counts.paid += count;
     if (row.status === CommissionStatus.PENDING) counts.pending += count;
     if (row.type === LedgerEntryType.OVERRIDE) counts.overrides += count;
+    if (row.type === LedgerEntryType.DIRECT) counts.direct += count;
   }
 
   return counts;

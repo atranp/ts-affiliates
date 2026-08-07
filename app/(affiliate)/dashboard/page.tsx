@@ -6,7 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { AffiliateStatCard } from "@/components/affiliate/AffiliateStatCard";
 import { DashboardSkeleton } from "@/components/affiliate/DashboardSkeleton";
 import { MilestoneProgress } from "@/components/affiliate/MilestoneProgress";
-import { CommissionsPanel, type CommissionsTab } from "@/components/CommissionsPanel";
+import { CommissionsPanel } from "@/components/CommissionsPanel";
 import { TeamsPanel, useTeams } from "@/components/TeamsPanel";
 import { TeamPanel, useTeam } from "@/components/TeamPanel";
 import { ErrorState } from "@/components/admin/ErrorState";
@@ -25,13 +25,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { ledgerTabToFilters, useLedger } from "@/hooks/use-ledger";
+import {
+  ledgerTabToFilters,
+  ledgerTypeFilterToApi,
+  resolveLedgerStatusTab,
+  resolveLedgerTypeFilter,
+  useLedger,
+  type LedgerStatusTab,
+  type LedgerTypeFilter,
+} from "@/hooks/use-ledger";
 import { PayoutsList } from "@/components/payouts/PayoutsList";
 import { AFFILIATE_COPY, memberCountLabel } from "@/lib/affiliate/copy";
 import { formatCurrency } from "@/lib/utils";
 
 type DashboardTab = "overview" | "ledger" | "teams" | "payouts";
-type LedgerStatusTab = CommissionsTab;
 
 const DASHBOARD_TABS: DashboardTab[] = [
   "overview",
@@ -39,21 +46,10 @@ const DASHBOARD_TABS: DashboardTab[] = [
   "teams",
   "payouts",
 ];
-const LEDGER_TABS: LedgerStatusTab[] = [
-  "all",
-  "unpaid",
-  "paid",
-  "overrides",
-  "pending",
-];
 
 function resolveTab(value: string | null): DashboardTab {
   if (value === "commissions") return "ledger";
   return DASHBOARD_TABS.find((tab) => tab === value) ?? "overview";
-}
-
-function resolveLedgerTab(value: string | null): LedgerStatusTab {
-  return LEDGER_TABS.find((tab) => tab === value) ?? "all";
 }
 
 export default function DashboardPage() {
@@ -94,7 +90,12 @@ function DashboardPageContent() {
   );
 
   const viewTab = resolveTab(searchParams.get("tab"));
-  const ledgerTab = resolveLedgerTab(searchParams.get("status"));
+  const statusParam = searchParams.get("status");
+  const ledgerTab = resolveLedgerStatusTab(statusParam);
+  const typeFilter = resolveLedgerTypeFilter(
+    searchParams.get("type"),
+    statusParam
+  );
   const sourceFilter = searchParams.get("member") ?? "all";
   const teamFilter = searchParams.get("team") ?? "all";
   const urlQuery = searchParams.get("q") ?? "";
@@ -126,6 +127,7 @@ function DashboardPageContent() {
 
   const { data, error, isLoading, refetch, isFetching } = useLedger({
     ...tabFilters,
+    type: ledgerTypeFilterToApi(typeFilter),
     q: urlQuery,
     teamId: teamFilter !== "all" ? teamFilter : undefined,
     page,
@@ -149,7 +151,8 @@ function DashboardPageContent() {
         tab: "ledger",
         team: null,
         member: sourceId,
-        status: status === "all" ? "overrides" : status,
+        type: status === "all" ? "team" : null,
+        status: status === "all" ? null : status,
         page: null,
       },
       { history: true }
@@ -162,7 +165,8 @@ function DashboardPageContent() {
         tab: "ledger",
         member: null,
         team: teamId,
-        status: "overrides",
+        type: "team",
+        status: null,
         page: null,
       },
       { history: true }
@@ -182,7 +186,15 @@ function DashboardPageContent() {
     setParams({ member: value === "all" ? null : value, page: null });
   }
 
-  function handleLedgerTab(value: CommissionsTab) {
+  function handleTypeFilter(value: LedgerTypeFilter) {
+    setParams({
+      type: value === "all" ? null : value,
+      status: statusParam === "overrides" ? null : statusParam,
+      page: null,
+    });
+  }
+
+  function handleLedgerTab(value: LedgerStatusTab) {
     setParams({ status: value === "all" ? null : value, page: null });
   }
 
@@ -194,7 +206,14 @@ function DashboardPageContent() {
 
   function clearLedgerFilters() {
     setQ("");
-    setParams({ status: null, member: null, team: null, q: null, page: null });
+    setParams({
+      status: null,
+      type: null,
+      member: null,
+      team: null,
+      q: null,
+      page: null,
+    });
   }
 
   const displayName = user?.affiliateName?.trim() || user?.name?.trim() || null;
@@ -207,6 +226,7 @@ function DashboardPageContent() {
   const hasTeamBonuses = (data?.teamBonuses.length ?? 0) > 0;
   const filtersActive =
     ledgerTab !== "all" ||
+    typeFilter !== "all" ||
     sourceFilter !== "all" ||
     teamFilter !== "all" ||
     urlQuery !== "";
@@ -462,6 +482,7 @@ function DashboardPageContent() {
               data={data}
               teams={teamsData?.teams}
               ledgerTab={ledgerTab}
+              typeFilter={typeFilter}
               sourceFilter={sourceFilter}
               teamFilter={teamFilter}
               q={q}
@@ -469,6 +490,7 @@ function DashboardPageContent() {
               isFetching={isFetching}
               filtersActive={filtersActive}
               onLedgerTab={handleLedgerTab}
+              onTypeFilter={handleTypeFilter}
               onTeamFilter={handleTeamFilter}
               onSourceFilter={handleSourceFilter}
               onSearchChange={setQ}
