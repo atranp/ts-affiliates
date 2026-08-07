@@ -212,7 +212,7 @@ function DashboardPageContent() {
     urlQuery !== "";
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 basis-0 flex-col overflow-hidden">
       {error && (
         <ErrorState message={error.message} onRetry={() => refetch()} />
       )}
@@ -221,7 +221,7 @@ function DashboardPageContent() {
         <Tabs
           value={viewTab}
           onValueChange={setViewTab}
-          className="flex min-h-0 flex-1 flex-col"
+          className="flex min-h-0 flex-1 basis-0 flex-col overflow-hidden"
         >
           <TabsContent value="overview" className="space-y-6">
             <div>
@@ -447,7 +447,10 @@ function DashboardPageContent() {
             ) : null}
           </TabsContent>
 
-          <TabsContent value="ledger" className="mt-4 flex min-h-0 flex-1 flex-col gap-5">
+          <TabsContent
+            value="ledger"
+            className="ts-workspace mt-0 gap-5 data-[state=active]:flex"
+          >
             <div className="shrink-0">
               <h1 className="page-title">{AFFILIATE_COPY.commissions.title}</h1>
               <p className="page-description">
@@ -476,7 +479,10 @@ function DashboardPageContent() {
             />
           </TabsContent>
 
-          <TabsContent value="teams" className="mt-4 flex min-h-0 flex-1 flex-col gap-5">
+          <TabsContent
+            value="teams"
+            className="ts-workspace mt-0 gap-5 data-[state=active]:flex"
+          >
             <div className="shrink-0">
               <h1 className="page-title">Your Team Roster</h1>
               <p className="page-description">

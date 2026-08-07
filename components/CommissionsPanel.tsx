@@ -103,15 +103,15 @@ export function CommissionsPanel({
   return (
     <div
       className={cn(
-        fillHeight && "flex min-h-0 flex-1 flex-col gap-5",
+        "flex min-h-0 flex-col gap-5",
+        fillHeight && "min-h-0 flex-1 basis-0",
         className
       )}
     >
       <div
         className={cn(
-          "grid gap-4 sm:grid-cols-2",
-          showTeamEarningsStat ? "xl:grid-cols-4" : "xl:grid-cols-3",
-          fillHeight && "shrink-0"
+          "grid shrink-0 gap-4 sm:grid-cols-2",
+          showTeamEarningsStat ? "xl:grid-cols-4" : "xl:grid-cols-3"
         )}
       >
         <AffiliateStatCard
@@ -169,7 +169,7 @@ export function CommissionsPanel({
       <div
         className={cn(
           "ts-table-wrap bg-card shadow-xs",
-          fillHeight && "ts-table-fill min-h-0 flex-1"
+          fillHeight && "ts-table-fill"
         )}
       >
         <div className="ts-table-toolbar shrink-0 space-y-4">
@@ -286,12 +286,14 @@ export function CommissionsPanel({
             </Button>
           </div>
         ) : (
-          <LedgerTable
-            entries={data.entries}
-            showDetails
-            affiliateView
-            fillHeight={fillHeight}
-          />
+          <div className={cn(fillHeight && "flex min-h-0 flex-1 basis-0 flex-col")}>
+            <LedgerTable
+              entries={data.entries}
+              showDetails
+              affiliateView
+              fillHeight={fillHeight}
+            />
+          </div>
         )}
 
         {data.totalPages > 1 && (

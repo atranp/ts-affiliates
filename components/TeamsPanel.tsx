@@ -465,9 +465,7 @@ function TeamRoster({
   }
 
   return (
-    <div
-      className={cn("ts-table-wrap", fillHeight && "ts-table-fill min-h-0")}
-    >
+    <div className={cn("ts-table-wrap", fillHeight && "ts-table-fill")}>
         <div className="ts-table-toolbar flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="ts-segment flex-wrap">
             {filters.map((filter) => (
@@ -612,7 +610,7 @@ function TeamDetailSection({
   return (
     <div
       className={cn(
-        fillHeight ? "flex min-h-0 flex-1 flex-col gap-6" : "space-y-6"
+        fillHeight ? "flex min-h-0 flex-1 basis-0 flex-col gap-6" : "space-y-6"
       )}
     >
       {showStats && (
@@ -640,7 +638,7 @@ function TeamDetailSection({
           </p>
         </div>
       ) : (
-        <div className={cn(fillHeight && "flex min-h-0 flex-1 flex-col")}>
+        <div className={cn(fillHeight && "flex min-h-0 flex-1 basis-0 flex-col")}>
           <TeamRoster
             members={data.team.members}
             affiliateView={affiliateView}
@@ -840,7 +838,7 @@ export function TeamsPanel({
       <section
         className={cn(
           "ts-panel",
-          fillHeight && "flex min-h-0 flex-1 flex-col",
+          fillHeight && "flex min-h-0 flex-1 basis-0 flex-col",
           className
         )}
       >
@@ -871,8 +869,10 @@ export function TeamsPanel({
 
         <div
           className={cn(
-            "ts-panel-body space-y-6",
-            fillHeight && "flex min-h-0 flex-1 flex-col"
+            "ts-panel-body",
+            fillHeight
+              ? "flex min-h-0 flex-1 basis-0 flex-col gap-6"
+              : "space-y-6"
           )}
         >
           <div className={cn(fillHeight && "shrink-0")}>
