@@ -274,22 +274,41 @@ export function CreatePayoutPanel() {
               onRefresh={refresh}
             />
 
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <Figure
                 label="Commissions"
                 value={draft.entryCount.toLocaleString("en-US")}
               />
               <Figure
-                label="Oldest unpaid"
+                label="Sales covered"
                 value={
-                  draft.oldestOccurredAt
-                    ? formatSaleDate(draft.oldestOccurredAt)
+                  draft.revenueTotal > 0
+                    ? formatCurrency(draft.revenueTotal)
                     : "—"
                 }
+                hint={
+                  draft.oldestOccurredAt
+                    ? `Since ${formatSaleDate(draft.oldestOccurredAt)}`
+                    : undefined
+                }
+              />
+              <Figure
+                label="Earning rate"
+                value={
+                  draft.revenueTotal > 0
+                    ? `${((draft.totalAmount / draft.revenueTotal) * 100).toFixed(1)}%`
+                    : "—"
+                }
+                hint="Of sales covered"
               />
               <Figure
                 label="Total to pay"
                 value={formatCurrency(draft.totalAmount)}
+                hint={
+                  draft.revenueTotal > 0
+                    ? `${formatCurrency(draft.revenueTotal)} × rate`
+                    : undefined
+                }
                 large
               />
             </div>
@@ -422,6 +441,11 @@ function OptionRow({
         <p className="mt-0.5 text-xs text-muted-foreground">
           {option.sublabel}
         </p>
+        {option.math && (
+          <p className="mt-1 truncate text-[11px] tabular-nums text-muted-foreground/80">
+            {option.math}
+          </p>
+        )}
       </div>
       <div className="flex shrink-0 items-center gap-2.5">
         <span className="text-sm font-bold tabular-nums text-primary">
@@ -562,10 +586,12 @@ function Step({
 function Figure({
   label,
   value,
+  hint,
   large,
 }: {
   label: string;
   value: string;
+  hint?: string;
   large?: boolean;
 }) {
   return (
@@ -579,6 +605,11 @@ function Figure({
       >
         {value}
       </p>
+      {hint && (
+        <p className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">
+          {hint}
+        </p>
+      )}
     </div>
   );
 }

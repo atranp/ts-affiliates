@@ -51,6 +51,8 @@ export type PayoutDraft = PayoutDraftTotals & {
   targetLabel: string;
   /** Exact instant the payout stops at, chosen by the server and echoed back on create. */
   cutoff: string;
+  /** Sales these commissions were earned on, so the rate can be checked. */
+  revenueTotal: number;
   oldestOccurredAt: string | null;
   newestOccurredAt: string | null;
   entries: PayoutDraftEntry[];
@@ -248,7 +250,7 @@ export async function previewPayout(
     prisma.ledgerEntry.aggregate({
       where,
       _count: { _all: true },
-      _sum: { amount: true },
+      _sum: { amount: true, orderRevenue: true },
       _min: { occurredAt: true },
       _max: { occurredAt: true },
     }),
@@ -279,6 +281,7 @@ export async function previewPayout(
     cutoff: selection.cutoff.toISOString(),
     entryCount,
     totalAmount: toNumber(totals._sum.amount),
+    revenueTotal: toNumber(totals._sum.orderRevenue),
     oldestOccurredAt: totals._min.occurredAt?.toISOString() ?? null,
     newestOccurredAt: totals._max.occurredAt?.toISOString() ?? null,
     entries: entries.map((entry) => ({
