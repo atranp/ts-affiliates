@@ -116,10 +116,14 @@ export async function getPayoutBatchDetail(
   const entries = batch.ledgerEntries.map(mapEntry);
   let directTotal = 0;
   let overrideTotal = 0;
+  // Bonuses and adjustments are real money on the receipt, so they are tracked
+  // separately rather than left out of the headline total.
+  let otherTotal = 0;
 
   for (const entry of entries) {
     if (entry.type === LedgerEntryType.DIRECT) directTotal += entry.amount;
     else if (entry.type === LedgerEntryType.OVERRIDE) overrideTotal += entry.amount;
+    else otherTotal += entry.amount;
   }
 
   const itemAffiliateIds = options?.affiliateId
@@ -160,9 +164,10 @@ export async function getPayoutBatchDetail(
     teamName: batch.team?.name ?? null,
     sponsorAffiliateId: batch.sponsorAffiliateId,
     totals: {
-      grandTotal: directTotal + overrideTotal,
+      grandTotal: directTotal + overrideTotal + otherTotal,
       directTotal,
       overrideTotal,
+      otherTotal,
       entryCount: entries.length,
     },
     items,

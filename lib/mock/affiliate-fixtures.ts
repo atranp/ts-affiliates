@@ -526,6 +526,7 @@ export function mockPayoutDetailResponse(
         grandTotal,
         directTotal,
         overrideTotal,
+        otherTotal: 0,
         entryCount: entries.length,
       },
       items: [

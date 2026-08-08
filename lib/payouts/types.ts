@@ -55,6 +55,8 @@ export type PayoutBatchDetail = {
     grandTotal: number;
     directTotal: number;
     overrideTotal: number;
+    /** Bonuses and adjustments, which are neither a direct sale nor an override. */
+    otherTotal: number;
     entryCount: number;
   };
   items: Array<{

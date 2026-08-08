@@ -10,13 +10,20 @@ import { toNumber } from "@/lib/utils";
  * describe something the admin did not see.
  */
 
-const SCOPES = ["direct", "all"] as const;
+/**
+ * What a payout covers. Team earnings are always paid one member at a time so
+ * each receipt can be reconciled against that member's own sales report; the
+ * team itself is a grouping, not a payable target.
+ */
+export type PayoutTarget =
+  | { scope: "direct" }
+  | { scope: "member"; teamId: string; memberId: string };
 
-export type PayoutSelectionScope = (typeof SCOPES)[number];
+export type PayoutScopeName = PayoutTarget["scope"];
 
 export type PayoutSelection = {
   affiliateId: string;
-  scope: PayoutSelectionScope;
+  target: PayoutTarget;
   cutoff: Date;
 };
 
@@ -28,6 +35,7 @@ export type PayoutDraftEntry = {
   wooOrderId: number | null;
   orderRevenue: number | null;
   amount: number;
+  sourceAffiliateName: string | null;
 };
 
 export type PayoutDraftTotals = {
@@ -38,7 +46,9 @@ export type PayoutDraftTotals = {
 export type PayoutDraft = PayoutDraftTotals & {
   affiliateId: string;
   affiliateName: string;
-  scope: PayoutSelectionScope;
+  target: PayoutTarget;
+  /** Human phrase for the target, e.g. "Ridgeline team". */
+  targetLabel: string;
   /** Exact instant the payout stops at, chosen by the server and echoed back on create. */
   cutoff: string;
   oldestOccurredAt: string | null;
@@ -76,14 +86,43 @@ export class PayoutConflictError extends Error {
   }
 }
 
-export function parsePayoutScope(value: unknown): PayoutSelectionScope {
-  const scope = SCOPES.find((candidate) => candidate === value);
-  if (!scope) {
-    throw new PayoutInputError(
-      `Unknown payout scope "${String(value)}". Expected ${SCOPES.join(" or ")}.`
-    );
+function requireId(value: unknown, field: string): string {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new PayoutInputError(`${field} is required for this payout scope.`);
   }
-  return scope;
+  return value;
+}
+
+export function parsePayoutTarget(input: {
+  scope: unknown;
+  teamId?: unknown;
+  memberId?: unknown;
+}): PayoutTarget {
+  switch (input.scope) {
+    case "direct":
+      return { scope: "direct" };
+    case "member":
+      return {
+        scope: "member",
+        teamId: requireId(input.teamId, "teamId"),
+        memberId: requireId(input.memberId, "memberId"),
+      };
+    default:
+      throw new PayoutInputError(
+        `Unknown payout scope "${String(input.scope)}". Expected direct or member.`
+      );
+  }
+}
+
+/**
+ * Stable identity for a target, used as the selection key in the UI. Member
+ * keys carry the team too, since one person can sit under two of a sponsor's
+ * teams and would otherwise collide.
+ */
+export function payoutTargetKey(target: PayoutTarget): string {
+  return target.scope === "member"
+    ? `member:${target.teamId}:${target.memberId}`
+    : target.scope;
 }
 
 /**
@@ -111,34 +150,92 @@ export function parsePayoutCutoff(value: unknown, now = new Date()): Date {
 export function buildUnpaidWhere(
   selection: PayoutSelection
 ): Prisma.LedgerEntryWhereInput {
-  return {
+  const base: Prisma.LedgerEntryWhereInput = {
     affiliateId: selection.affiliateId,
     status: CommissionStatus.UNPAID,
     // Matched against the moment the payout is recorded rather than the end of
     // the calendar day, so a sale landing later today stays open for next time.
     occurredAt: { lte: selection.cutoff },
-    ...(selection.scope === "direct" ? { type: LedgerEntryType.DIRECT } : {}),
   };
+
+  const { target } = selection;
+
+  switch (target.scope) {
+    case "direct":
+      return { ...base, type: LedgerEntryType.DIRECT };
+
+    // The sponsor's override bonuses on one member's sales. Scoped by team as
+    // well as member, since the same person can sit under two of a sponsor's
+    // teams through different deal rules.
+    case "member":
+      return {
+        ...base,
+        type: LedgerEntryType.OVERRIDE,
+        sourceAffiliateId: target.memberId,
+        dealRule: { teamId: target.teamId },
+      };
+  }
 }
 
-async function loadAffiliateName(affiliateId: string): Promise<string> {
+type TargetContext = {
+  affiliateName: string;
+  targetLabel: string;
+  teamId: string | null;
+};
+
+/**
+ * Resolves display names and, for member targets, checks the team really
+ * belongs to this sponsor so one ambassador cannot be paid under another's team.
+ */
+async function loadTargetContext(
+  selection: PayoutSelection
+): Promise<TargetContext> {
   const affiliate = await prisma.affiliate.findUnique({
-    where: { id: affiliateId },
+    where: { id: selection.affiliateId },
     select: { displayName: true, email: true },
   });
   if (!affiliate) {
     throw new PayoutInputError("Affiliate not found.");
   }
-  return affiliate.displayName ?? affiliate.email;
+  const affiliateName = affiliate.displayName ?? affiliate.email;
+
+  const { target } = selection;
+
+  if (target.scope === "direct") {
+    return { affiliateName, targetLabel: "direct sales", teamId: null };
+  }
+
+  const team = await prisma.team.findUnique({
+    where: { id: target.teamId },
+    select: { name: true, sponsorAffiliateId: true },
+  });
+  if (!team) {
+    throw new PayoutInputError("Team not found.");
+  }
+  if (team.sponsorAffiliateId !== selection.affiliateId) {
+    throw new PayoutInputError("That team belongs to a different ambassador.");
+  }
+
+  const member = await prisma.affiliate.findUnique({
+    where: { id: target.memberId },
+    select: { displayName: true, email: true },
+  });
+  if (!member) {
+    throw new PayoutInputError("Team member not found.");
+  }
+
+  return {
+    affiliateName,
+    targetLabel: `${member.displayName ?? member.email} · ${team.name}`,
+    teamId: target.teamId,
+  };
 }
 
 export function buildPayoutLabel(
-  affiliateName: string,
-  scope: PayoutSelectionScope,
+  context: TargetContext,
   cutoff: Date
 ): string {
-  const covers = scope === "direct" ? "direct sales" : "all unpaid";
-  return `${affiliateName} · ${covers} through ${formatAppDateTime(cutoff)}`;
+  return `${context.affiliateName} · ${context.targetLabel} through ${formatAppDateTime(cutoff)}`;
 }
 
 export async function previewPayout(
@@ -146,8 +243,8 @@ export async function previewPayout(
 ): Promise<PayoutDraft> {
   const where = buildUnpaidWhere(selection);
 
-  const [affiliateName, totals, entries] = await Promise.all([
-    loadAffiliateName(selection.affiliateId),
+  const [context, totals, entries] = await Promise.all([
+    loadTargetContext(selection),
     prisma.ledgerEntry.aggregate({
       where,
       _count: { _all: true },
@@ -167,6 +264,7 @@ export async function previewPayout(
         wooOrderId: true,
         orderRevenue: true,
         amount: true,
+        sourceAffiliate: { select: { displayName: true, email: true } },
       },
     }),
   ]);
@@ -175,8 +273,9 @@ export async function previewPayout(
 
   return {
     affiliateId: selection.affiliateId,
-    affiliateName,
-    scope: selection.scope,
+    affiliateName: context.affiliateName,
+    target: selection.target,
+    targetLabel: context.targetLabel,
     cutoff: selection.cutoff.toISOString(),
     entryCount,
     totalAmount: toNumber(totals._sum.amount),
@@ -191,6 +290,9 @@ export async function previewPayout(
       orderRevenue:
         entry.orderRevenue == null ? null : toNumber(entry.orderRevenue),
       amount: toNumber(entry.amount),
+      sourceAffiliateName: entry.sourceAffiliate
+        ? (entry.sourceAffiliate.displayName ?? entry.sourceAffiliate.email)
+        : null,
     })),
     entriesTruncated: entryCount > entries.length,
   };
@@ -212,7 +314,7 @@ export type CreatePayoutInput = PayoutSelection & {
 export async function createPayout(
   input: CreatePayoutInput
 ): Promise<CreatedPayout> {
-  const affiliateName = await loadAffiliateName(input.affiliateId);
+  const context = await loadTargetContext(input);
   const where = buildUnpaidWhere(input);
   const recordedAt = new Date();
 
@@ -244,7 +346,7 @@ export async function createPayout(
 
     const batch = await tx.payoutBatch.create({
       data: {
-        label: buildPayoutLabel(affiliateName, input.scope, input.cutoff),
+        label: buildPayoutLabel(context, input.cutoff),
         // The receipt spans the oldest sale it settles through the cutoff,
         // which is the range an ambassador can actually reconcile against.
         periodStart: totals._min.occurredAt ?? input.cutoff,
@@ -252,6 +354,7 @@ export async function createPayout(
         status: PAID_STATUS,
         processedAt: recordedAt,
         sponsorAffiliateId: input.affiliateId,
+        teamId: context.teamId,
       },
     });
 

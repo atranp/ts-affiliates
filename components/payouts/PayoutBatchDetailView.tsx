@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCurrency, formatSaleDate } from "@/lib/utils";
+import { cn, formatCurrency, formatSaleDate } from "@/lib/utils";
 import type { PayoutBatchDetail } from "@/lib/payouts/types";
 
 function formatDate(iso: string) {
@@ -86,7 +86,12 @@ export function PayoutBatchDetailView({
         )}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div
+        className={cn(
+          "grid gap-3",
+          batch.totals.otherTotal !== 0 ? "sm:grid-cols-4" : "sm:grid-cols-3"
+        )}
+      >
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground">Total</p>
           <p className="mt-1 text-2xl font-semibold">
@@ -105,6 +110,16 @@ export function PayoutBatchDetailView({
             {formatCurrency(batch.totals.overrideTotal)}
           </p>
         </div>
+        {batch.totals.otherTotal !== 0 && (
+          <div className="rounded-lg border border-border bg-card p-4">
+            <p className="text-xs text-muted-foreground">
+              Bonuses &amp; adjustments
+            </p>
+            <p className="mt-1 text-2xl font-semibold">
+              {formatCurrency(batch.totals.otherTotal)}
+            </p>
+          </div>
+        )}
       </div>
 
       {batch.recruitBreakdown.length > 0 && (

@@ -3,7 +3,7 @@ import { requireAdmin } from "@/lib/api-auth";
 import {
   createPayout,
   parsePayoutCutoff,
-  parsePayoutScope,
+  parsePayoutTarget,
   previewPayout,
   PayoutConflictError,
   PayoutInputError,
@@ -27,8 +27,8 @@ function handleError(error: unknown) {
 }
 
 /**
- * Previews what a payout would cover. The cutoff is normally omitted so the
- * server stamps "now" and the client can hand that exact instant back on POST.
+ * Previews what a payout would cover. The cutoff is normally carried over from
+ * the options call so the review step prices against the same instant.
  */
 export async function GET(request: Request) {
   const auth = await requireAdmin();
@@ -46,7 +46,11 @@ export async function GET(request: Request) {
   try {
     const draft = await previewPayout({
       affiliateId,
-      scope: parsePayoutScope(params.get("scope") ?? "all"),
+      target: parsePayoutTarget({
+        scope: params.get("scope"),
+        teamId: params.get("teamId") ?? undefined,
+        memberId: params.get("memberId") ?? undefined,
+      }),
       cutoff: parsePayoutCutoff(params.get("cutoff")),
     });
     return NextResponse.json(draft);
@@ -64,10 +68,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { affiliateId, scope, cutoff, expected } = body as Record<
-    string,
-    unknown
-  >;
+  const { affiliateId, scope, teamId, memberId, cutoff, expected } =
+    body as Record<string, unknown>;
 
   if (typeof affiliateId !== "string" || !affiliateId) {
     return NextResponse.json(
@@ -79,7 +81,7 @@ export async function POST(request: Request) {
   try {
     const payout = await createPayout({
       affiliateId,
-      scope: parsePayoutScope(scope),
+      target: parsePayoutTarget({ scope, teamId, memberId }),
       cutoff: parsePayoutCutoff(cutoff),
       expected: parseExpected(expected),
     });

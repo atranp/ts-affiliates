@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, RefreshCw } from "lucide-react";
@@ -9,6 +9,7 @@ import {
   type AffiliateOption,
 } from "@/components/admin/AffiliateSearchCombobox";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { EmptyState } from "@/components/admin/EmptyState";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { WooOrderLink } from "@/components/admin/WooOrderLink";
 import { Button } from "@/components/ui/button";
@@ -25,33 +26,23 @@ import { apiFetch } from "@/lib/api-client";
 import type {
   CreatedPayout,
   PayoutDraft,
-  PayoutSelectionScope,
+  PayoutTarget,
 } from "@/lib/payouts/create";
+import type { PayoutOption, PayoutOptions } from "@/lib/payouts/options";
 import { APP_TIMEZONE_LABEL, formatAppDateTime } from "@/lib/timezone";
 import { cn, formatCurrency, formatSaleDate } from "@/lib/utils";
 
-const SCOPE_OPTIONS: Array<{
-  id: PayoutSelectionScope;
-  label: string;
-  sublabel: string;
-}> = [
-  {
-    id: "direct",
-    label: "Direct sales only",
-    sublabel: "Commission on sales they made themselves",
-  },
-  {
-    id: "all",
-    label: "Everything unpaid",
-    sublabel: "Direct sales plus team overrides and adjustments",
-  },
-];
+function targetParams(target: PayoutTarget): Record<string, string> {
+  return target.scope === "member"
+    ? { scope: "member", teamId: target.teamId, memberId: target.memberId }
+    : { scope: target.scope };
+}
 
 export function CreatePayoutPanel() {
   const router = useRouter();
 
   const [affiliate, setAffiliate] = useState<AffiliateOption | null>(null);
-  const [scope, setScope] = useState<PayoutSelectionScope>("direct");
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   // Bumped to re-stamp the server-side cutoff, which is what makes "unpaid as
@@ -60,21 +51,67 @@ export function CreatePayoutPanel() {
 
   const affiliateId = affiliate?.id ?? null;
 
-  const direct = useDraft(affiliateId, "direct", refreshedAt);
-  const all = useDraft(affiliateId, "all", refreshedAt);
+  const {
+    data: optionsData,
+    isLoading: optionsLoading,
+    error: optionsError,
+  } = useAdminQuery<PayoutOptions>(
+    ["admin", "payout-options", affiliateId ?? "", refreshedAt],
+    affiliateId
+      ? `/api/admin/payouts/create/options?affiliateId=${affiliateId}`
+      : null,
+    { staleTime: 0, gcTime: 0 }
+  );
 
-  const active = scope === "direct" ? direct : all;
-  const draft = active.data ?? null;
+  // Flattened purely for selection lookup; the tree below drives rendering.
+  const options = useMemo(() => {
+    if (!optionsData) return [];
+    return [
+      ...(optionsData.direct ? [optionsData.direct] : []),
+      ...optionsData.teams.flatMap((team) => team.members),
+    ];
+  }, [optionsData]);
 
-  const loading = direct.isLoading || all.isLoading;
-  const error = direct.error ?? all.error;
+  const selected = options.find((option) => option.key === selectedKey) ?? null;
+
+  // Drop a selection that the refreshed options no longer offer, and skip the
+  // extra click when there is only one thing to pay.
+  useEffect(() => {
+    if (optionsLoading) return;
+    if (selectedKey && !options.some((o) => o.key === selectedKey)) {
+      setSelectedKey(null);
+      return;
+    }
+    if (!selectedKey && options.length === 1) {
+      setSelectedKey(options[0].key);
+    }
+  }, [options, optionsLoading, selectedKey]);
+
+  const draftQuery = selected
+    ? new URLSearchParams({
+        affiliateId: affiliateId!,
+        ...targetParams(selected.target),
+        cutoff: optionsData!.cutoff,
+      }).toString()
+    : null;
+
+  const {
+    data: draft,
+    isLoading: draftLoading,
+    isFetching: draftFetching,
+    error: draftError,
+  } = useAdminQuery<PayoutDraft>(
+    ["admin", "payout-draft", draftQuery ?? ""],
+    draftQuery ? `/api/admin/payouts/create?${draftQuery}` : null,
+    { staleTime: 0, gcTime: 0 }
+  );
 
   function refresh() {
     setRefreshedAt(Date.now());
   }
 
   async function create() {
-    if (!draft || !affiliateId) return;
+    if (!draft || !selected || !affiliateId) return;
     setCreating(true);
     try {
       const payout = await apiFetch<CreatedPayout>(
@@ -83,7 +120,7 @@ export function CreatePayoutPanel() {
           method: "POST",
           body: JSON.stringify({
             affiliateId,
-            scope,
+            ...targetParams(selected.target),
             cutoff: draft.cutoff,
             expected: {
               entryCount: draft.entryCount,
@@ -109,8 +146,6 @@ export function CreatePayoutPanel() {
     }
   }
 
-  const canCreate = !!draft && draft.entryCount > 0 && !active.isFetching;
-
   return (
     <div className="space-y-5">
       <Step number={1} title="Pick the ambassador">
@@ -119,7 +154,10 @@ export function CreatePayoutPanel() {
           label="Ambassador"
           value={affiliateId ?? ""}
           selected={affiliate}
-          onChange={(_id, option) => setAffiliate(option)}
+          onChange={(_id, option) => {
+            setSelectedKey(null);
+            setAffiliate(option);
+          }}
         />
       </Step>
 
@@ -128,72 +166,46 @@ export function CreatePayoutPanel() {
           <p className="text-sm text-muted-foreground">
             Pick an ambassador above and their unpaid totals will show up here.
           </p>
-        ) : error ? (
-          <ErrorState message={error.message} onRetry={refresh} />
+        ) : optionsError ? (
+          <ErrorState message={optionsError.message} onRetry={refresh} />
+        ) : optionsLoading ? (
+          <p className="text-sm text-muted-foreground">
+            Checking what&apos;s owed…
+          </p>
+        ) : !optionsData || options.length === 0 ? (
+          <EmptyState
+            title="Nothing unpaid"
+            description="Every commission for this ambassador has already been paid out."
+          />
         ) : (
-          <div className="space-y-2" role="radiogroup" aria-label="What to pay">
-            {SCOPE_OPTIONS.map((option) => {
-              const optionDraft =
-                option.id === "direct" ? direct.data : all.data;
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={scope === option.id}
-                  onClick={() => setScope(option.id)}
-                  className={cn(
-                    "ts-choice",
-                    scope === option.id && "ts-choice-selected"
-                  )}
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-brand-dark">
-                      {option.label}
-                    </p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {optionDraft
-                        ? `${optionDraft.entryCount.toLocaleString("en-US")} unpaid · ${option.sublabel}`
-                        : option.sublabel}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2.5">
-                    <span className="text-sm font-bold tabular-nums text-primary">
-                      {optionDraft
-                        ? formatCurrency(optionDraft.totalAmount)
-                        : loading
-                          ? "…"
-                          : "—"}
-                    </span>
-                    {scope === option.id && (
-                      <Check className="h-4 w-4 text-primary" />
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+          <OptionTree
+            data={optionsData}
+            selectedKey={selectedKey}
+            onSelect={setSelectedKey}
+          />
         )}
       </Step>
 
       <Step number={3} title="Review and pay" last>
-        {!affiliateId ? (
+        {!selected ? (
           <p className="text-sm text-muted-foreground">
-            Nothing to review yet.
+            Pick something to pay above and its commissions will show up here.
           </p>
-        ) : loading || !draft ? (
+        ) : draftError ? (
+          <ErrorState message={draftError.message} onRetry={refresh} />
+        ) : draftLoading || !draft ? (
           <p className="text-sm text-muted-foreground">
-            Adding up what&apos;s owed…
+            Adding up {selected.label}…
           </p>
         ) : draft.entryCount === 0 ? (
           <p className="text-sm text-muted-foreground">
-            {draft.affiliateName} has nothing unpaid in this scope.
+            Nothing left to pay for this selection.
           </p>
         ) : (
           <div className="space-y-4">
             <CutoffBar
-              draft={draft}
-              refreshing={active.isFetching}
+              cutoff={draft.cutoff}
+              refreshing={draftFetching}
               onRefresh={refresh}
             />
 
@@ -223,7 +235,7 @@ export function CreatePayoutPanel() {
               <Button
                 size="lg"
                 className="h-11 rounded-lg px-6 font-semibold shadow-xs"
-                disabled={!canCreate}
+                disabled={draftFetching}
                 onClick={() => setConfirmOpen(true)}
               >
                 <Check className="mr-2 h-4 w-4" />
@@ -243,7 +255,7 @@ export function CreatePayoutPanel() {
         title="Record this payout?"
         description={
           draft
-            ? `Marks ${draft.entryCount.toLocaleString("en-US")} commissions (${formatCurrency(draft.totalAmount)}) as paid to ${draft.affiliateName}, covering everything unpaid through ${formatAppDateTime(draft.cutoff)}.`
+            ? `Marks ${draft.entryCount.toLocaleString("en-US")} commissions (${formatCurrency(draft.totalAmount)}) as paid to ${draft.affiliateName} for ${draft.targetLabel}, covering everything unpaid through ${formatAppDateTime(draft.cutoff)}.`
             : ""
         }
         confirmLabel="Record payout"
@@ -257,28 +269,111 @@ export function CreatePayoutPanel() {
   );
 }
 
-function useDraft(
-  affiliateId: string | null,
-  scope: PayoutSelectionScope,
-  refreshedAt: number
-) {
-  return useAdminQuery<PayoutDraft>(
-    ["admin", "payout-draft", affiliateId ?? "", scope, refreshedAt],
-    affiliateId
-      ? `/api/admin/payouts/create?affiliateId=${affiliateId}&scope=${scope}`
-      : null,
-    // The cutoff is stamped server-side per request, so a cached draft would
-    // quietly pay through a stale instant.
-    { staleTime: 0, gcTime: 0 }
+/**
+ * Teams are headings rather than choices — their earnings are paid one member
+ * at a time, so the team total is shown only as context for what is below it.
+ */
+function OptionTree({
+  data,
+  selectedKey,
+  onSelect,
+}: {
+  data: PayoutOptions;
+  selectedKey: string | null;
+  onSelect: (key: string) => void;
+}) {
+  return (
+    <div className="space-y-4" role="radiogroup" aria-label="What to pay">
+      {data.direct && (
+        <OptionRow
+          option={data.direct}
+          selected={selectedKey === data.direct.key}
+          onSelect={() => onSelect(data.direct!.key)}
+        />
+      )}
+
+      {data.teams.map((team) => (
+        <div key={team.teamId} className="space-y-2">
+          <div className="flex items-baseline justify-between gap-3 px-1">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              {team.label} · {team.sublabel}
+            </p>
+            <span className="text-xs font-semibold tabular-nums text-muted-foreground">
+              {formatCurrency(team.amount)}
+            </span>
+          </div>
+          <div className="ml-3 space-y-2 border-l-2 border-primary/10 pl-4">
+            {team.members.map((member) => (
+              <OptionRow
+                key={member.key}
+                option={member}
+                selected={selectedKey === member.key}
+                onSelect={() => onSelect(member.key)}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {data.unattributed.entryCount > 0 && (
+        <div className="rounded-xl border border-amber-200/80 bg-warning-soft px-4 py-3">
+          <p className="text-sm leading-relaxed text-amber-900">
+            <span className="font-semibold">
+              {formatCurrency(data.unattributed.amount)}
+            </span>{" "}
+            across{" "}
+            {data.unattributed.entryCount.toLocaleString("en-US")} unpaid{" "}
+            {data.unattributed.entryCount === 1 ? "entry" : "entries"} is not
+            listed above — bonuses, adjustments, and overrides with no team or
+            member attached. Nothing on this screen can pay those yet.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OptionRow({
+  option,
+  selected,
+  onSelect,
+}: {
+  option: PayoutOption;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
+      className={cn("ts-choice", selected && "ts-choice-selected")}
+    >
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold text-brand-dark">
+          {option.label}
+        </p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          {option.sublabel}
+        </p>
+      </div>
+      <div className="flex shrink-0 items-center gap-2.5">
+        <span className="text-sm font-bold tabular-nums text-primary">
+          {formatCurrency(option.amount)}
+        </span>
+        {selected && <Check className="h-4 w-4 text-primary" />}
+      </div>
+    </button>
   );
 }
 
 function CutoffBar({
-  draft,
+  cutoff,
   refreshing,
   onRefresh,
 }: {
-  draft: PayoutDraft;
+  cutoff: string;
   refreshing: boolean;
   onRefresh: () => void;
 }) {
@@ -287,7 +382,7 @@ function CutoffBar({
       <p className="text-sm leading-relaxed text-muted-foreground">
         Everything unpaid up to{" "}
         <span className="font-semibold text-brand-dark">
-          {formatAppDateTime(draft.cutoff)}
+          {formatAppDateTime(cutoff)}
         </span>{" "}
         ({APP_TIMEZONE_LABEL}). Sales after that stay open for the next payout.
       </p>
@@ -308,35 +403,37 @@ function CutoffBar({
 }
 
 function EntriesTable({ draft }: { draft: PayoutDraft }) {
-  const rows = useMemo(() => draft.entries, [draft.entries]);
+  const showSource = draft.target.scope !== "direct";
 
   return (
     <div className="space-y-2">
       <p className="text-xs text-muted-foreground">
         {draft.entriesTruncated
-          ? `Showing the ${rows.length} most recent of ${draft.entryCount.toLocaleString("en-US")} commissions. The total above covers all of them.`
-          : `All ${rows.length} commissions in this payout.`}
+          ? `Showing the ${draft.entries.length} most recent of ${draft.entryCount.toLocaleString("en-US")} commissions. The total above covers all of them.`
+          : `All ${draft.entries.length} commissions in this payout.`}
       </p>
       <div className="ts-table-wrap">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Sale date</TableHead>
-              <TableHead>Type</TableHead>
+              {showSource && <TableHead>Member</TableHead>}
               <TableHead>Order</TableHead>
               <TableHead className="text-right">Sale amount</TableHead>
               <TableHead className="text-right">Earned</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((entry) => (
+            {draft.entries.map((entry) => (
               <TableRow key={entry.id}>
                 <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                   {formatSaleDate(entry.occurredAt)}
                 </TableCell>
-                <TableCell className="text-sm capitalize">
-                  {entry.type.toLowerCase()}
-                </TableCell>
+                {showSource && (
+                  <TableCell className="text-sm">
+                    {entry.sourceAffiliateName ?? "Direct sale"}
+                  </TableCell>
+                )}
                 <TableCell className="whitespace-nowrap text-sm tabular-nums">
                   {entry.wooOrderId ? (
                     <WooOrderLink orderId={entry.wooOrderId} />
