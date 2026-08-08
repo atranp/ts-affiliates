@@ -6,6 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { AffiliateStatCard } from "@/components/affiliate/AffiliateStatCard";
 import { DashboardSkeleton } from "@/components/affiliate/DashboardSkeleton";
 import { MilestoneProgress } from "@/components/affiliate/MilestoneProgress";
+import { CommissionsHomePreview } from "@/components/affiliate/CommissionsHomePreview";
 import { TeamHomePreview } from "@/components/affiliate/TeamHomePreview";
 import { CommissionsPanel } from "@/components/CommissionsPanel";
 import { TeamsPanel, useTeams } from "@/components/TeamsPanel";
@@ -146,6 +147,28 @@ function DashboardPageContent() {
     setParams({ tab: tab === "overview" ? null : tab }, { history: true });
   }
 
+  function focusCommissions(options?: {
+    status?: LedgerStatusTab;
+    type?: LedgerTypeFilter;
+  }) {
+    setParams(
+      {
+        tab: "ledger",
+        status:
+          options?.status && options.status !== "all"
+            ? options.status
+            : null,
+        type:
+          options?.type && options.type !== "all" ? options.type : null,
+        member: null,
+        team: null,
+        q: null,
+        page: null,
+      },
+      { history: true }
+    );
+  }
+
   function focusTeamMember(sourceId: string, status: "unpaid" | "paid" | "all") {
     setParams(
       {
@@ -281,6 +304,36 @@ function DashboardPageContent() {
                 onAction={() => setViewTab("teams")}
               />
             </div>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
+                <div>
+                  <CardTitle className="text-base">
+                    {AFFILIATE_COPY.home.commissionsTitle}
+                  </CardTitle>
+                  <CardDescription className="mt-1">
+                    {AFFILIATE_COPY.home.commissionsSubtitle}
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0 gap-1 text-primary"
+                  onClick={() => setViewTab("ledger")}
+                >
+                  {AFFILIATE_COPY.home.viewAllCommissions}
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <CommissionsHomePreview
+                  enabled={!!user}
+                  onViewCommissions={() => setViewTab("ledger")}
+                  onViewStatus={(status) => focusCommissions({ status })}
+                  onViewType={(type) => focusCommissions({ type })}
+                />
+              </CardContent>
+            </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">

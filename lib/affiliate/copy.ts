@@ -83,6 +83,10 @@ export const AFFILIATE_COPY = {
     payoutsTitle: "Recent payouts",
     payoutsDescription: "Transfers recorded for your account",
     payoutsAction: "View all",
+    commissionsTitle: "Recent commissions",
+    commissionsSubtitle: "Your latest sales and team earnings",
+    recentCommissions: "Recent activity",
+    viewAllCommissions: "View all commissions",
     salesLabel: "Sales",
   },
   team: {
