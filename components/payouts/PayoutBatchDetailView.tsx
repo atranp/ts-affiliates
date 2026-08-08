@@ -189,7 +189,6 @@ export function PayoutBatchDetailView({
                     <TableHead>Details</TableHead>
                     <TableHead>Order</TableHead>
                     <TableHead className="text-right">Sale amount</TableHead>
-                    <TableHead className="text-right">Rate</TableHead>
                     <TableHead className="text-right">You earned</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -226,11 +225,6 @@ export function PayoutBatchDetailView({
                           ? "—"
                           : formatCurrency(entry.orderRevenue)}
                       </TableCell>
-                      <TableCell className="whitespace-nowrap text-right text-sm tabular-nums text-muted-foreground">
-                        {entry.orderRevenue
-                          ? formatRate(entry.amount, entry.orderRevenue)
-                          : "—"}
-                      </TableCell>
                       <TableCell className="whitespace-nowrap text-right font-medium tabular-nums text-success">
                         {formatCurrency(entry.amount)}
                       </TableCell>
@@ -254,7 +248,7 @@ export function PayoutBatchDetailView({
                     }
                     valueHint={
                       entry.orderRevenue
-                        ? `${formatRate(entry.amount, entry.orderRevenue)} of ${formatCurrency(entry.orderRevenue)}`
+                        ? `${formatCurrency(entry.orderRevenue)} sale`
                         : undefined
                     }
                   />
@@ -281,10 +275,6 @@ export function PayoutBatchDetailView({
             </DataCardList>
           }
         />
-        <p className="text-xs text-muted-foreground">
-          Rate is your earnings divided by the sale amount, so you can check
-          every line against your agreement.
-        </p>
       </section>
 
       {adminView && batch.items.length > 1 && (
