@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Check, RefreshCw } from "lucide-react";
+import { AlertTriangle, Check, RefreshCw } from "lucide-react";
 import {
   AffiliateSearchCombobox,
   type AffiliateOption,
@@ -48,8 +48,50 @@ export function CreatePayoutPanel() {
   // Bumped to re-stamp the server-side cutoff, which is what makes "unpaid as
   // of now" mean now rather than whenever the page happened to load.
   const [refreshedAt, setRefreshedAt] = useState(0);
+  const [syncing, setSyncing] = useState(false);
+  const [syncedAt, setSyncedAt] = useState<number | null>(null);
+  const [syncFailed, setSyncFailed] = useState(false);
+  // Options stay hidden until SliceWP has been read for this ambassador, so a
+  // payout is never priced against commissions SliceWP has already settled.
+  const [syncedAffiliateId, setSyncedAffiliateId] = useState<string | null>(
+    null
+  );
 
   const affiliateId = affiliate?.id ?? null;
+
+  const runSync = useCallback(async (id: string) => {
+    setSyncing(true);
+    setSyncFailed(false);
+    try {
+      await apiFetch(`/api/admin/affiliates/${id}/sync`, { method: "POST" });
+      setSyncedAt(Date.now());
+    } catch {
+      // A SliceWP outage should not lock payouts entirely, but the numbers can
+      // no longer be trusted, so the banner below says so.
+      setSyncFailed(true);
+    } finally {
+      setSyncedAffiliateId(id);
+      setSyncing(false);
+      setRefreshedAt(Date.now());
+    }
+  }, []);
+
+  const syncStartedFor = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!affiliateId) {
+      syncStartedFor.current = null;
+      setSyncedAffiliateId(null);
+      setSyncedAt(null);
+      setSyncFailed(false);
+      return;
+    }
+    if (syncStartedFor.current === affiliateId) return;
+    syncStartedFor.current = affiliateId;
+    void runSync(affiliateId);
+  }, [affiliateId, runSync]);
+
+  const synced = !!affiliateId && syncedAffiliateId === affiliateId;
 
   const {
     data: optionsData,
@@ -57,7 +99,7 @@ export function CreatePayoutPanel() {
     error: optionsError,
   } = useAdminQuery<PayoutOptions>(
     ["admin", "payout-options", affiliateId ?? "", refreshedAt],
-    affiliateId
+    affiliateId && synced
       ? `/api/admin/payouts/create/options?affiliateId=${affiliateId}`
       : null,
     { staleTime: 0, gcTime: 0 }
@@ -106,7 +148,13 @@ export function CreatePayoutPanel() {
     { staleTime: 0, gcTime: 0 }
   );
 
+  // Re-reading SliceWP is the point of the refresh: the cutoff moving forward
+  // is meaningless if the paid/unpaid picture behind it is hours old.
   function refresh() {
+    if (affiliateId) {
+      void runSync(affiliateId);
+      return;
+    }
     setRefreshedAt(Date.now());
   }
 
@@ -166,6 +214,11 @@ export function CreatePayoutPanel() {
           <p className="text-sm text-muted-foreground">
             Pick an ambassador above and their unpaid totals will show up here.
           </p>
+        ) : syncing || !synced ? (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+            Reading SliceWP so anything paid there is already excluded…
+          </p>
         ) : optionsError ? (
           <ErrorState message={optionsError.message} onRetry={refresh} />
         ) : optionsLoading ? (
@@ -183,6 +236,16 @@ export function CreatePayoutPanel() {
             selectedKey={selectedKey}
             onSelect={setSelectedKey}
           />
+        )}
+
+        {syncFailed && synced && (
+          <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200/80 bg-warning-soft px-4 py-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-900" />
+            <p className="text-sm leading-relaxed text-amber-900">
+              Could not reach SliceWP just now, so these totals may still
+              include commissions paid there. Retry before recording anything.
+            </p>
+          </div>
         )}
       </Step>
 
@@ -205,7 +268,9 @@ export function CreatePayoutPanel() {
           <div className="space-y-4">
             <CutoffBar
               cutoff={draft.cutoff}
-              refreshing={draftFetching}
+              syncedAt={syncedAt}
+              syncFailed={syncFailed}
+              refreshing={draftFetching || syncing}
               onRefresh={refresh}
             />
 
@@ -235,7 +300,7 @@ export function CreatePayoutPanel() {
               <Button
                 size="lg"
                 className="h-11 rounded-lg px-6 font-semibold shadow-xs"
-                disabled={draftFetching}
+                disabled={draftFetching || syncing}
                 onClick={() => setConfirmOpen(true)}
               >
                 <Check className="mr-2 h-4 w-4" />
@@ -370,22 +435,36 @@ function OptionRow({
 
 function CutoffBar({
   cutoff,
+  syncedAt,
+  syncFailed,
   refreshing,
   onRefresh,
 }: {
   cutoff: string;
+  syncedAt: number | null;
+  syncFailed: boolean;
   refreshing: boolean;
   onRefresh: () => void;
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3">
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        Everything unpaid up to{" "}
-        <span className="font-semibold text-brand-dark">
-          {formatAppDateTime(cutoff)}
-        </span>{" "}
-        ({APP_TIMEZONE_LABEL}). Sales after that stay open for the next payout.
-      </p>
+      <div className="min-w-0">
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Everything unpaid up to{" "}
+          <span className="font-semibold text-brand-dark">
+            {formatAppDateTime(cutoff)}
+          </span>{" "}
+          ({APP_TIMEZONE_LABEL}). Sales after that stay open for the next
+          payout.
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {syncFailed
+            ? "SliceWP could not be reached — totals may be out of date."
+            : syncedAt
+              ? `SliceWP read at ${formatAppDateTime(new Date(syncedAt))}, so anything paid there is already excluded.`
+              : "Not yet checked against SliceWP."}
+        </p>
+      </div>
       <Button
         size="sm"
         variant="outline"
@@ -396,7 +475,7 @@ function CutoffBar({
         <RefreshCw
           className={cn("mr-2 h-3.5 w-3.5", refreshing && "animate-spin")}
         />
-        Bring up to now
+        {refreshing ? "Checking SliceWP…" : "Re-check and bring up to now"}
       </Button>
     </div>
   );
