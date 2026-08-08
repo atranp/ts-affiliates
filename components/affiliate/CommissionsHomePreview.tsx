@@ -8,7 +8,6 @@ import {
 } from "@/lib/affiliate/copy";
 import {
   useLedger,
-  type LedgerStatusTab,
   type LedgerTypeFilter,
 } from "@/hooks/use-ledger";
 import {
@@ -18,61 +17,13 @@ import {
 import { cn, formatCurrency, formatSaleDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-const PREVIEW_LIMIT = 6;
+const PREVIEW_LIMIT = 5;
 
 type CommissionsHomePreviewProps = {
   enabled?: boolean;
   onViewCommissions: () => void;
-  onViewStatus: (status: LedgerStatusTab) => void;
   onViewType: (type: LedgerTypeFilter) => void;
 };
-
-function CompactStat({
-  label,
-  value,
-  tone = "default",
-  onClick,
-}: {
-  label: string;
-  value: string;
-  tone?: "default" | "primary" | "success" | "warning";
-  onClick?: () => void;
-}) {
-  const valueClass =
-    tone === "primary"
-      ? "text-primary"
-      : tone === "success"
-        ? "text-emerald-700"
-        : tone === "warning"
-          ? "text-amber-700"
-          : "text-brand-dark";
-
-  const className = cn(
-    "rounded-lg border border-border/80 bg-muted/20 px-3 py-2.5 text-left transition-colors",
-    onClick && "cursor-pointer hover:border-primary/25 hover:bg-primary-soft/10"
-  );
-
-  const body = (
-    <>
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
-      <p className={cn("mt-0.5 text-base font-bold tabular-nums", valueClass)}>
-        {value}
-      </p>
-    </>
-  );
-
-  if (onClick) {
-    return (
-      <button type="button" onClick={onClick} className={className}>
-        {body}
-      </button>
-    );
-  }
-
-  return <div className={className}>{body}</div>;
-}
 
 function StatusBadge({ status }: { status: string }) {
   const label = formatCommissionStatus(status);
@@ -105,7 +56,6 @@ function amountClass(status: string): string {
 export function CommissionsHomePreview({
   enabled = true,
   onViewCommissions,
-  onViewStatus,
   onViewType,
 }: CommissionsHomePreviewProps) {
   const { data, isLoading } = useLedger({
@@ -116,18 +66,18 @@ export function CommissionsHomePreview({
 
   if (isLoading) {
     return (
-      <div className="h-48 animate-pulse rounded-xl border border-border bg-muted/30" />
+      <div className="h-40 animate-pulse rounded-xl border border-border bg-muted/30" />
     );
   }
 
   if (!data) return null;
 
-  const { accountSummary, tabCounts, entries } = data;
+  const { tabCounts, entries } = data;
   const hasDirect = tabCounts.direct > 0;
   const hasTeam = tabCounts.overrides > 0;
 
   return (
-    <div className="space-y-4">
+    <div className="w-full space-y-4">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1.5 font-medium text-brand-dark">
           <Receipt className="h-3.5 w-3.5 text-primary" aria-hidden />
@@ -155,35 +105,12 @@ export function CommissionsHomePreview({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <CompactStat
-          label={AFFILIATE_COPY.stats.owed.label}
-          value={formatCurrency(accountSummary.unpaidTotal)}
-          tone="primary"
-          onClick={() => onViewStatus("unpaid")}
-        />
-        <CompactStat
-          label={AFFILIATE_COPY.stats.paid.label}
-          value={formatCurrency(accountSummary.paidTotal)}
-          tone="success"
-          onClick={() => onViewStatus("paid")}
-        />
-        {accountSummary.pendingTotal > 0 && (
-          <CompactStat
-            label={AFFILIATE_COPY.team.awaitingMilestone}
-            value={formatCurrency(accountSummary.pendingTotal)}
-            tone="warning"
-            onClick={() => onViewStatus("pending")}
-          />
-        )}
-      </div>
-
       {entries.length > 0 ? (
-        <div>
+        <div className="w-full">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {AFFILIATE_COPY.home.recentCommissions}
           </p>
-          <div className="overflow-hidden rounded-xl border border-border/80">
+          <div className="w-full overflow-hidden rounded-xl border border-border/80">
             <ul className="divide-y divide-border/60">
               {entries.map((entry) => {
                 const status = effectiveLedgerStatus(

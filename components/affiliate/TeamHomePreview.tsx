@@ -119,7 +119,7 @@ function CompactStat({
           : "text-brand-dark";
 
   return (
-    <div className="rounded-lg border border-border/80 bg-muted/20 px-3 py-2.5">
+    <div className="w-full min-w-0 rounded-lg border border-border/80 bg-muted/20 px-3 py-2.5">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
@@ -205,10 +205,10 @@ function SingleTeamPreview({
   const { stats } = team;
 
   return (
-    <div className="space-y-4">
+    <div className="w-full space-y-4">
       <SegmentSummary memberCount={team.memberCount} segments={segments} />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid w-full min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
         <CompactStat
           label={AFFILIATE_COPY.team.readyForPayout}
           value={formatCurrency(stats.unpaidTeamBonus)}

@@ -38,7 +38,7 @@ import {
 } from "@/hooks/use-ledger";
 import { PayoutsList } from "@/components/payouts/PayoutsList";
 import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 type DashboardTab = "overview" | "ledger" | "teams" | "payouts";
 
@@ -255,8 +255,15 @@ function DashboardPageContent() {
     teamFilter !== "all" ||
     urlQuery !== "";
 
+  const fillTab = viewTab === "ledger" || viewTab === "teams";
+
   return (
-    <div className="flex min-h-0 flex-1 basis-0 flex-col overflow-hidden">
+    <div
+      className={cn(
+        "flex flex-col",
+        fillTab && "min-h-0 flex-1 basis-0 overflow-hidden"
+      )}
+    >
       {error && (
         <ErrorState message={error.message} onRetry={() => refetch()} />
       )}
@@ -265,12 +272,12 @@ function DashboardPageContent() {
         <Tabs
           value={viewTab}
           onValueChange={setViewTab}
-          className="flex min-h-0 flex-1 basis-0 flex-col overflow-hidden"
+          className={cn(
+            "flex flex-col",
+            fillTab && "min-h-0 flex-1 basis-0 overflow-hidden"
+          )}
         >
-          <TabsContent
-            value="overview"
-            className="min-h-0 flex-1 overflow-y-auto overscroll-contain space-y-6 pb-2"
-          >
+          <TabsContent value="overview" className="w-full min-w-0 space-y-6 pb-6">
             <div>
               <h1 className="page-title">
                 {displayName ? `Welcome, ${displayName}` : "Welcome"}
@@ -332,7 +339,6 @@ function DashboardPageContent() {
                 <CommissionsHomePreview
                   enabled={!!user}
                   onViewCommissions={() => setViewTab("ledger")}
-                  onViewStatus={(status) => focusCommissions({ status })}
                   onViewType={(type) => focusCommissions({ type })}
                 />
               </CardContent>
@@ -571,10 +577,7 @@ function DashboardPageContent() {
             )}
           </TabsContent>
 
-          <TabsContent
-            value="payouts"
-            className="min-h-0 flex-1 overflow-y-auto overscroll-contain space-y-6 pb-2"
-          >
+          <TabsContent value="payouts" className="space-y-6 pb-6">
             <div>
               <h1 className="page-title">Payout History</h1>
               <p className="page-description">

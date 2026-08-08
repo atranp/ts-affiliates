@@ -83,7 +83,7 @@ export function AffiliateStatCard({
   // The whole card reads as clickable, so make the whole card the target
   // instead of leaving only the footer label hittable.
   const className = cn(
-    "ts-stat-card group text-left",
+    "ts-stat-card group w-full min-w-0 text-left",
     interactive && [
       config.hover,
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
