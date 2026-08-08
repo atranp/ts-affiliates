@@ -6,6 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { AffiliateStatCard } from "@/components/affiliate/AffiliateStatCard";
 import { DashboardSkeleton } from "@/components/affiliate/DashboardSkeleton";
 import { MilestoneProgress } from "@/components/affiliate/MilestoneProgress";
+import { TeamHomePreview } from "@/components/affiliate/TeamHomePreview";
 import { CommissionsPanel } from "@/components/CommissionsPanel";
 import { TeamsPanel, useTeams } from "@/components/TeamsPanel";
 import { TeamPanel, useTeam } from "@/components/TeamPanel";
@@ -320,7 +321,7 @@ function DashboardPageContent() {
                       {AFFILIATE_COPY.home.teamsTitle}
                     </CardTitle>
                     <CardDescription className="mt-1">
-                      Earnings from people you&apos;ve brought on
+                      {AFFILIATE_COPY.home.teamsSubtitle}
                     </CardDescription>
                   </div>
                   <Button
@@ -334,37 +335,14 @@ function DashboardPageContent() {
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {teamsData!.teams.map((team) => (
-                      <button
-                        key={team.id}
-                        type="button"
-                        onClick={() => focusTeam(team.id)}
-                        className="rounded-lg border border-border bg-background p-4 text-left transition-colors hover:border-primary/30 hover:bg-primary-soft/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        <p className="font-medium">{team.name}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {memberCountLabel(team.memberCount)}
-                        </p>
-                        <div className="mt-3 space-y-1">
-                          <p className="text-sm">
-                            <span className="text-muted-foreground">
-                              {AFFILIATE_COPY.team.payout}:{" "}
-                            </span>
-                            <span className="font-semibold text-primary">
-                              {formatCurrency(team.stats.unpaidTeamBonus)}
-                            </span>
-                          </p>
-                          {team.stats.pendingTeamBonus > 0 && (
-                            <p className="text-xs text-muted-foreground">
-                              {AFFILIATE_COPY.team.awaitingMilestone}{" "}
-                              {formatCurrency(team.stats.pendingTeamBonus)}
-                            </p>
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                  <TeamHomePreview
+                    teams={teamsData!.teams}
+                    onViewTeam={() => setViewTab("teams")}
+                    onViewTeamLedger={focusTeam}
+                    onViewMember={(memberId) =>
+                      focusTeamMember(memberId, "unpaid")
+                    }
+                  />
                 </CardContent>
               </Card>
             ) : hasTeamBonuses ? (
