@@ -151,11 +151,18 @@ function PayoutBatchRow({
     <Link
       href={href}
       className={cn(
-        "flex items-center justify-between gap-4 transition-colors hover:bg-muted/50",
-        compact ? "py-3 first:pt-0 last:pb-0" : "p-5"
+        "flex transition-colors hover:bg-muted/50",
+        compact
+          ? "items-start gap-3 py-3 first:pt-0 last:pb-0"
+          : "items-center justify-between gap-4 p-5"
       )}
     >
-      <div className="flex min-w-0 items-center gap-3">
+      <div
+        className={cn(
+          "flex min-w-0 flex-1",
+          compact ? "items-start gap-2.5" : "items-center gap-3"
+        )}
+      >
         <div
           className={cn(
             "shrink-0 rounded-lg border p-2.5",
@@ -166,8 +173,8 @@ function PayoutBatchRow({
         >
           <CreditCard className={compact ? "h-4 w-4" : "h-5 w-5"} />
         </div>
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <p className="truncate text-sm font-semibold text-brand-dark">
               {batch.label}
             </p>
@@ -177,39 +184,55 @@ function PayoutBatchRow({
               {payoutStatusLabel(batch.status)}
             </span>
           </div>
-          <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5" />
+              <Calendar className="h-3.5 w-3.5 shrink-0" />
               {paid ? "Paid " : "Created "}
               {formatAppDate(batch.processedAt ?? batch.createdAt)}
             </span>
-            <span>·</span>
-            <span>
-              {batch.entryCount}{" "}
-              {batch.entryCount === 1 ? "commission" : "commissions"}
-            </span>
+            {!compact && (
+              <>
+                <span>·</span>
+                <span>
+                  {batch.entryCount}{" "}
+                  {batch.entryCount === 1 ? "commission" : "commissions"}
+                </span>
+              </>
+            )}
           </div>
+          {compact && (
+            <p
+              className={cn(
+                "mt-1.5 text-sm font-bold tabular-nums",
+                paid ? "text-emerald-700" : "text-amber-700"
+              )}
+            >
+              {formatCurrency(batch.totalAmount)}
+            </p>
+          )}
         </div>
       </div>
-      <div className="flex shrink-0 items-center gap-3">
-        <div className="text-right">
-          {!compact && (
+      {!compact && (
+        <div className="flex shrink-0 items-center gap-3">
+          <div className="text-right">
             <span className="block text-[10px] font-semibold uppercase text-muted-foreground">
               Amount
             </span>
-          )}
-          <span
-            className={cn(
-              "font-bold tabular-nums",
-              compact ? "text-sm" : "text-lg",
-              paid ? "text-emerald-700" : "text-amber-700"
-            )}
-          >
-            {formatCurrency(batch.totalAmount)}
-          </span>
+            <span
+              className={cn(
+                "text-lg font-bold tabular-nums",
+                paid ? "text-emerald-700" : "text-amber-700"
+              )}
+            >
+              {formatCurrency(batch.totalAmount)}
+            </span>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
         </div>
-        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-      </div>
+      )}
+      {compact && (
+        <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+      )}
     </Link>
   );
 }

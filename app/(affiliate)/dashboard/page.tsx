@@ -315,65 +315,67 @@ function DashboardPageContent() {
               />
             </div>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
-                <div>
-                  <CardTitle className="text-base">
-                    {AFFILIATE_COPY.home.commissionsTitle}
-                  </CardTitle>
-                  <CardDescription className="mt-1">
-                    {AFFILIATE_COPY.home.commissionsSubtitle}
-                  </CardDescription>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="shrink-0 gap-1 text-primary"
-                  onClick={() => setViewTab("ledger")}
-                >
-                  {AFFILIATE_COPY.home.viewAllCommissions}
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <CommissionsHomePreview
-                  enabled={!!user}
-                  onViewCommissions={() => setViewTab("ledger")}
-                  onViewType={(type) => focusCommissions({ type })}
-                />
-              </CardContent>
-            </Card>
+            <div className="grid gap-5 lg:grid-cols-3 lg:items-start">
+              <Card className="min-w-0 lg:col-span-2">
+                <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
+                  <div>
+                    <CardTitle className="text-base">
+                      {AFFILIATE_COPY.home.commissionsTitle}
+                    </CardTitle>
+                    <CardDescription className="mt-1">
+                      {AFFILIATE_COPY.home.commissionsSubtitle}
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 gap-1 text-primary"
+                    onClick={() => setViewTab("ledger")}
+                  >
+                    {AFFILIATE_COPY.home.viewAllCommissions}
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <CommissionsHomePreview
+                    enabled={!!user}
+                    onViewCommissions={() => setViewTab("ledger")}
+                    onViewType={(type) => focusCommissions({ type })}
+                  />
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
-                <div>
-                  <CardTitle className="text-base">
-                    {AFFILIATE_COPY.home.payoutsTitle}
-                  </CardTitle>
-                  <CardDescription className="mt-1">
-                    {AFFILIATE_COPY.home.payoutsDescription}
-                  </CardDescription>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="shrink-0 gap-1 text-primary"
-                  onClick={() => setViewTab("payouts")}
-                >
-                  {AFFILIATE_COPY.home.payoutsAction}
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <PayoutsList
-                  detailHrefPrefix="/dashboard/payouts"
-                  affiliateView
-                  embedded
-                  limit={5}
-                  onViewAll={() => setViewTab("payouts")}
-                />
-              </CardContent>
-            </Card>
+              <Card className="min-w-0">
+                <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
+                  <div className="min-w-0">
+                    <CardTitle className="text-base">
+                      {AFFILIATE_COPY.home.payoutsTitle}
+                    </CardTitle>
+                    <CardDescription className="mt-1">
+                      {AFFILIATE_COPY.home.payoutsDescription}
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 gap-1 text-primary"
+                    onClick={() => setViewTab("payouts")}
+                  >
+                    {AFFILIATE_COPY.home.payoutsAction}
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <PayoutsList
+                    detailHrefPrefix="/dashboard/payouts"
+                    affiliateView
+                    embedded
+                    limit={5}
+                    onViewAll={() => setViewTab("payouts")}
+                  />
+                </CardContent>
+              </Card>
+            </div>
 
             {hasTeams ? (
               <Card>
