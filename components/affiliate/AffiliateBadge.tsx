@@ -3,7 +3,6 @@ import {
   formatCommissionStatus,
   formatCommissionType,
 } from "@/lib/affiliate/copy";
-import { AWAITING_PAYMENT } from "@/lib/payouts/status";
 import { cn } from "@/lib/utils";
 
 export type AffiliateBadgeVariant =
@@ -37,7 +36,7 @@ export function commissionTypeVariant(type: string): AffiliateBadgeVariant {
 export function commissionStatusVariant(status: string): AffiliateBadgeVariant {
   if (status === "PAID") return "paid";
   if (status === "UNPAID") return "unpaid";
-  if (status === "PENDING" || status === AWAITING_PAYMENT) return "pending";
+  if (status === "PENDING") return "pending";
   return "neutral";
 }
 

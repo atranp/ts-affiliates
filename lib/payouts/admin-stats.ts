@@ -1,4 +1,4 @@
-import { CommissionStatus, PayoutBatchStatus } from "@prisma/client";
+import { CommissionStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { startOfStoreMonth } from "@/lib/payouts/store-dates";
 import { toNumber } from "@/lib/utils";
@@ -10,9 +10,8 @@ function batchTotal(
 }
 
 export type PayoutAdminStats = {
-  awaitingPaymentTotal: number;
-  openBatchCount: number;
-  paidThisMonthTotal: number;
+  recordedThisMonthTotal: number;
+  recordedThisMonthCount: number;
   affiliatesWithUnpaidCount: number;
   totalUnpaidLedger: number;
 };
@@ -21,18 +20,12 @@ export async function getPayoutAdminStats(): Promise<PayoutAdminStats> {
   const monthStart = startOfStoreMonth(new Date());
 
   const [
-    processingBatches,
-    paidThisMonthBatches,
+    recordedThisMonthBatches,
     unpaidAffiliateGroups,
     unpaidLedgerSum,
   ] = await Promise.all([
     prisma.payoutBatch.findMany({
-      where: { status: PayoutBatchStatus.PROCESSING },
-      include: { items: true },
-    }),
-    prisma.payoutBatch.findMany({
       where: {
-        status: PayoutBatchStatus.COMPLETED,
         processedAt: { gte: monthStart },
       },
       include: { items: true },
@@ -48,15 +41,11 @@ export async function getPayoutAdminStats(): Promise<PayoutAdminStats> {
   ]);
 
   return {
-    awaitingPaymentTotal: processingBatches.reduce(
+    recordedThisMonthTotal: recordedThisMonthBatches.reduce(
       (sum, batch) => sum + batchTotal(batch.items),
       0
     ),
-    openBatchCount: processingBatches.length,
-    paidThisMonthTotal: paidThisMonthBatches.reduce(
-      (sum, batch) => sum + batchTotal(batch.items),
-      0
-    ),
+    recordedThisMonthCount: recordedThisMonthBatches.length,
     affiliatesWithUnpaidCount: unpaidAffiliateGroups.length,
     totalUnpaidLedger: toNumber(unpaidLedgerSum._sum.amount),
   };

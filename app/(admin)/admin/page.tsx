@@ -75,23 +75,6 @@ export default function AdminDashboardPage() {
                 }
               />
             </Link>
-            {data.ledger.awaitingTotal > 0 && (
-              <Link
-                href="/admin/payouts"
-                className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              >
-                <StatCard
-                  label="Awaiting Payment"
-                  value={formatCurrency(data.ledger.awaitingTotal)}
-                  hint="Payouts created, money not sent"
-                  variant="warning"
-                  icon={Clock}
-                  footer={
-                    <ArrowRight className="h-4 w-4 text-amber-700 transition-transform group-hover:translate-x-1" />
-                  }
-                />
-              </Link>
-            )}
             <Link
               href="/admin/payouts"
               className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -99,7 +82,7 @@ export default function AdminDashboardPage() {
               <StatCard
                 label="Paid Total"
                 value={formatCurrency(data.ledger.paidTotal)}
-                hint="Confirmed as sent"
+                hint="Commissions marked paid"
                 variant="success"
                 icon={CheckCircle2}
                 footer={

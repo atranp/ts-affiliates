@@ -4,7 +4,7 @@ import { formatPeriodLabel } from "@/lib/payouts/dates";
 import { resolvePayoutPeriodFromRequest } from "@/lib/payouts/parse-period";
 import { prisma } from "@/lib/prisma";
 import { buildPayoutEntryWhere } from "@/lib/payouts/scope";
-import { AWAITING_PAYMENT_STATUS } from "@/lib/payouts/status";
+import { PAID_STATUS } from "@/lib/payouts/status";
 import type { PayoutScope } from "@/lib/payouts/types";
 import { toNumber } from "@/lib/utils";
 
@@ -99,14 +99,16 @@ export async function POST(request: Request) {
           ? `Payout · ${dateLabel}`
           : `Platform payout · ${dateLabel}`;
 
+  const recordedAt = new Date();
+
   const batch = await prisma.$transaction(async (tx) => {
     const createdBatch = await tx.payoutBatch.create({
       data: {
         label,
         periodStart,
         periodEnd,
-        status: AWAITING_PAYMENT_STATUS,
-        processedAt: null,
+        status: PAID_STATUS,
+        processedAt: recordedAt,
         teamId: team?.id ?? null,
         sponsorAffiliateId: resolvedSponsorId ?? null,
       },
@@ -131,14 +133,11 @@ export async function POST(request: Request) {
       });
     }
 
-    // Entries are claimed by the batch immediately so a later run cannot pull
-    // them into a second payout. `paidAt` stays null until the money is
-    // actually sent, which is what marks the batch COMPLETED.
     await tx.ledgerEntry.updateMany({
       where: { id: { in: entries.map((entry) => entry.id) } },
       data: {
         status: "PAID",
-        paidAt: null,
+        paidAt: recordedAt,
         payoutBatchId: createdBatch.id,
       },
     });

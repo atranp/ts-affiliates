@@ -2,10 +2,7 @@ import type { LedgerData, LedgerEntry } from "@/hooks/use-ledger";
 import type { LedgerSortKey, SortDirection } from "@/lib/ledger/sort";
 import { defaultSortDirection, sortLedgerEntries } from "@/lib/ledger/sort";
 import type { PayoutBatchDetail, PayoutBatchListItem } from "@/lib/payouts/types";
-import {
-  AWAITING_PAYMENT_STATUS,
-  PAID_STATUS,
-} from "@/lib/payouts/status";
+import { PAID_STATUS } from "@/lib/payouts/status";
 import type { TeamDetail, TeamSummary } from "@/lib/teams/queries";
 import { MOCK_AFFILIATE_ID } from "./affiliate-auth";
 
@@ -285,10 +282,10 @@ export const MOCK_PAYOUT_BATCHES: PayoutBatchListItem[] = [
   {
     id: "pb-1",
     label: "January payout",
-    status: AWAITING_PAYMENT_STATUS,
+    status: PAID_STATUS,
     periodStart: daysAgo(45),
     periodEnd: daysAgo(15),
-    processedAt: null,
+    processedAt: daysAgo(30),
     createdAt: daysAgo(30),
     teamId: null,
     teamName: null,

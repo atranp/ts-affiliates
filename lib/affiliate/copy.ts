@@ -1,13 +1,9 @@
 /** Affiliate-facing labels — keep admin jargon out of the partner portal. */
 
-import { AWAITING_PAYMENT } from '@/lib/payouts/status';
-
 export function formatCommissionStatus(status: string): string {
   switch (status) {
     case 'PAID':
       return 'Paid';
-    case AWAITING_PAYMENT:
-      return 'Awaiting payment';
     case 'UNPAID':
       return 'Unpaid';
     case 'PENDING':
@@ -202,14 +198,13 @@ export const AFFILIATE_COPY = {
   payouts: {
     title: 'Payouts',
     historyTitle: 'Payout History',
-    description: 'Transfers recorded for your account.',
-    empty: 'No payouts yet. When a payout is processed, it will show up here.',
+    description: 'Receipts for transfers recorded on your account.',
+    empty: 'No payouts yet. When a payout is recorded, it will show up here.',
     columns: {
       payout: 'Payout',
       date: 'Date',
       commissions: 'Commissions',
       amount: 'Amount',
-      status: 'Status',
     },
   },
   account: {

@@ -11,7 +11,6 @@ import { PayoutBuilder } from "@/components/payouts/PayoutBuilder";
 import {
   PayoutHistoryPanel,
   type PayoutBatchRow,
-  type PayoutStatusFilter,
 } from "@/components/payouts/PayoutHistoryPanel";
 import { SelectedAffiliateBanner } from "@/components/payouts/SelectedAffiliateBanner";
 import { useAdminQuery } from "@/hooks/use-admin-query";
@@ -42,7 +41,6 @@ function AdminPayoutsPageContent() {
 
   const sponsorId = searchParams.get("sponsorAffiliateId") ?? "";
   const initialTeamId = searchParams.get("teamId") ?? undefined;
-  const [statusFilter, setStatusFilter] = useState<PayoutStatusFilter>("all");
   const [search, setSearch] = useState("");
 
   const {
@@ -99,7 +97,7 @@ function AdminPayoutsPageContent() {
       <div className="shrink-0 space-y-4">
         <PageHeader
           title="Payouts"
-          description="Record what ambassadors are owed, then confirm once money is sent."
+          description="Create payout receipts that list what each transfer includes."
         />
 
         {sponsorId && sponsor && (
@@ -155,8 +153,6 @@ function AdminPayoutsPageContent() {
           batches={batchesData?.batches ?? []}
           loading={batchesLoading}
           sponsorAffiliateId={sponsorId || undefined}
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
           search={search}
           onSearchChange={setSearch}
           onRefresh={() => {

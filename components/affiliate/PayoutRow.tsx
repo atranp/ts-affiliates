@@ -4,16 +4,8 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { AffiliateAmountCell } from "@/components/affiliate/primitives";
 import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
-import { isPayoutPaid, payoutStatusLabel } from "@/lib/payouts/status";
 import { formatAppDate } from "@/lib/timezone";
 import { cn, formatCurrency } from "@/lib/utils";
-
-function rowPayoutStatus(status: string) {
-  if (isPayoutPaid(status)) {
-    return { short: "Paid", full: payoutStatusLabel(status) };
-  }
-  return { short: "Awaiting", full: payoutStatusLabel(status) };
-}
 
 export type PayoutRowData = {
   id: string;
@@ -26,15 +18,13 @@ export type PayoutRowData = {
 };
 
 function payoutDateLabel(
-  batch: Pick<PayoutRowData, "status" | "processedAt" | "createdAt">,
+  batch: Pick<PayoutRowData, "processedAt" | "createdAt">,
 ) {
-  const paid = isPayoutPaid(batch.status);
-  const dateIso = paid ? (batch.processedAt ?? batch.createdAt) : batch.createdAt;
-  const datePrefix = paid ? "Paid" : "Created";
-  return `${datePrefix} ${formatAppDate(dateIso, {
+  const dateIso = batch.processedAt ?? batch.createdAt;
+  return formatAppDate(dateIso, {
     month: "short",
     day: "numeric",
-  })}`;
+  });
 }
 
 function entryCountLabel(count: number) {
@@ -50,7 +40,6 @@ type PayoutRowProps = PayoutRowData & {
 
 export function PayoutRow({
   label,
-  status,
   processedAt,
   createdAt,
   entryCount,
@@ -58,10 +47,7 @@ export function PayoutRow({
   href,
   className,
 }: PayoutRowProps) {
-  const paid = isPayoutPaid(status);
-  const statusLabel = rowPayoutStatus(status);
   const dateLabel = payoutDateLabel({
-    status,
     processedAt,
     createdAt,
   });
@@ -71,19 +57,12 @@ export function PayoutRow({
     <>
       <div className="flex min-w-0 items-start justify-between gap-3">
         <p className="ts-row-title min-w-0 flex-1 leading-snug">{label}</p>
-        <AffiliateAmountCell
-          amount={formatCurrency(totalAmount)}
-          tone={paid ? "success" : "warning"}
-        />
+        <AffiliateAmountCell amount={formatCurrency(totalAmount)} tone="success" />
       </div>
       <div className="flex min-w-0 items-center justify-between gap-2">
         <p className="ts-row-meta min-w-0 truncate">{dateLabel}</p>
-        <span className="ts-row-meta shrink-0 text-right text-[11px] font-medium leading-tight sm:text-xs">
-          <span className="sm:hidden">{statusLabel.short}</span>
-          <span className="hidden sm:inline">{statusLabel.full}</span>
-        </span>
+        <p className="ts-row-meta shrink-0 text-right">{entriesLabel}</p>
       </div>
-      <p className="ts-row-meta min-w-0 lg:hidden">{entriesLabel}</p>
     </>
   );
 
@@ -127,9 +106,6 @@ export function PayoutDesktopTable({
             <th className="ts-table-header h-11 px-4 text-right">
               {AFFILIATE_COPY.payouts.columns.amount}
             </th>
-            <th className="ts-table-header h-11 px-4 text-right">
-              {AFFILIATE_COPY.payouts.columns.status}
-            </th>
             <th className="ts-table-header h-11 w-10 px-2 last:pr-5">
               <span className="sr-only">View</span>
             </th>
@@ -137,7 +113,6 @@ export function PayoutDesktopTable({
         </thead>
         <tbody>
           {batches.map((batch) => {
-            const paid = isPayoutPaid(batch.status);
             const href = `${detailHrefPrefix}/${batch.id}`;
             return (
               <tr
@@ -161,11 +136,8 @@ export function PayoutDesktopTable({
                 <td className="px-4 py-3.5 text-right">
                   <AffiliateAmountCell
                     amount={formatCurrency(batch.totalAmount)}
-                    tone={paid ? "success" : "warning"}
+                    tone="success"
                   />
-                </td>
-                <td className="ts-row-meta px-4 py-3.5 text-right font-medium">
-                  {payoutStatusLabel(batch.status)}
                 </td>
                 <td className="px-2 py-3.5 text-right last:pr-5">
                   <Link

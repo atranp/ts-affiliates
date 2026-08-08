@@ -39,11 +39,6 @@ import {
   toDateInputValue,
   type DatePreset,
 } from "@/lib/payouts/dates";
-import {
-  isPayoutPaid,
-  payoutStatusClasses,
-  payoutStatusLabel,
-} from "@/lib/payouts/status";
 import { formatAppDate, APP_TIMEZONE_LABEL } from "@/lib/timezone";
 import type {
   OutsideRange,
@@ -228,7 +223,7 @@ export function PayoutBuilder({
       );
 
       toast.success(`Payout created: ${result.label}`, {
-        description: `${result.entryCount.toLocaleString("en-US")} sales recorded. Confirm sent once you've transferred the money.`,
+        description: `${result.entryCount.toLocaleString("en-US")} commissions included in this receipt.`,
       });
       setConfirmOpen(false);
       setTargetKey(null);
@@ -237,23 +232,6 @@ export function PayoutBuilder({
       toast.error(err instanceof Error ? err.message : "Payout failed");
     } finally {
       setRunning(false);
-    }
-  }
-
-  async function setPaid(batchId: string, paid: boolean) {
-    setPendingBatchId(batchId);
-    try {
-      await adminMutate(`/api/admin/payouts/batches/${batchId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paid }),
-      });
-      toast.success(paid ? "Confirmed sent" : "Moved back to awaiting payment");
-      await refreshAll();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not update payout");
-    } finally {
-      setPendingBatchId(null);
     }
   }
 
@@ -440,8 +418,7 @@ export function PayoutBuilder({
                       {formatCurrency(preview.totals.grandTotal)}
                     </Button>
                     <p className="text-xs leading-relaxed text-muted-foreground">
-                      Confirms what {displayName ?? "this ambassador"} is owed.
-                      Mark sent after you transfer funds.
+                      Creates a receipt listing what this payout includes.
                     </p>
                   </div>
                 }
@@ -505,22 +482,9 @@ export function PayoutBuilder({
                       </p>
                     </Link>
                     <div className="flex shrink-0 items-center gap-2">
-                      <StatusPill status={batch.status} />
                       <span className="font-semibold">
                         {formatCurrency(batch.totalAmount)}
                       </span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={pendingBatchId === batch.id}
-                        onClick={() =>
-                          setPaid(batch.id, !isPayoutPaid(batch.status))
-                        }
-                      >
-                        {isPayoutPaid(batch.status)
-                          ? "Undo sent"
-                          : "Confirm sent"}
-                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -547,7 +511,7 @@ export function PayoutBuilder({
         title="Record this payout?"
         description={
           preview && target
-            ? `Records ${preview.totals.entryCount.toLocaleString("en-US")} sales (${formatCurrency(preview.totals.grandTotal)}) for ${target.label}. ${displayName ?? "The affiliate"} will see it as awaiting payment until you confirm sent. You can delete it from the detail page if it's wrong.`
+            ? `Records ${preview.totals.entryCount.toLocaleString("en-US")} sales (${formatCurrency(preview.totals.grandTotal)}) for ${target.label}. You can delete it from the detail page if it's wrong.`
             : ""
         }
         confirmLabel="Record payout"
@@ -868,16 +832,6 @@ function TargetRow({
         {selected && <Check className="h-4 w-4 text-primary" />}
       </div>
     </button>
-  );
-}
-
-export function StatusPill({ status }: { status: string }) {
-  return (
-    <span
-      className={`rounded-full border px-2 py-0.5 text-xs font-medium ${payoutStatusClasses(status)}`}
-    >
-      {payoutStatusLabel(status)}
-    </span>
   );
 }
 

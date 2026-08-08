@@ -3,13 +3,12 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Check, RotateCcw, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { PayoutBatchDetailView } from "@/components/payouts/PayoutBatchDetailView";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { Button } from "@/components/ui/button";
 import { adminMutate, useAdminQuery } from "@/hooks/use-admin-query";
-import { isPayoutPaid } from "@/lib/payouts/status";
 import type { PayoutBatchDetail } from "@/lib/payouts/types";
 
 export default function AdminPayoutDetailPage() {
@@ -35,27 +34,9 @@ export default function AdminPayoutDetailPage() {
   }
 
   const batch = data.batch;
-  const paid = isPayoutPaid(batch.status);
   const backHref = batch.sponsorAffiliateId
     ? `/admin/affiliates/${batch.sponsorAffiliateId}?tab=payouts`
     : "/admin/payouts";
-
-  async function setPaid(next: boolean) {
-    setBusy(true);
-    try {
-      await adminMutate(`/api/admin/payouts/batches/${params.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paid: next }),
-      });
-      toast.success(next ? "Marked as paid" : "Moved back to awaiting payment");
-      await refetch();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not update payout");
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function remove() {
     setBusy(true);
@@ -86,33 +67,15 @@ export default function AdminPayoutDetailPage() {
             : "Back to payouts"
         }
         actions={
-          <>
-            {paid ? (
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={busy}
-                onClick={() => setPaid(false)}
-              >
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Mark unpaid
-              </Button>
-            ) : (
-              <Button size="sm" disabled={busy} onClick={() => setPaid(true)}>
-                <Check className="mr-2 h-4 w-4" />
-                Mark as paid
-              </Button>
-            )}
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={busy}
-              onClick={() => setConfirmDelete(true)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </Button>
-          </>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={busy}
+            onClick={() => setConfirmDelete(true)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete
+          </Button>
         }
       />
 

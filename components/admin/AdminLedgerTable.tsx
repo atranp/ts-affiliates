@@ -18,7 +18,6 @@ import {
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { WooOrderLink } from "@/components/admin/WooOrderLink";
 import { LEDGER_STATUSES } from "@/lib/ledger/statuses";
-import { isPayoutPaid } from "@/lib/payouts/status";
 import { Pencil, Plus } from "lucide-react";
 
 export type AdminLedgerEntry = {
@@ -70,11 +69,7 @@ function formatPayoutWeek(iso: string | null) {
 
 function entryPayoutLabel(entry: AdminLedgerEntry) {
   const batch = entry.payoutBatch;
-  if (batch) {
-    return isPayoutPaid(batch.status)
-      ? batch.label
-      : `${batch.label} (awaiting payment)`;
-  }
+  if (batch) return batch.label;
   return formatPayoutWeek(entry.payoutWeek) ?? "—";
 }
 

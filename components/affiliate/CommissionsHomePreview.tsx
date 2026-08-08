@@ -9,7 +9,6 @@ import {
 } from "@/components/affiliate/primitives";
 import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
 import { useLedger } from "@/hooks/use-ledger";
-import { effectiveLedgerStatus } from "@/lib/payouts/status";
 import { formatCurrency } from "@/lib/utils";
 
 const PREVIEW_LIMIT = 3;
@@ -58,10 +57,7 @@ export function CommissionsHomePreview({
         <AffiliateListPanel scroll inset>
           <ul className="flex flex-col gap-2">
             {entries.map((entry) => {
-              const status = effectiveLedgerStatus(
-                entry.status,
-                entry.payoutBatch
-              );
+              const status = entry.status;
               const details =
                 entry.description ??
                 entry.sourceAffiliate?.displayName ??

@@ -7,10 +7,6 @@ import {
   formatCommissionStatus,
   AFFILIATE_COPY,
 } from "@/lib/affiliate/copy";
-import {
-  AWAITING_PAYMENT,
-  effectiveLedgerStatus,
-} from "@/lib/payouts/status";
 import { formatAppDate } from "@/lib/timezone";
 import { formatCurrency, formatSaleDate, cn } from "@/lib/utils";
 import type { LedgerSortKey, SortDirection } from "@/lib/ledger/sort";
@@ -54,7 +50,7 @@ function statusVariant(
   status: string
 ): "paid" | "pending" | "unpaid" | "secondary" {
   if (status === "PAID") return "paid";
-  if (status === "PENDING" || status === AWAITING_PAYMENT) return "pending";
+  if (status === "PENDING") return "pending";
   if (status === "UNPAID") return "unpaid";
   return "secondary";
 }
@@ -201,7 +197,7 @@ export function LedgerTable({
       )}
     >
       {entries.map((entry) => {
-        const status = effectiveLedgerStatus(entry.status, entry.payoutBatch);
+        const status = entry.status;
         const details =
           entry.description ??
           entry.sourceAffiliate?.displayName ??
@@ -225,7 +221,7 @@ export function LedgerTable({
   ) : (
     <DataCardList className={fillHeight ? "p-3 md:hidden" : "md:hidden"}>
       {entries.map((entry) => {
-        const status = effectiveLedgerStatus(entry.status, entry.payoutBatch);
+        const status = entry.status;
         const details =
           entry.description ??
           entry.sourceAffiliate?.displayName ??
@@ -289,10 +285,7 @@ export function LedgerTable({
       </TableHeader>
       <TableBody>
         {entries.map((entry) => {
-          const status = effectiveLedgerStatus(
-            entry.status,
-            entry.payoutBatch
-          );
+          const status = entry.status;
           return (
             <TableRow
               key={entry.id}

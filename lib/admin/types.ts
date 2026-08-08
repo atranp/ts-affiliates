@@ -9,9 +9,6 @@ export type AdminStats = {
     unpaidCount: number;
     paidTotal: number;
     paidCount: number;
-    /** In a payout that has been created but not yet marked as sent. */
-    awaitingTotal: number;
-    awaitingCount: number;
     pendingTotal: number;
   };
   dealRules: {

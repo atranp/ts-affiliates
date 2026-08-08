@@ -9,7 +9,6 @@ import {
   formatCommissionStatus,
   formatCommissionType,
 } from '@/lib/affiliate/copy';
-import { AWAITING_PAYMENT } from '@/lib/payouts/status';
 import { formatAppDate } from '@/lib/timezone';
 import { cn, formatCurrency, formatSaleDate } from '@/lib/utils';
 
@@ -17,7 +16,7 @@ export function commissionAmountTone(
   status: string,
 ): 'primary' | 'success' | 'warning' | 'default' {
   if (status === 'PAID') return 'success';
-  if (status === 'PENDING' || status === AWAITING_PAYMENT) return 'warning';
+  if (status === 'PENDING') return 'warning';
   if (status === 'UNPAID') return 'primary';
   return 'default';
 }

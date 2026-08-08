@@ -19,9 +19,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { isPayoutPaid, payoutStatusLabel } from "@/lib/payouts/status";
-import type { PayoutBatchDetail } from "@/lib/payouts/types";
 import { formatCurrency, formatSaleDate } from "@/lib/utils";
+import type { PayoutBatchDetail } from "@/lib/payouts/types";
 
 function formatDate(iso: string) {
   return formatSaleDate(iso);
@@ -60,10 +59,7 @@ export function PayoutBatchDetailView({
   backLabel = "Back",
   actions,
 }: PayoutBatchDetailViewProps) {
-  const paid = isPayoutPaid(batch.status);
-  const timing = paid
-    ? `Paid ${formatDate(batch.processedAt ?? batch.createdAt)}`
-    : `Created ${formatDate(batch.createdAt)} · payment not sent yet`;
+  const recordedAt = formatDate(batch.processedAt ?? batch.createdAt);
 
   return (
     <div className="space-y-6">
@@ -82,36 +78,17 @@ export function PayoutBatchDetailView({
           <h1 className="page-title">{batch.label}</h1>
           <p className="page-description">
             {batch.teamName ? `${batch.teamName} · ` : ""}
-            {timing}
+            Recorded {recordedAt}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={paid ? "paid" : "pending"}>
-            {payoutStatusLabel(batch.status)}
-          </Badge>
-          {actions}
-        </div>
+        {actions && (
+          <div className="flex flex-wrap items-center gap-2">{actions}</div>
+        )}
       </div>
-
-      {!paid && adminView && (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          This payout is a record of what&apos;s owed. Mark it as paid once the
-          money has actually been sent.
-        </p>
-      )}
-
-      {!paid && !adminView && (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-900">
-          This payout is being processed. It will show as paid once the transfer
-          is sent to you.
-        </p>
-      )}
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">
-            {paid ? "Total paid" : "Total owed"}
-          </p>
+          <p className="text-xs text-muted-foreground">Total</p>
           <p className="mt-1 text-2xl font-semibold">
             {formatCurrency(batch.totals.grandTotal)}
           </p>
