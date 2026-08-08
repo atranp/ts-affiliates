@@ -1,9 +1,11 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { PenLine } from "lucide-react";
+import { PenLine, Plus } from "lucide-react";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { Button } from "@/components/ui/button";
 import type { AffiliateOption } from "@/components/admin/AffiliateSearchCombobox";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { TableSkeleton } from "@/components/admin/TableSkeleton";
@@ -98,6 +100,14 @@ function AdminPayoutsPageContent() {
         <PageHeader
           title="Payouts"
           description="Create payout receipts that list what each transfer includes."
+          actions={
+            <Button size="sm" asChild>
+              <Link href="/admin/payouts/new">
+                <Plus className="mr-2 h-4 w-4" />
+                New payout
+              </Link>
+            </Button>
+          }
         />
 
         {sponsorId && sponsor && (

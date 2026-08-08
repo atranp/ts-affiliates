@@ -24,3 +24,22 @@ export function formatAppDate(
     timeZone: APP_TIMEZONE,
   });
 }
+
+/**
+ * Includes clock time. A payout cutoff is an instant rather than a calendar
+ * day, so dropping the time would misrepresent what the receipt covers.
+ */
+export function formatAppDateTime(
+  value: string | Date,
+  options: Intl.DateTimeFormatOptions = {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }
+): string {
+  return new Date(value).toLocaleString("en-US", {
+    ...options,
+    timeZone: APP_TIMEZONE,
+  });
+}

@@ -1,0 +1,99 @@
+import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/api-auth";
+import {
+  createPayout,
+  parsePayoutCutoff,
+  parsePayoutScope,
+  previewPayout,
+  PayoutConflictError,
+  PayoutInputError,
+} from "@/lib/payouts/create";
+
+function handleError(error: unknown) {
+  if (error instanceof PayoutInputError) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+  if (error instanceof PayoutConflictError) {
+    return NextResponse.json(
+      { error: error.message, actual: error.actual },
+      { status: 409 }
+    );
+  }
+  console.error("Payout create failed:", error);
+  return NextResponse.json(
+    { error: "Could not complete the payout. Nothing was changed." },
+    { status: 500 }
+  );
+}
+
+/**
+ * Previews what a payout would cover. The cutoff is normally omitted so the
+ * server stamps "now" and the client can hand that exact instant back on POST.
+ */
+export async function GET(request: Request) {
+  const auth = await requireAdmin();
+  if ("error" in auth) return auth.error;
+
+  const params = new URL(request.url).searchParams;
+  const affiliateId = params.get("affiliateId");
+  if (!affiliateId) {
+    return NextResponse.json(
+      { error: "affiliateId is required" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const draft = await previewPayout({
+      affiliateId,
+      scope: parsePayoutScope(params.get("scope") ?? "all"),
+      cutoff: parsePayoutCutoff(params.get("cutoff")),
+    });
+    return NextResponse.json(draft);
+  } catch (error) {
+    return handleError(error);
+  }
+}
+
+export async function POST(request: Request) {
+  const auth = await requireAdmin();
+  if ("error" in auth) return auth.error;
+
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  const { affiliateId, scope, cutoff, expected } = body as Record<
+    string,
+    unknown
+  >;
+
+  if (typeof affiliateId !== "string" || !affiliateId) {
+    return NextResponse.json(
+      { error: "affiliateId is required" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const payout = await createPayout({
+      affiliateId,
+      scope: parsePayoutScope(scope),
+      cutoff: parsePayoutCutoff(cutoff),
+      expected: parseExpected(expected),
+    });
+    return NextResponse.json(payout, { status: 201 });
+  } catch (error) {
+    return handleError(error);
+  }
+}
+
+function parseExpected(value: unknown) {
+  if (!value || typeof value !== "object") return undefined;
+  const { entryCount, totalAmount } = value as Record<string, unknown>;
+  if (typeof entryCount !== "number" || typeof totalAmount !== "number") {
+    return undefined;
+  }
+  return { entryCount, totalAmount };
+}
