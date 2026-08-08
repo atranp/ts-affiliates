@@ -36,7 +36,7 @@ import {
   type LedgerTypeFilter,
 } from "@/hooks/use-ledger";
 import { PayoutsList } from "@/components/payouts/PayoutsList";
-import { AFFILIATE_COPY, memberCountLabel } from "@/lib/affiliate/copy";
+import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
 import { formatCurrency } from "@/lib/utils";
 
 type DashboardTab = "overview" | "ledger" | "teams" | "payouts";

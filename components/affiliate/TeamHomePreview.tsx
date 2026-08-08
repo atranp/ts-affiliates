@@ -185,20 +185,22 @@ function SingleTeamPreview({
   onViewMember: (memberId: string) => void;
 }) {
   const { data, isLoading } = useTeamDetail(team.id, true);
-  const members = data?.team.members ?? [];
+  const members = data?.team.members;
 
   const segments = useMemo(
-    () => (members.length > 0 ? countSegments(members) : null),
+    () => (members && members.length > 0 ? countSegments(members) : null),
     [members]
   );
 
-  const topMembers = useMemo(
-    () =>
-      sortMembers(members, "revenue", "desc")
-        .filter((member) => member.stats.totalRevenue > 0 || unlockedBonus(member) > 0)
-        .slice(0, PREVIEW_MEMBER_LIMIT),
-    [members]
-  );
+  const topMembers = useMemo(() => {
+    if (!members) return [];
+    return sortMembers(members, "revenue", "desc")
+      .filter(
+        (member) =>
+          member.stats.totalRevenue > 0 || unlockedBonus(member) > 0
+      )
+      .slice(0, PREVIEW_MEMBER_LIMIT);
+  }, [members]);
 
   const { stats } = team;
 
