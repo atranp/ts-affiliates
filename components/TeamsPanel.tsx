@@ -516,9 +516,14 @@ function TeamRoster({
             </p>
           </div>
         ) : (
-          <Table
-            containerClassName={cn(fillHeight && "ts-table-body-scroll")}
+          <div
+            className={cn(
+              fillHeight && "flex min-h-0 flex-1 flex-col overflow-hidden"
+            )}
           >
+            <Table
+              containerClassName={cn(fillHeight && "ts-table-body-scroll")}
+            >
             <TableHeader>
               <TableRow className="border-border/80 hover:bg-transparent">
                 <SortableHead
@@ -577,6 +582,7 @@ function TeamRoster({
               ))}
             </TableBody>
           </Table>
+          </div>
         )}
     </div>
   );

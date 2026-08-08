@@ -346,10 +346,10 @@ export function LedgerTable({
   if (affiliateView && fillHeight) {
     return (
       <>
-        <div className="hidden min-h-0 flex-1 basis-0 flex-col md:flex">
+        <div className="hidden min-h-0 flex-1 flex-col overflow-hidden md:flex">
           {table}
         </div>
-        <div className="min-h-0 flex-1 basis-0 overflow-y-auto overscroll-contain md:hidden">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain md:hidden">
           {cards}
         </div>
       </>

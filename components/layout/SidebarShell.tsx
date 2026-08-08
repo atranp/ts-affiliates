@@ -253,7 +253,12 @@ export function SidebarShell({
 
           {variant === "admin" && syncBanner}
 
-          <main className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 py-6 pb-12 sm:px-6 lg:px-8">
+          <main
+            className={cn(
+              "flex min-h-0 flex-1 flex-col overscroll-contain px-4 py-6 pb-12 sm:px-6 lg:px-8",
+              variant === "partner" ? "overflow-hidden" : "overflow-y-auto"
+            )}
+          >
             {children}
           </main>
         </div>

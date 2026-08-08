@@ -38,7 +38,7 @@ import {
 } from "@/hooks/use-ledger";
 import { PayoutsList } from "@/components/payouts/PayoutsList";
 import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
-import { cn, formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 
 type DashboardTab = "overview" | "ledger" | "teams" | "payouts";
 
@@ -255,15 +255,8 @@ function DashboardPageContent() {
     teamFilter !== "all" ||
     urlQuery !== "";
 
-  const fillTab = viewTab === "ledger" || viewTab === "teams";
-
   return (
-    <div
-      className={cn(
-        "flex flex-col",
-        fillTab && "min-h-0 flex-1 basis-0 overflow-hidden"
-      )}
-    >
+    <div className="flex min-h-0 flex-1 flex-col">
       {error && (
         <ErrorState message={error.message} onRetry={() => refetch()} />
       )}
@@ -272,14 +265,11 @@ function DashboardPageContent() {
         <Tabs
           value={viewTab}
           onValueChange={setViewTab}
-          className={cn(
-            "flex flex-col",
-            fillTab && "min-h-0 flex-1 basis-0 overflow-hidden"
-          )}
+          className="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
           <TabsContent
             value="overview"
-            className="w-full min-w-0 space-y-6 pb-6 lg:grid lg:min-h-[calc(100dvh-var(--impersonation-offset,0px)-8rem)] lg:grid-rows-[auto_auto_auto_minmax(0,1fr)] lg:gap-5 lg:space-y-0 lg:pb-4"
+            className="ts-affiliate-tab-scroll space-y-6 pb-6 lg:grid lg:grid-rows-[auto_auto_auto_minmax(0,1fr)] lg:gap-5 lg:space-y-0 lg:pb-4"
           >
             <div>
               <h1 className="page-title">
@@ -512,10 +502,7 @@ function DashboardPageContent() {
             ) : null}
           </TabsContent>
 
-          <TabsContent
-            value="ledger"
-            className="ts-workspace mt-0 flex min-h-0 flex-1 basis-0 flex-col gap-5 overflow-hidden"
-          >
+          <TabsContent value="ledger" className="ts-affiliate-tab-fill">
             <div className="shrink-0">
               <h1 className="page-title">{AFFILIATE_COPY.commissions.title}</h1>
               <p className="page-description">
@@ -546,10 +533,7 @@ function DashboardPageContent() {
             />
           </TabsContent>
 
-          <TabsContent
-            value="teams"
-            className="ts-workspace mt-0 flex min-h-0 flex-1 basis-0 flex-col gap-5 overflow-hidden"
-          >
+          <TabsContent value="teams" className="ts-affiliate-tab-fill">
             <div className="shrink-0">
               <h1 className="page-title">Your Team Roster</h1>
               <p className="page-description">
@@ -582,7 +566,7 @@ function DashboardPageContent() {
             )}
           </TabsContent>
 
-          <TabsContent value="payouts" className="space-y-6 pb-6">
+          <TabsContent value="payouts" className="ts-affiliate-tab-scroll space-y-6 pb-6">
             <div>
               <h1 className="page-title">Payout History</h1>
               <p className="page-description">

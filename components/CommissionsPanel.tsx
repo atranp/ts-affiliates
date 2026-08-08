@@ -98,7 +98,7 @@ export function CommissionsPanel({
     <div
       className={cn(
         "flex min-h-0 flex-col gap-5",
-        fillHeight && "min-h-0 flex-1 basis-0",
+        fillHeight && "min-h-0 flex-1",
         className
       )}
     >
@@ -297,7 +297,7 @@ export function CommissionsPanel({
             </Button>
           </div>
         ) : (
-          <div className={cn(fillHeight && "flex min-h-0 flex-1 basis-0 flex-col")}>
+          <div className={cn(fillHeight && "flex min-h-0 flex-1 flex-col overflow-hidden")}>
             <LedgerTable
               entries={data.entries}
               showDetails

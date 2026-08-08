@@ -9,7 +9,7 @@ export function formatCommissionStatus(status: string): string {
     case AWAITING_PAYMENT:
       return "Awaiting payment";
     case "UNPAID":
-      return "Payout";
+      return "Unpaid";
     case "PENDING":
       return "Awaiting milestone";
     default:
@@ -94,9 +94,9 @@ export const AFFILIATE_COPY = {
     empty: "No team members yet.",
     loading: "Loading team members...",
     viewCommissions: "View commissions",
-    viewUnpaid: "View payout",
+    viewUnpaid: "View unpaid",
     teamRevenue: "Team sales",
-    payout: "Payout",
+    payout: "Unpaid",
     awaitingMilestone: "Awaiting milestone",
     paid: "Paid",
     salesGoal: "Sales milestone",
@@ -125,7 +125,7 @@ export const AFFILIATE_COPY = {
       member: "Member",
       sales: "Sales",
       goal: "Sales milestone",
-      payout: "Payout",
+      payout: "Unpaid",
       awaitingMilestone: "Awaiting milestone",
     },
   },
@@ -149,7 +149,7 @@ export const AFFILIATE_COPY = {
     },
     tabs: {
       all: "All",
-      payout: "Payout",
+      payout: "Unpaid",
       paid: "Paid",
       teamEarnings: "Team earnings",
       awaitingMilestone: "Awaiting milestone",
