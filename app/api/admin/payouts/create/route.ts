@@ -8,6 +8,11 @@ import {
   PayoutConflictError,
   PayoutInputError,
 } from "@/lib/payouts/create";
+import { isAdminMockMode } from "@/lib/mock/config";
+import {
+  mockAdminCreatePayout,
+  mockAdminPayoutPreview,
+} from "@/lib/mock/admin-fixtures";
 
 function handleError(error: unknown) {
   if (error instanceof PayoutInputError) {
@@ -44,7 +49,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const draft = await previewPayout({
+    const selection = {
       affiliateId,
       target: parsePayoutTarget({
         scope: params.get("scope"),
@@ -52,7 +57,10 @@ export async function GET(request: Request) {
         memberId: params.get("memberId") ?? undefined,
       }),
       cutoff: parsePayoutCutoff(params.get("cutoff")),
-    });
+    };
+    const draft = isAdminMockMode()
+      ? mockAdminPayoutPreview(selection)
+      : await previewPayout(selection);
     return NextResponse.json(draft);
   } catch (error) {
     return handleError(error);
@@ -79,12 +87,15 @@ export async function POST(request: Request) {
   }
 
   try {
-    const payout = await createPayout({
+    const selection = {
       affiliateId,
       target: parsePayoutTarget({ scope, teamId, memberId }),
       cutoff: parsePayoutCutoff(cutoff),
       expected: parseExpected(expected),
-    });
+    };
+    const payout = isAdminMockMode()
+      ? mockAdminCreatePayout(selection, selection.expected)
+      : await createPayout(selection);
     return NextResponse.json(payout, { status: 201 });
   } catch (error) {
     return handleError(error);

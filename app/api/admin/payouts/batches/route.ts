@@ -4,6 +4,8 @@ import { listPayoutBatchesForSponsor } from "@/lib/payouts/queries";
 import { prisma } from "@/lib/prisma";
 import { listPayoutBatches } from "@/lib/teams/queries";
 import { toNumber } from "@/lib/utils";
+import { isAdminMockMode } from "@/lib/mock/config";
+import { mockAdminPayoutBatches } from "@/lib/mock/admin-fixtures";
 
 async function sponsorNameMap(ids: Array<string | null>) {
   const unique = Array.from(
@@ -30,6 +32,12 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const sponsorAffiliateId = searchParams.get("sponsorAffiliateId");
+
+  if (isAdminMockMode()) {
+    return NextResponse.json(
+      mockAdminPayoutBatches(sponsorAffiliateId ?? undefined)
+    );
+  }
 
   if (sponsorAffiliateId) {
     const batches = await listPayoutBatchesForSponsor(sponsorAffiliateId, 50);

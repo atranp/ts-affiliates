@@ -9,8 +9,9 @@ import { getAuthBlockReason, getAuthUser } from "@/lib/auth";
 import { touchAffiliateLastSignIn } from "@/lib/admin/affiliate-portal";
 import { linkProfileToAffiliateByEmail } from "@/lib/sync";
 import { createClient } from "@/lib/supabase/server";
-import { isAffiliateMockMode } from "@/lib/mock/config";
+import { isAffiliateMockMode, isAdminMockMode } from "@/lib/mock/config";
 import { MOCK_AUTH_USER } from "@/lib/mock/affiliate-auth";
+import { MOCK_ADMIN_USER } from "@/lib/mock/admin-auth";
 
 const blockMessages: Record<string, string> = {
   NO_PROFILE: "Your account is not set up. Contact an administrator.",
@@ -20,6 +21,13 @@ const blockMessages: Record<string, string> = {
 };
 
 export async function GET() {
+  if (isAdminMockMode()) {
+    const response = jsonCached(MOCK_ADMIN_USER);
+    applyRoleCookie(response, MOCK_ADMIN_USER.role);
+    applyMustChangePasswordCookie(response, false);
+    return response;
+  }
+
   if (isAffiliateMockMode()) {
     const response = jsonCached(MOCK_AUTH_USER);
     applyRoleCookie(response, MOCK_AUTH_USER.role);

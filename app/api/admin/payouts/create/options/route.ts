@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-auth";
 import { parsePayoutCutoff, PayoutInputError } from "@/lib/payouts/create";
 import { getPayoutOptions } from "@/lib/payouts/options";
+import { isAdminMockMode } from "@/lib/mock/config";
+import { mockAdminPayoutOptions } from "@/lib/mock/admin-fixtures";
 
 /**
  * What this ambassador can be paid for, priced as of a single cutoff. The
@@ -22,10 +24,12 @@ export async function GET(request: Request) {
   }
 
   try {
-    const options = await getPayoutOptions({
-      affiliateId,
-      cutoff: parsePayoutCutoff(params.get("cutoff")),
-    });
+    const options = isAdminMockMode()
+      ? mockAdminPayoutOptions(affiliateId)
+      : await getPayoutOptions({
+          affiliateId,
+          cutoff: parsePayoutCutoff(params.get("cutoff")),
+        });
     return NextResponse.json(options);
   } catch (error) {
     if (error instanceof PayoutInputError) {

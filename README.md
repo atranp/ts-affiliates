@@ -36,6 +36,26 @@ npm run db:seed
 npm run dev
 ```
 
+### Local UI without a database
+
+**Affiliate dashboard** — ledger, teams, payout history:
+
+```bash
+npm run dev:mock
+```
+
+Open `/dashboard` (no login). Sets `AFFILIATE_MOCK_DATA=true`.
+
+**Admin payout UI** — record payout, history, affiliate detail → Payouts tab:
+
+```bash
+npm run dev:mock-admin
+```
+
+Open `/admin/payouts/new` (no login). Sets `ADMIN_MOCK_DATA=true`.
+
+Fixture ambassador: **Trindalyn Mackenzie** — direct sales ($4,378.94 / 120 sales) and Blair Rodgers team earnings ($1,975.28 / 189 sales at 10%). Recording a payout updates in-memory state for the rest of the dev session.
+
 ## First-run checklist
 
 1. Log in as admin (`anthony@true-sciences.com` / `changeme123` after seed)

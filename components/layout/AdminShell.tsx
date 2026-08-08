@@ -12,6 +12,7 @@ import {
 import { SidebarShell } from "@/components/layout/SidebarShell";
 import { SyncAutoStart } from "@/components/admin/SyncAutoStart";
 import { SyncStatusBanner } from "@/components/admin/SyncStatusBanner";
+import { AdminMockBanner } from "@/components/admin/AdminMockBanner";
 import { useSyncStatus } from "@/hooks/use-sync-status";
 
 const navItems = [
@@ -38,12 +39,15 @@ function AdminShellContent({ children }: { children: React.ReactNode }) {
       variant="admin"
       navItems={navItems}
       syncBanner={
-        <SyncStatusBanner
-          variant="header"
-          status={status}
-          starting={starting}
-          onSync={startManualSync}
-        />
+        <>
+          <AdminMockBanner />
+          <SyncStatusBanner
+            variant="header"
+            status={status}
+            starting={starting}
+            onSync={startManualSync}
+          />
+        </>
       }
     >
       <SyncAutoStart />

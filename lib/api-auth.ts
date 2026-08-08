@@ -1,6 +1,8 @@
 import { Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getAuthUser, getRealAuthUser, isAdmin } from "./auth";
+import { isAdminMockMode } from "./mock/config";
+import { MOCK_ADMIN_USER } from "./mock/admin-auth";
 
 export async function requireAuth() {
   try {
@@ -23,6 +25,10 @@ export async function requireAuth() {
 }
 
 export async function requireAdmin() {
+  if (isAdminMockMode()) {
+    return { user: MOCK_ADMIN_USER };
+  }
+
   try {
     const user = await getRealAuthUser();
     if (!user) {

@@ -436,7 +436,120 @@
   }
 
   .ts-step-num {
-    @apply flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary;
+    @apply flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground shadow-xs;
+  }
+
+  /* Payout creation wizard */
+  .ts-payout-shell {
+    @apply mx-auto w-full min-w-0 max-w-6xl space-y-5;
+  }
+
+  .ts-payout-stepper {
+    @apply flex flex-col gap-1.5 rounded-xl border border-border bg-muted/40 p-1.5 shadow-xs sm:flex-row sm:items-stretch;
+  }
+
+  .ts-payout-stepper-item {
+    @apply flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors sm:border-r sm:border-border/50 sm:last:border-r-0;
+  }
+
+  .ts-payout-stepper-active {
+    @apply bg-card text-brand-dark shadow-xs ring-1 ring-primary/20;
+  }
+
+  .ts-payout-stepper-done {
+    @apply text-emerald-800;
+  }
+
+  .ts-payout-stepper-upcoming {
+    @apply text-muted-foreground;
+  }
+
+  .ts-payout-stepper-num {
+    @apply flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold;
+  }
+
+  .ts-payout-stepper-num-active {
+    @apply bg-primary text-primary-foreground;
+  }
+
+  .ts-payout-stepper-num-done {
+    @apply bg-emerald-100 text-emerald-800;
+  }
+
+  .ts-payout-stepper-num-upcoming {
+    @apply bg-muted text-muted-foreground;
+  }
+
+  .ts-payout-step-card {
+    @apply min-w-0 max-w-full rounded-2xl border border-border/80 bg-card shadow-sm;
+  }
+
+  .ts-payout-step-head {
+    @apply border-b border-border/40 bg-card px-5 py-4 sm:px-6;
+  }
+
+  .ts-payout-step-body {
+    @apply min-w-0 overflow-x-hidden bg-muted/10 px-4 py-4 sm:px-6 sm:py-6;
+  }
+
+  .ts-payout-field-well {
+    @apply relative z-10 rounded-xl border border-border/80 bg-muted/10 p-4 shadow-xs;
+  }
+
+  .ts-payout-field-well .ts-input {
+    @apply border-border/80 bg-card shadow-sm;
+  }
+
+  .ts-payout-field-well [role="listbox"] {
+    @apply rounded-lg border-border shadow-lg ring-1 ring-border/40;
+  }
+
+  .ts-payout-direct-group {
+    @apply space-y-2.5 rounded-xl border border-border/40 bg-muted/20 p-4 shadow-xs;
+  }
+
+  .ts-payout-option {
+    @apply relative flex w-full min-w-0 max-w-full items-center gap-2.5 rounded-xl border border-border/80 bg-card px-3 py-3.5 text-left shadow-xs transition-all hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:gap-3 sm:px-4;
+  }
+
+  .ts-payout-option-selected {
+    @apply border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20;
+  }
+
+  .ts-payout-option-radio {
+    @apply flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-input bg-card transition-colors;
+  }
+
+  .ts-payout-option-radio-selected {
+    @apply border-primary bg-primary;
+  }
+
+  .ts-payout-team-group {
+    @apply space-y-2.5 rounded-xl border border-border/40 bg-muted/20 p-4 shadow-xs;
+  }
+
+  .ts-payout-hero {
+    @apply rounded-xl border border-emerald-200/60 bg-emerald-50/50 p-5 shadow-xs;
+  }
+
+  .ts-payout-hero-amount {
+    @apply text-3xl font-bold tabular-nums tracking-tight text-emerald-900;
+  }
+
+  .ts-payout-review-empty {
+    @apply flex min-h-[10rem] flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-muted/20 px-4 py-8 text-center shadow-xs;
+  }
+
+  .ts-payout-cutoff {
+    @apply flex flex-col gap-3 rounded-xl border border-border/60 bg-card px-5 py-4 shadow-xs sm:flex-row sm:items-center sm:justify-between;
+  }
+
+  .ts-payout-cta-bar {
+    @apply rounded-xl border border-border/60 bg-card p-4 shadow-sm ring-1 ring-border/20;
+  }
+
+  .ts-payout-inset-panel {
+    @apply rounded-xl border border-dashed border-border/80 bg-muted/20 px-4 py-8 text-center shadow-xs;
   }
 
   .ts-figure {

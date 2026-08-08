@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { AlertTriangle, Check, Download, RefreshCw } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  Download,
+  RefreshCw,
+  UserRound,
+  Wallet,
+} from "lucide-react";
 import {
   AffiliateSearchCombobox,
   type AffiliateOption,
@@ -12,6 +19,12 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { WooOrderLink } from "@/components/admin/WooOrderLink";
+import { AffiliateBadge } from "@/components/affiliate/AffiliateBadge";
+import {
+  AffiliateAmountCell,
+  AffiliateEmptyState,
+  AffiliateSectionLabel,
+} from "@/components/affiliate/primitives";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -48,6 +61,7 @@ type CreatePayoutPanelProps = {
   onCreated?: (payout: CreatedPayout) => void;
 };
 
+
 export function CreatePayoutPanel({
   fixedAffiliate,
   onCreated,
@@ -58,21 +72,15 @@ export function CreatePayoutPanel({
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  // Bumped to re-stamp the server-side cutoff, which is what makes "unpaid as
-  // of now" mean now rather than whenever the page happened to load.
   const [refreshedAt, setRefreshedAt] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [syncedAt, setSyncedAt] = useState<number | null>(null);
   const [syncFailed, setSyncFailed] = useState(false);
-  // Options stay hidden until SliceWP has been read for this ambassador, so a
-  // payout is never priced against commissions SliceWP has already settled.
   const [syncedAffiliateId, setSyncedAffiliateId] = useState<string | null>(
     null
   );
 
   const affiliateId = fixedAffiliate?.id ?? affiliate?.id ?? null;
-  // Steps renumber rather than showing a disabled step 1 nobody can act on.
-  const stepOffset = fixedAffiliate ? 0 : 1;
 
   const runSync = useCallback(async (id: string) => {
     setSyncing(true);
@@ -81,8 +89,6 @@ export function CreatePayoutPanel({
       await apiFetch(`/api/admin/affiliates/${id}/sync`, { method: "POST" });
       setSyncedAt(Date.now());
     } catch {
-      // A SliceWP outage should not lock payouts entirely, but the numbers can
-      // no longer be trusted, so the banner below says so.
       setSyncFailed(true);
     } finally {
       setSyncedAffiliateId(id);
@@ -120,7 +126,6 @@ export function CreatePayoutPanel({
     { staleTime: 0, gcTime: 0 }
   );
 
-  // Flattened purely for selection lookup; the tree below drives rendering.
   const options = useMemo(() => {
     if (!optionsData) return [];
     return [
@@ -131,8 +136,6 @@ export function CreatePayoutPanel({
 
   const selected = options.find((option) => option.key === selectedKey) ?? null;
 
-  // Drop a selection that the refreshed options no longer offer, and skip the
-  // extra click when there is only one thing to pay.
   useEffect(() => {
     if (optionsLoading) return;
     if (selectedKey && !options.some((o) => o.key === selectedKey)) {
@@ -163,8 +166,6 @@ export function CreatePayoutPanel({
     { staleTime: 0, gcTime: 0 }
   );
 
-  // Re-reading SliceWP is the point of the refresh: the cutoff moving forward
-  // is meaningless if the paid/unpaid picture behind it is hours old.
   function refresh() {
     if (affiliateId) {
       void runSync(affiliateId);
@@ -217,167 +218,149 @@ export function CreatePayoutPanel({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="ts-payout-shell">
       {fixedAffiliate && (
-        <p className="text-sm text-muted-foreground">
-          Paying{" "}
-          <span className="font-semibold text-brand-dark">
-            {fixedAffiliate.name}
-          </span>{" "}
-          everything they are owed up to right now.
-        </p>
-      )}
-
-      {!fixedAffiliate && (
-        <Step number={1} title="Pick the ambassador">
-          <AffiliateSearchCombobox
-            id="create-payout-affiliate"
-            label="Ambassador"
-            value={affiliateId ?? ""}
-            selected={affiliate}
-            onChange={(_id, option) => {
-              setSelectedKey(null);
-              setAffiliate(option);
-            }}
-          />
-        </Step>
-      )}
-
-      <Step number={stepOffset + 1} title="Choose what to pay">
-        {!affiliateId ? (
-          <p className="text-sm text-muted-foreground">
-            Pick an ambassador above and their unpaid totals will show up here.
-          </p>
-        ) : syncing || !synced ? (
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-            Reading SliceWP so anything paid there is already excluded…
-          </p>
-        ) : optionsError ? (
-          <ErrorState message={optionsError.message} onRetry={refresh} />
-        ) : optionsLoading ? (
-          <p className="text-sm text-muted-foreground">
-            Checking what&apos;s owed…
-          </p>
-        ) : !optionsData || options.length === 0 ? (
-          <EmptyState
-            title="Nothing unpaid"
-            description="Every commission for this ambassador has already been paid out."
-          />
-        ) : (
-          <OptionTree
-            data={optionsData}
-            selectedKey={selectedKey}
-            onSelect={setSelectedKey}
-          />
-        )}
-
-        {syncFailed && synced && (
-          <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200/80 bg-warning-soft px-4 py-3">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-900" />
-            <p className="text-sm leading-relaxed text-amber-900">
-              Could not reach SliceWP just now, so these totals may still
-              include commissions paid there. Retry before recording anything.
+        <div className="ts-banner">
+          <div className="flex items-start gap-3">
+            <div className="ts-icon-box shrink-0 bg-primary/10 text-primary">
+              <UserRound className="h-4 w-4" />
+            </div>
+            <p className="ts-row-meta leading-relaxed text-brand-dark">
+              Paying{" "}
+              <span className="font-semibold text-brand-dark">
+                {fixedAffiliate.name}
+              </span>{" "}
+              everything they are owed up to right now.
             </p>
           </div>
-        )}
-      </Step>
+        </div>
+      )}
 
-      <Step number={stepOffset + 2} title="Review and pay" last>
-        {!selected ? (
-          <p className="text-sm text-muted-foreground">
-            Pick something to pay above and its commissions will show up here.
-          </p>
-        ) : draftError ? (
-          <ErrorState message={draftError.message} onRetry={refresh} />
-        ) : draftLoading || !draft ? (
-          <p className="text-sm text-muted-foreground">
-            Adding up {selected.label}…
-          </p>
-        ) : draft.entryCount === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Nothing left to pay for this selection.
-          </p>
-        ) : (
-          <div className="space-y-4">
-            <CutoffBar
-              cutoff={draft.cutoff}
-              syncedAt={syncedAt}
-              syncFailed={syncFailed}
-              refreshing={draftFetching || syncing}
-              onRefresh={refresh}
-            />
+      <div className="grid min-w-0 gap-4 xl:grid-cols-12 xl:items-start xl:gap-6">
+        <div className="min-w-0 space-y-4 xl:col-span-7">
+          {!fixedAffiliate && (
+            <WizardStepCard step={1} title="Pick the ambassador">
+              <div className="ts-payout-field-well">
+                <AffiliateSearchCombobox
+                  id="create-payout-affiliate"
+                  label="Ambassador"
+                  value={affiliateId ?? ""}
+                  selected={affiliate}
+                  onChange={(_id, option) => {
+                    setSelectedKey(null);
+                    setAffiliate(option);
+                  }}
+                />
+              </div>
+            </WizardStepCard>
+          )}
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Figure
-                label="Commissions"
-                value={draft.entryCount.toLocaleString("en-US")}
+          <WizardStepCard step={fixedAffiliate ? 1 : 2} title="Choose what to pay">
+            {!affiliateId ? (
+              <AffiliateEmptyState className="ts-payout-inset-panel">
+                Pick an ambassador above and their unpaid totals will show up
+                here.
+              </AffiliateEmptyState>
+            ) : syncing || !synced ? (
+              <LoadingLine>
+                Reading SliceWP so anything paid there is already excluded…
+              </LoadingLine>
+            ) : optionsError ? (
+              <ErrorState message={optionsError.message} onRetry={refresh} />
+            ) : optionsLoading ? (
+              <LoadingLine>Checking what&apos;s owed…</LoadingLine>
+            ) : !optionsData || options.length === 0 ? (
+              <EmptyState
+                title="Nothing unpaid"
+                description="Every commission for this ambassador has already been paid out."
               />
-              <Figure
-                label="Sales covered"
-                value={
-                  draft.revenueTotal > 0
-                    ? formatCurrency(draft.revenueTotal)
-                    : "—"
-                }
-                hint={
-                  draft.oldestOccurredAt
-                    ? `Since ${formatSaleDate(draft.oldestOccurredAt)}`
-                    : undefined
-                }
+            ) : (
+              <OptionTree
+                data={optionsData}
+                selectedKey={selectedKey}
+                onSelect={setSelectedKey}
               />
-              <Figure
-                label="Earning rate"
-                value={
-                  draft.revenueTotal > 0
-                    ? `${((draft.totalAmount / draft.revenueTotal) * 100).toFixed(1)}%`
-                    : "—"
-                }
-                hint="Of sales covered"
-              />
-              <Figure
-                label="Total to pay"
-                value={formatCurrency(draft.totalAmount)}
-                hint={
-                  draft.revenueTotal > 0
-                    ? `${formatCurrency(draft.revenueTotal)} × rate`
-                    : undefined
-                }
-                large
-              />
-            </div>
+            )}
 
-            <EntriesTable draft={draft} />
+            {syncFailed && synced && (
+              <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200/80 bg-warning-soft px-3 py-2.5">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-900" />
+                <p className="ts-row-meta leading-relaxed text-amber-900">
+                  Could not reach SliceWP just now, so these totals may still
+                  include commissions paid there. Retry before recording anything.
+                </p>
+              </div>
+            )}
+          </WizardStepCard>
+        </div>
 
-            <div className="sticky bottom-0 -mx-1 flex flex-col gap-2 border-t border-border/70 bg-card/95 px-1 py-4 backdrop-blur sm:flex-row sm:items-center sm:gap-4 supports-[backdrop-filter]:bg-card/90">
-              <Button
-                size="lg"
-                className="h-11 rounded-lg px-6 font-semibold shadow-xs"
-                disabled={draftFetching || syncing}
-                onClick={() => setConfirmOpen(true)}
-              >
-                <Check className="mr-2 h-4 w-4" />
-                Pay {formatCurrency(draft.totalAmount)}
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="h-11 rounded-lg"
-                asChild
-              >
-                <a href={`/api/admin/payouts/create/export?${draftQuery}`}>
-                  <Download className="mr-2 h-4 w-4" />
-                  Export CSV
-                </a>
-              </Button>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                Marks these commissions paid and creates a receipt listing every
-                one of them.
-              </p>
-            </div>
+        <div className="min-w-0 xl:col-span-5 xl:border-l xl:border-border xl:pl-6">
+          <div className="xl:sticky xl:top-6">
+            <WizardStepCard step={fixedAffiliate ? 2 : 3} title="Review and pay">
+              {!selected ? (
+                <div className="ts-payout-review-empty">
+                  <div className="ts-icon-box mb-2 bg-muted text-muted-foreground">
+                    <Wallet className="h-4 w-4" />
+                  </div>
+                  <p className="ts-row-title">Nothing selected yet</p>
+                  <p className="ts-row-meta mt-1 max-w-xs">
+                    Choose a payout option to see the breakdown here.
+                  </p>
+                </div>
+              ) : draftError ? (
+                <ErrorState message={draftError.message} onRetry={refresh} />
+              ) : draftLoading || !draft ? (
+                <LoadingLine>Adding up {selected.label}…</LoadingLine>
+              ) : draft.entryCount === 0 ? (
+                <AffiliateEmptyState className="ts-payout-inset-panel">
+                  Nothing left to pay for this selection.
+                </AffiliateEmptyState>
+              ) : (
+                <div className="space-y-3">
+                  <ReviewHero draft={draft} selected={selected} />
+
+                  <CutoffBar
+                    cutoff={draft.cutoff}
+                    syncedAt={syncedAt}
+                    syncFailed={syncFailed}
+                    refreshing={draftFetching || syncing}
+                    onRefresh={refresh}
+                  />
+
+                  <EntriesTable draft={draft} compact />
+
+                  <div className="ts-payout-cta-bar">
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Button
+                        size="lg"
+                        className="h-10 flex-1 rounded-lg px-5 font-semibold shadow-xs"
+                        disabled={draftFetching || syncing}
+                        onClick={() => setConfirmOpen(true)}
+                      >
+                        <Check className="mr-2 h-4 w-4" />
+                        Pay {formatCurrency(draft.totalAmount)}
+                      </Button>
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="h-10 rounded-lg sm:shrink-0"
+                        asChild
+                      >
+                        <a
+                          href={`/api/admin/payouts/create/export?${draftQuery}`}
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          Export CSV
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </WizardStepCard>
           </div>
-        )}
-      </Step>
+        </div>
+      </div>
 
       <ConfirmDialog
         open={confirmOpen}
@@ -398,10 +381,74 @@ export function CreatePayoutPanel({
   );
 }
 
-/**
- * Teams are headings rather than choices — their earnings are paid one member
- * at a time, so the team total is shown only as context for what is below it.
- */
+
+function WizardStepCard({
+  step,
+  title,
+  children,
+}: {
+  step: number;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="ts-payout-step-card">
+      <header className="ts-payout-step-head flex items-center gap-3">
+        <div className="ts-step-num">{step}</div>
+        <h2 className="text-base font-semibold tracking-tight text-brand-dark">{title}</h2>
+      </header>
+      <div className="ts-payout-step-body">{children}</div>
+    </section>
+  );
+}
+
+function ReviewHero({
+  draft,
+  selected,
+}: {
+  draft: PayoutDraft;
+  selected: PayoutOption;
+}) {
+  const isDirect = selected.target.scope === "direct";
+  const rate =
+    draft.revenueTotal > 0
+      ? `${((draft.totalAmount / draft.revenueTotal) * 100).toFixed(1)}%`
+      : null;
+
+  return (
+    <div className="ts-payout-hero">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="ts-row-title">{selected.label}</h3>
+            <AffiliateBadge variant={isDirect ? "direct" : "team"}>
+              {isDirect ? "Direct" : "Team"}
+            </AffiliateBadge>
+          </div>
+          <p className="ts-row-meta">
+            {draft.targetLabel} · {draft.affiliateName}
+          </p>
+          {selected.math && <p className="ts-micro">{selected.math}</p>}
+        </div>
+        <p className="ts-payout-hero-amount shrink-0">
+          {formatCurrency(draft.totalAmount)}
+        </p>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        <AffiliateBadge variant="neutral">
+          {draft.entryCount.toLocaleString("en-US")} commissions
+        </AffiliateBadge>
+        {draft.revenueTotal > 0 && (
+          <AffiliateBadge variant="paid">
+            {formatCurrency(draft.revenueTotal)} sales
+          </AffiliateBadge>
+        )}
+        {rate && <AffiliateBadge variant="paid">{rate} rate</AffiliateBadge>}
+      </div>
+    </div>
+  );
+}
+
 function OptionTree({
   data,
   selectedKey,
@@ -412,26 +459,30 @@ function OptionTree({
   onSelect: (key: string) => void;
 }) {
   return (
-    <div className="space-y-4" role="radiogroup" aria-label="What to pay">
+    <div role="radiogroup" aria-label="What to pay" className="space-y-3">
       {data.direct && (
-        <OptionRow
-          option={data.direct}
-          selected={selectedKey === data.direct.key}
-          onSelect={() => onSelect(data.direct!.key)}
-        />
+        <div className="ts-payout-direct-group">
+          <AffiliateSectionLabel>Direct earnings</AffiliateSectionLabel>
+          <OptionRow
+            option={data.direct}
+            selected={selectedKey === data.direct.key}
+            onSelect={() => onSelect(data.direct!.key)}
+          />
+        </div>
       )}
 
       {data.teams.map((team) => (
-        <div key={team.teamId} className="space-y-2">
-          <div className="flex items-baseline justify-between gap-3 px-1">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-              {team.label} · {team.sublabel}
-            </p>
-            <span className="text-xs font-semibold tabular-nums text-muted-foreground">
-              {formatCurrency(team.amount)}
-            </span>
-          </div>
-          <div className="ml-3 space-y-2 border-l-2 border-primary/10 pl-4">
+        <div key={team.teamId} className="ts-payout-team-group">
+          <AffiliateSectionLabel
+            action={
+              <span className="ts-row-meta font-semibold tabular-nums text-violet-900">
+                {formatCurrency(team.amount)}
+              </span>
+            }
+          >
+            {team.label} · {team.sublabel}
+          </AffiliateSectionLabel>
+          <div className="space-y-1.5">
             {team.members.map((member) => (
               <OptionRow
                 key={member.key}
@@ -445,8 +496,8 @@ function OptionTree({
       ))}
 
       {data.unattributed.entryCount > 0 && (
-        <div className="rounded-xl border border-amber-200/80 bg-warning-soft px-4 py-3">
-          <p className="text-sm leading-relaxed text-amber-900">
+        <div className="rounded-lg border border-amber-200/80 bg-warning-soft px-3 py-2.5">
+          <p className="ts-row-meta leading-relaxed text-amber-900">
             <span className="font-semibold">
               {formatCurrency(data.unattributed.amount)}
             </span>{" "}
@@ -476,27 +527,35 @@ function OptionRow({
       role="radio"
       aria-checked={selected}
       onClick={onSelect}
-      className={cn("ts-choice", selected && "ts-choice-selected")}
+      className={cn(
+        "ts-payout-option",
+        selected && "ts-payout-option-selected"
+      )}
     >
-      <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-brand-dark">
-          {option.label}
-        </p>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          {option.sublabel}
-        </p>
+      <span
+        className={cn(
+          "ts-payout-option-radio",
+          selected && "ts-payout-option-radio-selected"
+        )}
+        aria-hidden
+      >
+        {selected && (
+          <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground" />
+        )}
+      </span>
+
+      <div className="min-w-0 flex-1 text-left">
+        <p className="ts-row-title">{option.label}</p>
+        <p className="ts-row-meta mt-0.5">{option.sublabel}</p>
         {option.math && (
-          <p className="mt-1 truncate text-[11px] tabular-nums text-muted-foreground/80">
-            {option.math}
-          </p>
+          <p className="ts-micro mt-0.5 truncate">{option.math}</p>
         )}
       </div>
-      <div className="flex shrink-0 items-center gap-2.5">
-        <span className="text-sm font-bold tabular-nums text-primary">
-          {formatCurrency(option.amount)}
-        </span>
-        {selected && <Check className="h-4 w-4 text-primary" />}
-      </div>
+
+      <AffiliateAmountCell
+        amount={formatCurrency(option.amount)}
+        tone={selected ? "primary" : "default"}
+      />
     </button>
   );
 }
@@ -515,86 +574,104 @@ function CutoffBar({
   onRefresh: () => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3">
+    <div className="ts-payout-cutoff">
       <div className="min-w-0">
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          Everything unpaid up to{" "}
+        <p className="ts-row-meta text-brand-dark">
+          Unpaid through{" "}
           <span className="font-semibold text-brand-dark">
             {formatAppDateTime(cutoff)}
           </span>{" "}
-          ({APP_TIMEZONE_LABEL}). Sales after that stay open for the next
-          payout.
+          ({APP_TIMEZONE_LABEL})
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="ts-row-meta mt-0.5">
           {syncFailed
             ? "SliceWP could not be reached — totals may be out of date."
             : syncedAt
-              ? `SliceWP read at ${formatAppDateTime(new Date(syncedAt))}, so anything paid there is already excluded.`
+              ? `SliceWP read at ${formatAppDateTime(new Date(syncedAt))}.`
               : "Not yet checked against SliceWP."}
         </p>
       </div>
       <Button
         size="sm"
         variant="outline"
-        className="shrink-0"
+        className="h-8 shrink-0 rounded-lg px-3 text-xs"
         disabled={refreshing}
         onClick={onRefresh}
       >
         <RefreshCw
-          className={cn("mr-2 h-3.5 w-3.5", refreshing && "animate-spin")}
+          className={cn("mr-1.5 h-3.5 w-3.5", refreshing && "animate-spin")}
         />
-        {refreshing ? "Checking SliceWP…" : "Re-check and bring up to now"}
+        {refreshing ? "Refreshing…" : "Refresh"}
       </Button>
     </div>
   );
 }
 
-function EntriesTable({ draft }: { draft: PayoutDraft }) {
+function EntriesTable({
+  draft,
+  compact,
+}: {
+  draft: PayoutDraft;
+  compact?: boolean;
+}) {
   const showSource = draft.target.scope !== "direct";
+  const rows = compact ? draft.entries.slice(0, 5) : draft.entries;
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-muted-foreground">
+      <p className="ts-row-meta rounded-md border border-border/60 bg-muted/25 px-2.5 py-1.5">
         {draft.entriesTruncated
-          ? `Showing the ${draft.entries.length} most recent of ${draft.entryCount.toLocaleString("en-US")} commissions. The total above covers all of them — export the CSV for every line.`
-          : `All ${draft.entries.length} commissions in this payout.`}
+          ? compact
+            ? `Latest ${rows.length} of ${draft.entryCount.toLocaleString("en-US")} commissions — export CSV for all.`
+            : `Showing the ${draft.entries.length} most recent of ${draft.entryCount.toLocaleString("en-US")} commissions. The total above covers all of them — export the CSV for every line.`
+          : compact
+            ? `All ${draft.entries.length} commissions.`
+            : `All ${draft.entries.length} commissions in this payout.`}
       </p>
       <div className="ts-table-wrap">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Sale date</TableHead>
-              {showSource && <TableHead>Member</TableHead>}
-              <TableHead>Order</TableHead>
-              <TableHead className="text-right">Sale amount</TableHead>
-              <TableHead className="text-right">Earned</TableHead>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="ts-table-header h-10 px-3 text-left first:pl-4">
+                Sale
+              </TableHead>
+              {showSource && !compact && (
+                <TableHead className="ts-table-header h-10 px-3 text-left">
+                  Member
+                </TableHead>
+              )}
+              <TableHead className="ts-table-header h-10 px-3 text-right last:pr-4">
+                Earned
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {draft.entries.map((entry) => (
-              <TableRow key={entry.id}>
-                <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                  {formatSaleDate(entry.occurredAt)}
+            {rows.map((entry) => (
+              <TableRow
+                key={entry.id}
+                className="border-border/60 hover:bg-muted/40"
+              >
+                <TableCell className="px-3 py-2.5 first:pl-4">
+                  <p className="ts-row-meta whitespace-nowrap">
+                    {formatSaleDate(entry.occurredAt)}
+                  </p>
+                  {entry.wooOrderId ? (
+                    <WooOrderLink
+                      orderId={entry.wooOrderId}
+                      className="text-xs"
+                    />
+                  ) : null}
                 </TableCell>
-                {showSource && (
-                  <TableCell className="text-sm">
+                {showSource && !compact && (
+                  <TableCell className="ts-row-title px-3 py-2.5">
                     {entry.sourceAffiliateName ?? "Direct sale"}
                   </TableCell>
                 )}
-                <TableCell className="whitespace-nowrap text-sm tabular-nums">
-                  {entry.wooOrderId ? (
-                    <WooOrderLink orderId={entry.wooOrderId} />
-                  ) : (
-                    "—"
-                  )}
-                </TableCell>
-                <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">
-                  {entry.orderRevenue == null
-                    ? "—"
-                    : formatCurrency(entry.orderRevenue)}
-                </TableCell>
-                <TableCell className="whitespace-nowrap text-right text-sm font-medium tabular-nums">
-                  {formatCurrency(entry.amount)}
+                <TableCell className="whitespace-nowrap px-3 py-2.5 text-right last:pr-4">
+                  <AffiliateAmountCell
+                    amount={formatCurrency(entry.amount)}
+                    tone="primary"
+                  />
                 </TableCell>
               </TableRow>
             ))}
@@ -605,55 +682,11 @@ function EntriesTable({ draft }: { draft: PayoutDraft }) {
   );
 }
 
-function Step({
-  number,
-  title,
-  children,
-  last,
-}: {
-  number: number;
-  title: string;
-  children: React.ReactNode;
-  last?: boolean;
-}) {
+function LoadingLine({ children }: { children: React.ReactNode }) {
   return (
-    <section className={cn("ts-step", !last && "ts-step-divider")}>
-      <div className="flex items-center gap-2.5">
-        <span className="ts-step-num">{number}</span>
-        <h2 className="ts-section-title">{title}</h2>
-      </div>
-      <div className="pl-0 sm:pl-[calc(1.75rem+0.625rem)]">{children}</div>
-    </section>
-  );
-}
-
-function Figure({
-  label,
-  value,
-  hint,
-  large,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  large?: boolean;
-}) {
-  return (
-    <div className={cn("ts-figure", large && "ts-figure-highlight")}>
-      <p className="ts-figure-label">{label}</p>
-      <p
-        className={cn(
-          "mt-1 font-bold tabular-nums tracking-tight text-brand-dark",
-          large ? "text-xl" : "text-base"
-        )}
-      >
-        {value}
-      </p>
-      {hint && (
-        <p className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">
-          {hint}
-        </p>
-      )}
+    <div className="flex items-center gap-2.5 py-2">
+      <RefreshCw className="h-4 w-4 shrink-0 animate-spin text-primary" />
+      <p className="ts-row-meta">{children}</p>
     </div>
   );
 }

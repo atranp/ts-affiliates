@@ -2,12 +2,22 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import { getPayoutBatchDetail } from "@/lib/payouts/queries";
+import { isAdminMockMode } from "@/lib/mock/config";
+import { mockAdminPayoutBatchDetail } from "@/lib/mock/admin-fixtures";
 export async function GET(
   _request: Request,
   { params }: { params: { id: string } }
 ) {
   const auth = await requireAdmin();
   if ("error" in auth) return auth.error;
+
+  if (isAdminMockMode()) {
+    const batch = mockAdminPayoutBatchDetail(params.id);
+    if (!batch) {
+      return NextResponse.json({ error: "Payout not found" }, { status: 404 });
+    }
+    return NextResponse.json(batch);
+  }
 
   const batch = await getPayoutBatchDetail(params.id);
   if (!batch) {

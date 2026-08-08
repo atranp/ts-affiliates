@@ -6,6 +6,8 @@ import {
   parsePayoutTarget,
   PayoutInputError,
 } from "@/lib/payouts/create";
+import { isAdminMockMode } from "@/lib/mock/config";
+import { mockAdminPayoutExport } from "@/lib/mock/admin-fixtures";
 
 /**
  * Every line a payout would settle, for checking against SliceWP before paying.
@@ -26,7 +28,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { filename, csv } = await buildPayoutCsv({
+    const selection = {
       affiliateId,
       target: parsePayoutTarget({
         scope: params.get("scope"),
@@ -34,7 +36,19 @@ export async function GET(request: Request) {
         memberId: params.get("memberId") ?? undefined,
       }),
       cutoff: parsePayoutCutoff(params.get("cutoff")),
-    });
+    };
+
+    if (isAdminMockMode()) {
+      const csv = mockAdminPayoutExport(selection);
+      return new NextResponse(csv, {
+        headers: {
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": `attachment; filename="payout-mock-export.csv"`,
+        },
+      });
+    }
+
+    const { filename, csv } = await buildPayoutCsv(selection);
 
     return new NextResponse(csv, {
       headers: {

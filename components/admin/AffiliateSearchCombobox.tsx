@@ -166,7 +166,7 @@ export function AffiliateSearchCombobox({
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
           className={cn(
-            "ts-input flex w-full py-2 pl-3 pr-16 placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            "ts-input flex w-full rounded-lg py-2 pl-3 pr-16 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
           )}
         />
         <div className="absolute inset-y-0 right-0 flex items-center gap-0.5 pr-2">
@@ -188,23 +188,23 @@ export function AffiliateSearchCombobox({
         <ul
           id={listId}
           role="listbox"
-          className="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded-md border border-border bg-card py-1 shadow-lg"
+          className="absolute z-50 mt-1.5 max-h-72 w-full overflow-auto rounded-lg border border-border bg-card shadow-lg ring-1 ring-border/40"
         >
           {!canSearch && (
-            <li className="px-3 py-2 text-sm text-muted-foreground">
+            <li className="border-b border-border/50 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
               Type at least {MIN_SEARCH_LENGTH} characters to search
             </li>
           )}
 
           {canSearch && isFetching && options.length === 0 && (
-            <li className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
+            <li className="flex items-center gap-2 border-b border-border/50 px-3 py-2.5 text-xs text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
               Searching…
             </li>
           )}
 
           {canSearch && !isFetching && options.length === 0 && (
-            <li className="px-3 py-2 text-sm text-muted-foreground">
+            <li className="border-b border-border/50 px-3 py-2.5 text-xs text-muted-foreground">
               No affiliates found
             </li>
           )}
@@ -214,28 +214,33 @@ export function AffiliateSearchCombobox({
             const isActive = index === activeIndex;
 
             return (
-              <li key={affiliate.id} role="option" aria-selected={isSelected}>
+              <li
+                key={affiliate.id}
+                role="option"
+                aria-selected={isSelected}
+                className="border-b border-border/50 last:border-b-0"
+              >
                 <button
                   type="button"
                   onMouseEnter={() => setActiveIndex(index)}
                   onClick={() => selectAffiliate(affiliate)}
                   className={cn(
-                    "flex w-full items-start gap-2 px-3 py-2 text-left text-sm",
-                    isActive && "bg-primary-soft/80",
-                    isSelected && "font-medium text-primary"
+                    "flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors",
+                    isActive && "bg-muted/70",
+                    isSelected && "bg-primary-soft ring-1 ring-inset ring-primary/15"
                   )}
                 >
                   <Check
                     className={cn(
-                      "mt-0.5 h-4 w-4 shrink-0",
+                      "mt-0.5 h-4 w-4 shrink-0 text-primary",
                       isSelected ? "opacity-100" : "opacity-0"
                     )}
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">
+                    <span className="ts-row-title block truncate">
                       {affiliate.displayName ?? affiliate.email}
                     </span>
-                    <span className="block truncate text-xs text-muted-foreground">
+                    <span className="ts-row-meta mt-0.5 block truncate">
                       {affiliate.email} · SliceWP #{affiliate.slicewpId} ·{" "}
                       {affiliate.status}
                     </span>

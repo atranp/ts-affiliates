@@ -18,6 +18,11 @@ function isAffiliateMockMode(): boolean {
   return process.env.AFFILIATE_MOCK_DATA === "true";
 }
 
+function isAdminMockMode(): boolean {
+  if (process.env.NODE_ENV === "production") return false;
+  return process.env.ADMIN_MOCK_DATA === "true";
+}
+
 /** Sends an unauthenticated visitor to sign in without losing the deep link. */
 function redirectToLogin(request: NextRequest) {
   const loginUrl = new URL("/login", request.url);
@@ -51,6 +56,9 @@ export async function middleware(request: NextRequest) {
 
   if (pathname === "/") {
     if (!user) {
+      if (isAdminMockMode()) {
+        return NextResponse.redirect(new URL("/admin/payouts/new", request.url));
+      }
       if (isAffiliateMockMode()) {
         return NextResponse.redirect(new URL("/dashboard", request.url));
       }
@@ -64,6 +72,9 @@ export async function middleware(request: NextRequest) {
       isAffiliateMockMode() &&
       affiliatePaths.some((path) => pathname.startsWith(path))
     ) {
+      return supabaseResponse;
+    }
+    if (isAdminMockMode() && adminPaths.some((path) => pathname.startsWith(path))) {
       return supabaseResponse;
     }
     return redirectToLogin(request);
@@ -83,6 +94,9 @@ export async function middleware(request: NextRequest) {
     adminPaths.some((path) => pathname.startsWith(path)) &&
     role !== "ADMIN"
   ) {
+    if (isAdminMockMode()) {
+      return supabaseResponse;
+    }
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-auth";
 import { syncAffiliate } from "@/lib/sync";
 import { formatSyncError } from "@/lib/sync-state";
+import { isAdminMockMode } from "@/lib/mock/config";
+import { mockAdminAffiliateSync } from "@/lib/mock/admin-fixtures";
 
 // Scoped to one affiliate and their recruits, so this runs inline rather than
 // as a background job — the caller gets the result directly.
@@ -14,6 +16,19 @@ export async function POST(_request: Request, context: RouteContext) {
   if ("error" in auth) return auth.error;
 
   const { id } = await context.params;
+
+  if (isAdminMockMode()) {
+    try {
+      return NextResponse.json(mockAdminAffiliateSync(id));
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Affiliate sync failed";
+      if (message === "Affiliate not found") {
+        return NextResponse.json({ error: message }, { status: 404 });
+      }
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+  }
 
   try {
     const result = await syncAffiliate(id);
