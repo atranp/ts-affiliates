@@ -6,6 +6,10 @@ export const queryKeys = {
     status?: string;
     type?: string;
     sourceAffiliateId?: string;
+    teamId?: string;
+    q?: string;
+    sortBy?: string;
+    sortDir?: string;
   } = {}) => ["ledger", params] as const,
   admin: {
     stats: ["admin", "stats"] as const,

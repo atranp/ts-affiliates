@@ -52,7 +52,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     -webkit-text-size-adjust: 100%;
   }
 
@@ -68,12 +68,65 @@
     @apply flex h-9 w-full rounded-lg border border-input bg-card px-3 py-1 text-sm text-foreground shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
   }
 
+  .ts-filter-select {
+    @apply flex min-w-0 flex-col gap-1.5;
+  }
+
+  .ts-filter-select-label {
+    @apply px-0.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground;
+  }
+
+  .ts-filter-select-control {
+    @apply relative;
+  }
+
+  .ts-filter-select-field {
+    @apply h-10 w-full min-w-0 cursor-pointer appearance-none truncate rounded-lg border border-input bg-card py-2 pl-3 pr-9 text-sm font-medium text-brand-dark shadow-xs transition-colors hover:border-primary/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+  }
+
+  .ts-filter-select-icon {
+    @apply pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground;
+  }
+
   .page-title {
-    @apply text-2xl font-bold tracking-tight text-brand-dark;
+    @apply text-xl font-bold tracking-tight text-balance text-brand-dark sm:text-2xl;
   }
 
   .page-description {
-    @apply mt-0.5 text-sm text-muted-foreground;
+    @apply mt-1 text-sm leading-relaxed text-pretty text-muted-foreground;
+  }
+
+  /* Affiliate home — typography scale (sm / xs / micro only) */
+  .ts-home-card-title {
+    @apply text-sm font-semibold tracking-tight text-balance text-brand-dark;
+  }
+
+  .ts-home-card-desc {
+    @apply text-xs leading-snug text-pretty text-muted-foreground;
+  }
+
+  .ts-home-stat-value {
+    @apply text-xl font-bold tabular-nums tracking-tight;
+  }
+
+  .ts-row-title {
+    @apply truncate text-sm font-medium text-brand-dark;
+  }
+
+  .ts-row-meta {
+    @apply truncate text-xs text-muted-foreground;
+  }
+
+  .ts-amount {
+    @apply text-sm font-semibold tabular-nums;
+  }
+
+  .ts-amount-sub {
+    @apply text-xs text-muted-foreground;
+  }
+
+  .ts-micro {
+    @apply text-xs font-medium tabular-nums text-muted-foreground;
   }
 
   .stat-value {
@@ -81,23 +134,31 @@
   }
 
   .ts-home-card {
-    @apply rounded-xl border border-border/80 bg-card shadow-xs;
+    @apply min-w-0 max-w-full overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm;
+  }
+
+  .ts-home-card-header {
+    @apply border-b border-border/50 bg-muted/45;
+  }
+
+  .ts-home-card-body {
+    @apply bg-muted/20;
   }
 
   .ts-section-label {
-    @apply text-[11px] font-semibold uppercase tracking-wider text-muted-foreground;
+    @apply text-xs font-medium uppercase tracking-wide text-muted-foreground;
   }
 
   .ts-compact-stat {
-    @apply w-full min-w-0 rounded-lg border border-border/80 bg-muted/20 px-3 py-2.5;
+    @apply w-full min-w-0 rounded-lg border border-border/80 bg-muted/20 px-3 py-2;
   }
 
   .ts-compact-stat-label {
-    @apply text-[10px] font-semibold uppercase tracking-wider text-muted-foreground;
+    @apply text-xs font-medium uppercase tracking-wide text-muted-foreground;
   }
 
   .ts-compact-stat-value {
-    @apply mt-0.5 text-base font-bold tabular-nums;
+    @apply mt-0.5 text-sm font-semibold tabular-nums;
   }
 
   .ts-meta-line {
@@ -105,19 +166,48 @@
   }
 
   .ts-list-panel {
-    @apply overflow-hidden rounded-xl border border-border/80 bg-card;
+    @apply flex flex-col gap-2;
+  }
+
+  /** Nested inside home cards — lighter chrome, no double-box weight */
+  .ts-list-panel-inset {
+    @apply flex flex-col gap-2;
   }
 
   .ts-list-panel-scroll {
-    @apply max-h-[11rem] overflow-y-auto overscroll-contain;
+    @apply max-h-[12rem] overflow-y-auto overscroll-contain;
   }
 
   .ts-list-row {
-    @apply flex w-full text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset;
+    @apply flex w-full rounded-lg border border-border/60 bg-card px-4 py-3 text-left shadow-xs transition-all hover:border-border hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+  }
+
+  .ts-home-overview {
+    @apply flex min-w-0 max-w-full flex-col gap-4 pb-2;
+
+    /* Prevent flex shrink inside the scroll container on mobile */
+    & > * {
+      @apply shrink-0;
+    }
+  }
+
+  .ts-home-stat-grid {
+    @apply grid min-w-0 max-w-full grid-cols-1 gap-2.5 lg:grid-cols-3 lg:gap-3;
+  }
+
+  .ts-home-split {
+    @apply grid min-w-0 max-w-full gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-stretch;
+  }
+
+  /** Scroll on phone/tablet; viewport-fill only on desktop partner tabs */
+  @media (max-width: 1023px) {
+    .ts-affiliate-tab-fill {
+      @apply overflow-y-auto overscroll-contain;
+    }
   }
 
   .ts-text-link {
-    @apply inline-flex items-center gap-0.5 text-xs font-semibold text-primary transition-colors hover:text-primary/80 hover:underline;
+    @apply inline-flex items-center gap-0.5 text-xs font-medium text-primary transition-colors hover:text-primary/80 hover:underline;
   }
 
   .ts-empty-inline {
@@ -125,7 +215,37 @@
   }
 
   .ts-page-header {
-    @apply shrink-0 border-b border-border/50 pb-4;
+    @apply min-w-0 max-w-full shrink-0 border-b border-border/50 pb-3 sm:pb-4;
+  }
+
+  @media (max-width: 639px) {
+    .ts-table-toolbar {
+      @apply space-y-3 p-3;
+    }
+
+    .ts-table-summary {
+      @apply px-3 py-2;
+    }
+
+    .ts-table-footer {
+      @apply flex-col items-stretch gap-2.5 px-3 py-3;
+    }
+
+    .ts-table-footer-actions {
+      @apply w-full;
+    }
+
+    .ts-table-footer-actions button {
+      @apply min-h-10 flex-1;
+    }
+
+    .ts-list-row {
+      @apply px-3.5 py-3;
+    }
+
+    .ts-table-body {
+      @apply p-2.5;
+    }
   }
 
   .filter-pill {
@@ -165,11 +285,11 @@
   }
 
   .ts-stat-card {
-    @apply ts-card flex flex-col justify-between gap-3 p-5 ring-1 ring-border/35 transition-colors;
+    @apply flex min-w-0 max-w-full flex-col justify-between gap-2.5 rounded-xl border border-border/70 bg-gradient-to-b from-muted/40 to-card p-4 shadow-sm transition-all sm:gap-3 sm:p-5;
   }
 
   .ts-stat-label {
-    @apply block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground;
+    @apply block text-xs font-medium uppercase tracking-wide text-muted-foreground;
   }
 
   .ts-icon-box {
@@ -177,31 +297,74 @@
   }
 
   .ts-table-toolbar {
-    @apply space-y-4 border-b border-border/60 bg-muted/30 p-4;
+    @apply shrink-0 space-y-4 border-b border-border/50 bg-muted/45 p-4;
+  }
+
+  .ts-table-summary {
+    @apply flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border/50 bg-muted/20 px-4 py-2.5;
+  }
+
+  .ts-table-body {
+    @apply bg-muted/20;
+  }
+
+  .ts-table-footer {
+    @apply flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-border/50 bg-muted/45 px-4 py-3;
   }
 
   .ts-status-badge {
-    @apply inline-flex items-center rounded-md border px-2.5 py-1 text-[11px] font-bold;
+    @apply ts-affiliate-badge;
   }
 
+  .ts-affiliate-badge {
+    @apply inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium leading-none;
+  }
+
+  /* Entry type — categorical, softer */
+  .ts-affiliate-badge-direct {
+    @apply border-sky-300 bg-sky-100 text-sky-900;
+  }
+
+  .ts-affiliate-badge-team {
+    @apply border-violet-300 bg-violet-100 text-violet-900;
+  }
+
+  /* Payment status — semantic */
+  .ts-affiliate-badge-paid {
+    @apply border-emerald-200 bg-emerald-50 text-emerald-800;
+  }
+
+  .ts-affiliate-badge-unpaid {
+    @apply border-primary/25 bg-primary/10 text-primary;
+  }
+
+  .ts-affiliate-badge-pending {
+    @apply border-amber-200 bg-amber-50 text-amber-800;
+  }
+
+  .ts-affiliate-badge-neutral {
+    @apply border-border bg-muted/50 text-muted-foreground;
+  }
+
+  /* Legacy aliases — keep until all call sites migrate */
   .ts-status-paid {
-    @apply ts-status-badge border-emerald-300 bg-emerald-50 text-emerald-800;
+    @apply ts-affiliate-badge ts-affiliate-badge-paid;
   }
 
   .ts-status-owed {
-    @apply ts-status-badge border-primary/20 bg-primary/10 text-primary;
+    @apply ts-affiliate-badge ts-affiliate-badge-unpaid;
   }
 
   .ts-status-pending {
-    @apply ts-status-badge border-amber-300 bg-amber-50 text-amber-800;
+    @apply ts-affiliate-badge ts-affiliate-badge-pending;
   }
 
   .ts-type-direct {
-    @apply rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary;
+    @apply ts-affiliate-badge ts-affiliate-badge-direct;
   }
 
   .ts-type-team {
-    @apply rounded-full border border-purple-200 bg-purple-50 px-2.5 py-1 text-[11px] font-semibold text-purple-800;
+    @apply ts-affiliate-badge ts-affiliate-badge-team;
   }
 
   .ts-panel {
@@ -301,7 +464,7 @@
   }
 
   .ts-table-wrap {
-    @apply overflow-hidden rounded-xl border border-border/80 bg-card shadow-xs;
+    @apply min-w-0 max-w-full overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm;
   }
 
   .ts-table-fill {
@@ -323,7 +486,7 @@
 
   /** Scrollable tab body — home, payouts. */
   .ts-affiliate-tab-scroll {
-    @apply mt-0 min-h-0 flex-1 overflow-y-auto overscroll-contain;
+    @apply mt-0 min-h-0 min-w-0 max-w-full flex-1 overflow-x-hidden overflow-y-auto overscroll-contain bg-background;
   }
 
   .ts-panel-scroll {

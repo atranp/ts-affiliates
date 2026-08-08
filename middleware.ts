@@ -13,6 +13,11 @@ import { homePathForRole, NEXT_PARAM, safeNextPath } from "@/lib/routes";
 const adminPaths = ["/admin"];
 const affiliatePaths = ["/dashboard", "/account"];
 
+function isAffiliateMockMode(): boolean {
+  if (process.env.NODE_ENV === "production") return false;
+  return process.env.AFFILIATE_MOCK_DATA === "true";
+}
+
 /** Sends an unauthenticated visitor to sign in without losing the deep link. */
 function redirectToLogin(request: NextRequest) {
   const loginUrl = new URL("/login", request.url);
@@ -46,12 +51,21 @@ export async function middleware(request: NextRequest) {
 
   if (pathname === "/") {
     if (!user) {
+      if (isAffiliateMockMode()) {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
       return NextResponse.redirect(new URL("/login", request.url));
     }
     return NextResponse.redirect(new URL(homePathForRole(role), request.url));
   }
 
   if (!user) {
+    if (
+      isAffiliateMockMode() &&
+      affiliatePaths.some((path) => pathname.startsWith(path))
+    ) {
+      return supabaseResponse;
+    }
     return redirectToLogin(request);
   }
 

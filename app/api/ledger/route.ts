@@ -1,14 +1,20 @@
 import { CommissionStatus, LedgerEntryType } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-auth";
 import { jsonCached } from "@/lib/api-cache";
 import { getLedgerResponse } from "@/lib/ledger/queries";
+import { isAffiliateMockMode } from "@/lib/mock/config";
+import { mockLedgerResponse } from "@/lib/mock/affiliate-fixtures";
+import { requireAffiliateAuth } from "@/lib/mock/require-affiliate-auth";
+import {
+  resolveLedgerSortDir,
+  resolveLedgerSortKey,
+} from "@/lib/ledger/sort";
 
 const VALID_STATUSES = new Set<string>(Object.values(CommissionStatus));
 const VALID_TYPES = new Set<string>(Object.values(LedgerEntryType));
 
 export async function GET(request: Request) {
-  const auth = await requireAuth();
+  const auth = await requireAffiliateAuth();
   if ("error" in auth) return auth.error;
 
   const { searchParams } = new URL(request.url);
@@ -19,6 +25,8 @@ export async function GET(request: Request) {
   const q = searchParams.get("q") ?? undefined;
   const page = Number(searchParams.get("page") ?? "1");
   const limit = Number(searchParams.get("limit") ?? "50");
+  const sortBy = resolveLedgerSortKey(searchParams.get("sort"));
+  const sortDir = resolveLedgerSortDir(searchParams.get("dir"), sortBy);
 
   const status =
     statusParam && VALID_STATUSES.has(statusParam)
@@ -41,6 +49,21 @@ export async function GET(request: Request) {
     );
   }
 
+  if (isAffiliateMockMode()) {
+    return jsonCached(
+      mockLedgerResponse({
+        status,
+        type,
+        sourceAffiliateId,
+        q,
+        page,
+        limit,
+        sortBy,
+        sortDir,
+      })
+    );
+  }
+
   const data = await getLedgerResponse({
     affiliateId,
     status,
@@ -50,6 +73,8 @@ export async function GET(request: Request) {
     q,
     page,
     limit,
+    sortBy,
+    sortDir,
   });
 
   return jsonCached(data);

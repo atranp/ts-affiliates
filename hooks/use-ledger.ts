@@ -2,7 +2,20 @@
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api-client";
+import {
+  defaultSortDirection,
+  type LedgerSortKey,
+  type SortDirection,
+} from "@/lib/ledger/sort";
 import { queryKeys } from "@/lib/query-keys";
+
+export type { LedgerSortKey, SortDirection } from "@/lib/ledger/sort";
+export {
+  defaultSortDirection,
+  ledgerSortParamsForUrl,
+  resolveLedgerSortDir,
+  resolveLedgerSortKey,
+} from "@/lib/ledger/sort";
 
 export type LedgerEntry = {
   id: string;
@@ -108,6 +121,8 @@ export type LedgerQueryOptions = {
   sourceAffiliateId?: string;
   teamId?: string;
   q?: string;
+  sortBy?: LedgerSortKey;
+  sortDir?: SortDirection;
   enabled?: boolean;
 };
 
@@ -123,6 +138,14 @@ function buildLedgerUrl(options: LedgerQueryOptions): string {
     params.set("sourceAffiliateId", options.sourceAffiliateId);
   }
   if (options.teamId) params.set("teamId", options.teamId);
+  if (options.sortBy && options.sortBy !== "date") {
+    params.set("sort", options.sortBy);
+  }
+  if (options.sortBy && options.sortDir) {
+    if (options.sortDir !== defaultSortDirection(options.sortBy)) {
+      params.set("dir", options.sortDir);
+    }
+  }
   const qs = params.toString();
   return qs ? `/api/ledger?${qs}` : "/api/ledger";
 }
@@ -168,6 +191,35 @@ export function ledgerTypeFilterToApi(
   if (filter === "direct") return "DIRECT";
   if (filter === "team") return "OVERRIDE";
   return undefined;
+}
+
+/** Keep displayed rows aligned with the active type filter during stale fetches. */
+export function filterLedgerEntriesByType<
+  T extends { type: string },
+>(entries: T[], typeFilter: LedgerTypeFilter): T[] {
+  if (typeFilter === "direct") {
+    return entries.filter((entry) => entry.type === "DIRECT");
+  }
+  if (typeFilter === "team") {
+    return entries.filter((entry) => entry.type === "OVERRIDE");
+  }
+  return entries;
+}
+
+/** Keep displayed rows aligned with the active status filter during stale fetches. */
+export function filterLedgerEntriesByStatus<
+  T extends { status: string },
+>(entries: T[], statusTab: LedgerStatusTab): T[] {
+  if (statusTab === "unpaid") {
+    return entries.filter((entry) => entry.status === "UNPAID");
+  }
+  if (statusTab === "paid") {
+    return entries.filter((entry) => entry.status === "PAID");
+  }
+  if (statusTab === "pending") {
+    return entries.filter((entry) => entry.status === "PENDING");
+  }
+  return entries;
 }
 
 export type LedgerTab =

@@ -1,8 +1,10 @@
 "use client";
 
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { CommissionRow, commissionAmountTone } from "@/components/affiliate/CommissionRow";
+import { CommissionTypeBadge } from "@/components/affiliate/AffiliateBadge";
 import {
   formatCommissionStatus,
-  formatCommissionType,
   AFFILIATE_COPY,
 } from "@/lib/affiliate/copy";
 import {
@@ -11,6 +13,7 @@ import {
 } from "@/lib/payouts/status";
 import { formatAppDate } from "@/lib/timezone";
 import { formatCurrency, formatSaleDate, cn } from "@/lib/utils";
+import type { LedgerSortKey, SortDirection } from "@/lib/ledger/sort";
 import { Badge } from "@/components/ui/badge";
 import {
   DataCard,
@@ -57,25 +60,11 @@ function statusVariant(
 }
 
 function amountClass(status: string): string {
-  if (status === "PAID") return "text-emerald-700";
-  if (status === "PENDING" || status === AWAITING_PAYMENT)
-    return "text-amber-700";
-  if (status === "UNPAID") return "text-primary";
-  return "text-foreground";
-}
-
-function rowClass(entry: LedgerEntry, status: string, affiliateView: boolean) {
-  if (!affiliateView) return undefined;
-
-  if (entry.type === "OVERRIDE") {
-    return "bg-purple-50/50 hover:bg-purple-50/70";
-  }
-
-  if (status === "UNPAID") {
-    return "bg-primary-soft/20 hover:bg-primary-soft/30";
-  }
-
-  return undefined;
+  const tone = commissionAmountTone(status);
+  if (tone === "success") return "text-emerald-700";
+  if (tone === "warning") return "text-amber-700";
+  if (tone === "primary") return "text-primary";
+  return "text-brand-dark";
 }
 
 function formatPayoutWeek(iso: string | null) {
@@ -87,20 +76,55 @@ function formatPayoutWeek(iso: string | null) {
   });
 }
 
-function AffiliateStatusBadge({ status }: { status: string }) {
-  const label = formatCommissionStatus(status);
+function SortableHead({
+  sortKey,
+  activeKey,
+  direction,
+  onSort,
+  align = "left",
+  className,
+  children,
+}: {
+  sortKey: LedgerSortKey;
+  activeKey: LedgerSortKey;
+  direction: SortDirection;
+  onSort: (key: LedgerSortKey) => void;
+  align?: "left" | "right";
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const active = activeKey === sortKey;
 
-  if (status === "PAID") {
-    return <span className="ts-status-paid">{label}</span>;
-  }
-  if (status === "UNPAID") {
-    return <span className="ts-status-owed">{label}</span>;
-  }
-  if (status === "PENDING" || status === AWAITING_PAYMENT) {
-    return <span className="ts-status-pending">{label}</span>;
-  }
-
-  return <Badge variant="secondary">{label}</Badge>;
+  return (
+    <TableHead
+      className={cn(className, align === "right" && "text-right")}
+      aria-sort={
+        active
+          ? direction === "asc"
+            ? "ascending"
+            : "descending"
+          : "none"
+      }
+    >
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={cn(
+          "inline-flex items-center gap-1 transition-colors hover:text-brand-dark",
+          align === "right" && "flex-row-reverse",
+          active ? "text-brand-dark" : "text-muted-foreground"
+        )}
+      >
+        {children}
+        {active &&
+          (direction === "asc" ? (
+            <ChevronUp className="h-3 w-3 text-primary" />
+          ) : (
+            <ChevronDown className="h-3 w-3 text-primary" />
+          ))}
+      </button>
+    </TableHead>
+  );
 }
 
 export function LedgerTable({
@@ -108,17 +132,23 @@ export function LedgerTable({
   showDetails = false,
   affiliateView = false,
   fillHeight = false,
+  sortKey,
+  sortDir,
+  onSort,
 }: {
   entries: LedgerEntry[];
   showDetails?: boolean;
   affiliateView?: boolean;
   fillHeight?: boolean;
+  sortKey?: LedgerSortKey;
+  sortDir?: SortDirection;
+  onSort?: (key: LedgerSortKey) => void;
 }) {
   if (entries.length === 0) {
     return (
       <p
         className={cn(
-          "py-8 text-center text-sm text-muted-foreground",
+          "ts-empty-inline py-8",
           fillHeight && "flex min-h-0 flex-1 items-center justify-center"
         )}
       >
@@ -128,8 +158,71 @@ export function LedgerTable({
   }
 
   const cols = affiliateView ? AFFILIATE_COPY.commissions.columns : null;
+  const sortable = affiliateView && !!onSort && !!sortKey && !!sortDir;
+  const thClass =
+    "ts-table-header sticky top-0 z-10 h-11 bg-muted/95 px-4 backdrop-blur-sm";
 
-  const cards = (
+  const renderHead = (
+    key: LedgerSortKey,
+    label: string,
+    align: "left" | "right" = "left",
+    extraClass?: string
+  ) => {
+    const className = cn(thClass, extraClass);
+
+    if (sortable) {
+      return (
+        <SortableHead
+          key={key}
+          sortKey={key}
+          activeKey={sortKey!}
+          direction={sortDir!}
+          onSort={onSort!}
+          align={align}
+          className={className}
+        >
+          {label}
+        </SortableHead>
+      );
+    }
+
+    return (
+      <TableHead key={key} className={className}>
+        {label}
+      </TableHead>
+    );
+  };
+
+  const cards = affiliateView ? (
+    <div
+      className={cn(
+        "ts-table-body flex flex-col gap-2 md:hidden",
+        fillHeight && "min-h-0"
+      )}
+    >
+      {entries.map((entry) => {
+        const status = effectiveLedgerStatus(entry.status, entry.payoutBatch);
+        const details =
+          entry.description ??
+          entry.sourceAffiliate?.displayName ??
+          entry.sourceAffiliate?.email ??
+          "—";
+
+        return (
+          <CommissionRow
+            key={entry.id}
+            details={details}
+            occurredAt={entry.occurredAt}
+            orderRevenue={entry.orderRevenue}
+            amount={formatCurrency(entry.amount)}
+            status={status}
+            type={entry.type}
+            payoutWeek={entry.payoutWeek}
+          />
+        );
+      })}
+    </div>
+  ) : (
     <DataCardList className={fillHeight ? "p-3 md:hidden" : "md:hidden"}>
       {entries.map((entry) => {
         const status = effectiveLedgerStatus(entry.status, entry.payoutBatch);
@@ -139,20 +232,11 @@ export function LedgerTable({
           entry.sourceAffiliate?.email ??
           "—";
         return (
-          <DataCard
-            key={entry.id}
-            className={cn(
-              affiliateView && entry.type === "OVERRIDE" && "border-purple-200/80 bg-purple-50/40"
-            )}
-          >
+          <DataCard key={entry.id}>
             <DataCardHeader
               title={details}
               subtitle={formatSaleDate(entry.occurredAt)}
-              value={
-                <span className={affiliateView ? amountClass(status) : undefined}>
-                  {formatCurrency(entry.amount)}
-                </span>
-              }
+              value={<span>{formatCurrency(entry.amount)}</span>}
               valueHint={
                 entry.orderRevenue
                   ? `of ${formatCurrency(entry.orderRevenue)}`
@@ -160,32 +244,12 @@ export function LedgerTable({
               }
             />
             <DataCardMeta>
-              {affiliateView ? (
-                <AffiliateStatusBadge status={status} />
-              ) : (
-                <Badge variant={statusVariant(status)}>
-                  {formatCommissionStatus(status)}
-                </Badge>
-              )}
-              <span
-                className={
-                  affiliateView
-                    ? entry.type === "OVERRIDE"
-                      ? "ts-type-team"
-                      : "ts-type-direct"
-                    : undefined
-                }
-              >
-                {formatCommissionType(entry.type)}
-              </span>
+              <Badge variant={statusVariant(status)}>
+                {formatCommissionStatus(status)}
+              </Badge>
+              <span>{entry.type === "OVERRIDE" ? "Team bonus" : entry.type}</span>
               {entry.wooOrderId && !details.includes(`#${entry.wooOrderId}`) && (
                 <span>Order #{entry.wooOrderId}</span>
-              )}
-              {affiliateView && status === "PAID" && entry.payoutWeek && (
-                <span>
-                  {cols?.payout ?? "Payout date"}:{" "}
-                  {formatPayoutWeek(entry.payoutWeek)}
-                </span>
               )}
             </DataCardMeta>
           </DataCard>
@@ -202,41 +266,25 @@ export function LedgerTable({
     >
       <TableHeader>
         <TableRow className="border-border/80 hover:bg-transparent">
-          <TableHead className="sticky top-0 z-10 h-11 bg-muted/95 px-4 backdrop-blur-sm first:pl-5">
-            {cols?.date ?? "Date"}
-          </TableHead>
-          <TableHead className="sticky top-0 z-10 h-11 bg-muted/95 px-4 backdrop-blur-sm">
-            {cols?.type ?? "Type"}
-          </TableHead>
-          {showDetails && (
-            <TableHead className="sticky top-0 z-10 h-11 bg-muted/95 px-4 backdrop-blur-sm">
-              {cols?.details ?? "Details"}
-            </TableHead>
+          {renderHead("date", cols?.date ?? "Date", "left", "first:pl-5")}
+          {renderHead("type", cols?.type ?? "Type")}
+          {showDetails &&
+            renderHead("details", cols?.details ?? "Details")}
+          {!showDetails && <TableHead className={thClass}>Source</TableHead>}
+          {!affiliateView && <TableHead className={thClass}>Order</TableHead>}
+          {renderHead("sale", cols?.sale ?? "Sale", "right")}
+          {renderHead(
+            "amount",
+            cols?.amount ?? "Amount",
+            "right",
+            "last:pr-5"
           )}
-          {!showDetails && (
-            <TableHead className="sticky top-0 z-10 h-11 bg-muted/95 px-4 backdrop-blur-sm">
-              Source
-            </TableHead>
-          )}
-          {!affiliateView && (
-            <TableHead className="sticky top-0 z-10 h-11 bg-muted/95 px-4 backdrop-blur-sm">
-              Order
-            </TableHead>
-          )}
-          <TableHead className="sticky top-0 z-10 h-11 bg-muted/95 px-4 text-right backdrop-blur-sm">
-            {cols?.sale ?? "Sale"}
-          </TableHead>
-          <TableHead className="sticky top-0 z-10 h-11 bg-muted/95 px-4 text-right backdrop-blur-sm last:pr-5">
-            {cols?.amount ?? "Amount"}
-          </TableHead>
           {showDetails && !affiliateView && (
-            <TableHead className="sticky top-0 z-10 h-11 bg-muted/95 px-4 backdrop-blur-sm">
+            <TableHead className={thClass}>
               {cols?.payout ?? "Payout week"}
             </TableHead>
           )}
-          <TableHead className="sticky top-0 z-10 h-11 bg-muted/95 px-4 backdrop-blur-sm last:pr-5">
-            {cols?.status ?? "Status"}
-          </TableHead>
+          {renderHead("status", cols?.status ?? "Status", "left", "last:pr-5")}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -248,26 +296,14 @@ export function LedgerTable({
           return (
             <TableRow
               key={entry.id}
-              className={cn(
-                "text-xs",
-                affiliateView && "border-border/60",
-                rowClass(entry, status, affiliateView)
-              )}
+              className={cn(affiliateView && "border-border/60 hover:bg-card")}
             >
-              <TableCell className="whitespace-nowrap px-4 font-medium first:pl-5">
+              <TableCell className="ts-row-meta whitespace-nowrap px-4 first:pl-5">
                 {formatSaleDate(entry.occurredAt)}
               </TableCell>
               <TableCell className="px-4">
                 {affiliateView ? (
-                  <span
-                    className={
-                      entry.type === "OVERRIDE"
-                        ? "ts-type-team"
-                        : "ts-type-direct"
-                    }
-                  >
-                    {formatCommissionType(entry.type)}
-                  </span>
+                  <CommissionTypeBadge type={entry.type} />
                 ) : (
                   <Badge
                     variant={
@@ -279,61 +315,68 @@ export function LedgerTable({
                 )}
               </TableCell>
               {showDetails ? (
-                <TableCell className="max-w-sm px-4 font-medium text-brand-dark">
-                  {entry.description ??
-                    entry.sourceAffiliate?.displayName ??
-                    entry.sourceAffiliate?.email ??
-                    "—"}
+                <TableCell className="max-w-sm px-4">
+                  <p className="ts-row-title">
+                    {entry.description ??
+                      entry.sourceAffiliate?.displayName ??
+                      entry.sourceAffiliate?.email ??
+                      "—"}
+                  </p>
                   {entry.sourceAffiliate && !affiliateView && (
-                    <div className="text-[11px] font-normal text-muted-foreground">
+                    <p className="ts-row-meta mt-0.5">
                       Source:{" "}
                       {entry.sourceAffiliate.displayName ??
                         entry.sourceAffiliate.email}
-                    </div>
+                    </p>
                   )}
                 </TableCell>
               ) : (
-                <TableCell className="px-4">
+                <TableCell className="ts-row-title px-4">
                   {entry.sourceAffiliate?.displayName ??
                     entry.sourceAffiliate?.email ??
                     "—"}
                 </TableCell>
               )}
               {!affiliateView && (
-                <TableCell className="px-4 font-mono font-medium text-muted-foreground">
+                <TableCell className="ts-row-meta px-4 font-mono">
                   {entry.wooOrderId ? `#${entry.wooOrderId}` : "—"}
                 </TableCell>
               )}
-              <TableCell className="whitespace-nowrap px-4 text-right font-medium tabular-nums text-muted-foreground">
+              <TableCell className="ts-row-meta whitespace-nowrap px-4 text-right tabular-nums">
                 {entry.orderRevenue
                   ? formatCurrency(entry.orderRevenue)
                   : "—"}
               </TableCell>
               <TableCell
                 className={cn(
-                  "whitespace-nowrap px-4 text-right text-sm font-bold tabular-nums last:pr-5",
+                  "ts-amount whitespace-nowrap px-4 text-right last:pr-5",
                   affiliateView ? amountClass(status) : "text-emerald-700"
                 )}
               >
                 {formatCurrency(entry.amount)}
               </TableCell>
               {showDetails && !affiliateView && (
-                <TableCell className="px-4 text-muted-foreground">
+                <TableCell className="ts-row-meta px-4">
                   {formatPayoutWeek(entry.payoutWeek)}
                 </TableCell>
               )}
               <TableCell className="px-4 last:pr-5">
                 {affiliateView ? (
-                  <AffiliateStatusBadge status={status} />
+                  <span className="ts-row-meta inline-flex flex-wrap items-baseline gap-x-1.5 font-medium">
+                    {formatCommissionStatus(status)}
+                    {status === "PAID" && entry.payoutWeek && (
+                      <>
+                        <span className="text-muted-foreground/50">·</span>
+                        <span className="font-normal">
+                          {formatPayoutWeek(entry.payoutWeek)}
+                        </span>
+                      </>
+                    )}
+                  </span>
                 ) : (
                   <Badge variant={statusVariant(status)}>
                     {formatCommissionStatus(status)}
                   </Badge>
-                )}
-                {affiliateView && status === "PAID" && entry.payoutWeek && (
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    {formatPayoutWeek(entry.payoutWeek)}
-                  </p>
                 )}
               </TableCell>
             </TableRow>
@@ -346,7 +389,7 @@ export function LedgerTable({
   if (affiliateView && fillHeight) {
     return (
       <>
-        <div className="hidden min-h-0 flex-1 flex-col overflow-hidden md:flex">
+        <div className="hidden min-h-0 flex-1 flex-col overflow-hidden ts-table-body md:flex">
           {table}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain md:hidden">

@@ -8,6 +8,7 @@ import {
   Users,
 } from "lucide-react";
 import { SidebarShell } from "@/components/layout/SidebarShell";
+import { AffiliateMockBanner } from "@/components/affiliate/AffiliateMockBanner";
 import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
 
 const navItems = [
@@ -44,6 +45,7 @@ function AffiliateShellContent({ children }: { children: React.ReactNode }) {
       portalLabel="Ambassador Portal"
       variant="partner"
       navItems={navItems}
+      syncBanner={<AffiliateMockBanner />}
     >
       {children}
     </SidebarShell>

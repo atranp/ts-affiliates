@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 type AffiliateHomeCardProps = {
   title: string;
-  description?: string;
+  description?: React.ReactNode;
   actionLabel?: string;
   onAction?: () => void;
   children: React.ReactNode;
@@ -29,37 +29,34 @@ export function AffiliateHomeCard({
   return (
     <section
       className={cn(
-        "ts-home-card",
-        fill && "flex min-h-0 flex-col overflow-hidden",
+        'ts-home-card min-w-0 max-w-full',
+        fill && 'flex min-h-0 flex-col',
+        !fill && 'flex flex-col',
         className
       )}
     >
-      <header className="flex shrink-0 items-start justify-between gap-3 px-5 pt-5 pb-3">
-        <div className="min-w-0">
-          <h3 className="text-base font-semibold tracking-tight text-brand-dark">
-            {title}
-          </h3>
-          {description ? (
-            <p className="mt-0.5 text-sm leading-snug text-muted-foreground">
-              {description}
-            </p>
+      <header className="ts-home-card-header flex shrink-0 flex-col gap-2 px-4 py-3.5 sm:px-5">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="ts-home-card-title min-w-0">{title}</h3>
+          {actionLabel && onAction ? (
+            <button
+              type="button"
+              onClick={onAction}
+              className="ts-text-link shrink-0 px-0.5 py-1"
+            >
+              {actionLabel}
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+            </button>
           ) : null}
         </div>
-        {actionLabel && onAction ? (
-          <button
-            type="button"
-            onClick={onAction}
-            className="ts-text-link -mr-1 shrink-0 px-1 py-0.5"
-          >
-            {actionLabel}
-            <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-          </button>
+        {description ? (
+          <div className="ts-home-card-desc">{description}</div>
         ) : null}
       </header>
       <div
         className={cn(
-          "px-5 pb-5",
-          scrollContent && "min-h-0 flex-1 overflow-y-auto overscroll-contain",
+          'ts-home-card-body px-4 py-4 sm:px-5',
+          scrollContent && 'min-h-0 flex-1 overflow-y-auto overscroll-contain',
           contentClassName
         )}
       >
@@ -73,20 +70,20 @@ export function AffiliateSectionLabel({
   children,
   className,
   action,
+  subtitle,
 }: {
   children: React.ReactNode;
   className?: string;
   action?: React.ReactNode;
+  subtitle?: React.ReactNode;
 }) {
   return (
-    <div
-      className={cn(
-        "mb-2 flex items-center justify-between gap-3",
-        className
-      )}
-    >
-      <p className="ts-section-label">{children}</p>
-      {action}
+    <div className={cn("mb-2.5", className)}>
+      <div className="flex items-center justify-between gap-3">
+        <p className="ts-section-label">{children}</p>
+        {action}
+      </div>
+      {subtitle ? <div className="mt-1">{subtitle}</div> : null}
     </div>
   );
 }
@@ -137,7 +134,7 @@ export function AffiliateMetaHighlight({
   children: React.ReactNode;
 }) {
   return (
-    <span className="inline-flex items-center gap-1.5 font-medium text-brand-dark">
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-dark">
       {Icon ? <Icon className="h-3.5 w-3.5 text-primary" aria-hidden /> : null}
       {children}
     </span>
@@ -147,16 +144,19 @@ export function AffiliateMetaHighlight({
 export function AffiliateListPanel({
   children,
   scroll = false,
+  inset = false,
   className,
 }: {
   children: React.ReactNode;
   scroll?: boolean;
+  /** Lighter panel for use inside home cards */
+  inset?: boolean;
   className?: string;
 }) {
   return (
     <div
       className={cn(
-        "ts-list-panel",
+        inset ? "ts-list-panel-inset" : "ts-list-panel",
         scroll && "ts-list-panel-scroll",
         className
       )}
@@ -200,12 +200,8 @@ export function AffiliateAmountCell({
 
   return (
     <div className="shrink-0 text-right">
-      <p className={cn("text-sm font-semibold tabular-nums", valueClass)}>
-        {amount}
-      </p>
-      {sublabel ? (
-        <p className="text-[10px] text-muted-foreground">{sublabel}</p>
-      ) : null}
+      <p className={cn("ts-amount", valueClass)}>{amount}</p>
+      {sublabel ? <p className="ts-amount-sub">{sublabel}</p> : null}
     </div>
   );
 }

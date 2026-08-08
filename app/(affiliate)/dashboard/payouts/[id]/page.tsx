@@ -3,6 +3,8 @@
 import { useParams } from "next/navigation";
 import { PayoutBatchDetailView } from "@/components/payouts/PayoutBatchDetailView";
 import { ErrorState } from "@/components/admin/ErrorState";
+import { PayoutDetailSkeleton } from "@/components/affiliate/DashboardSkeleton";
+import { AffiliateEmptyState } from "@/components/affiliate/primitives";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api-client";
 import type { PayoutBatchDetail } from "@/lib/payouts/types";
@@ -17,7 +19,7 @@ export default function AffiliatePayoutDetailPage() {
   });
 
   if (isLoading) {
-    return <p className="text-muted-foreground">Loading payout...</p>;
+    return <PayoutDetailSkeleton />;
   }
 
   if (error) {
@@ -25,7 +27,11 @@ export default function AffiliatePayoutDetailPage() {
   }
 
   if (!data?.batch) {
-    return <p className="text-muted-foreground">Payout not found.</p>;
+    return (
+      <AffiliateEmptyState>
+        Payout not found. It may have been removed or you may not have access.
+      </AffiliateEmptyState>
+    );
   }
 
   return (

@@ -1,56 +1,64 @@
-"use client";
+'use client';
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useAuth } from "@/components/AuthProvider";
-import { AffiliateStatCard } from "@/components/affiliate/AffiliateStatCard";
-import { AffiliateHomeCard } from "@/components/affiliate/primitives";
-import { DashboardSkeleton } from "@/components/affiliate/DashboardSkeleton";
-import { MilestoneProgress } from "@/components/affiliate/MilestoneProgress";
-import { CommissionsHomePreview } from "@/components/affiliate/CommissionsHomePreview";
-import { TeamHomePreview } from "@/components/affiliate/TeamHomePreview";
-import { CommissionsPanel } from "@/components/CommissionsPanel";
-import { TeamsPanel, useTeams } from "@/components/TeamsPanel";
-import { TeamPanel, useTeam } from "@/components/TeamPanel";
-import { ErrorState } from "@/components/admin/ErrorState";
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/components/AuthProvider';
+import { AffiliateStatCard } from '@/components/affiliate/AffiliateStatCard';
+import { AffiliateHomeCard } from '@/components/affiliate/primitives';
 import {
-  CheckCircle2,
-  Clock,
-  DollarSign,
-} from "lucide-react";
+  DashboardSkeleton,
+  TeamsPanelSkeleton,
+} from '@/components/affiliate/DashboardSkeleton';
+import { MilestoneProgress } from '@/components/affiliate/MilestoneProgress';
+import { CommissionsHomePreview } from '@/components/affiliate/CommissionsHomePreview';
+import { TeamHomePreview } from '@/components/affiliate/TeamHomePreview';
+import { CommissionsPanel } from '@/components/CommissionsPanel';
+import { TeamsPanel, useTeams } from '@/components/TeamsPanel';
+import { TeamPanel, useTeam } from '@/components/TeamPanel';
+import { ErrorState } from '@/components/admin/ErrorState';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+} from '@/components/ui/card';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import {
+  defaultSortDirection,
+  ledgerSortParamsForUrl,
   ledgerTabToFilters,
   ledgerTypeFilterToApi,
+  resolveLedgerSortDir,
+  resolveLedgerSortKey,
   resolveLedgerStatusTab,
   resolveLedgerTypeFilter,
   useLedger,
+  type LedgerSortKey,
   type LedgerStatusTab,
   type LedgerTypeFilter,
-} from "@/hooks/use-ledger";
-import { PayoutsList } from "@/components/payouts/PayoutsList";
-import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
-import { formatCurrency } from "@/lib/utils";
+} from '@/hooks/use-ledger';
+import type { SortDirection } from '@/lib/ledger/sort';
+import { PayoutsList } from '@/components/payouts/PayoutsList';
+import { apiFetch } from '@/lib/api-client';
+import { AFFILIATE_COPY } from '@/lib/affiliate/copy';
+import type { PayoutBatchListItem } from '@/lib/payouts/types';
+import { cn, formatCurrency } from '@/lib/utils';
+import { useMinLg } from '@/hooks/use-media-query';
 
-type DashboardTab = "overview" | "ledger" | "teams" | "payouts";
+type DashboardTab = 'overview' | 'ledger' | 'teams' | 'payouts';
 
 const DASHBOARD_TABS: DashboardTab[] = [
-  "overview",
-  "ledger",
-  "teams",
-  "payouts",
+  'overview',
+  'ledger',
+  'teams',
+  'payouts',
 ];
 
 function resolveTab(value: string | null): DashboardTab {
-  if (value === "commissions") return "ledger";
-  return DASHBOARD_TABS.find((tab) => tab === value) ?? "overview";
+  if (value === 'commissions') return 'ledger';
+  return DASHBOARD_TABS.find((tab) => tab === value) ?? 'overview';
 }
 
 export default function DashboardPage() {
@@ -75,7 +83,7 @@ function DashboardPageContent() {
   const setParams = useCallback(
     (
       updates: Record<string, string | null>,
-      { history = false }: { history?: boolean } = {}
+      { history = false }: { history?: boolean } = {},
     ) => {
       const next = new URLSearchParams(searchParams.toString());
       for (const [key, value] of Object.entries(updates)) {
@@ -87,20 +95,22 @@ function DashboardPageContent() {
       if (history) router.push(url, { scroll: false });
       else router.replace(url, { scroll: false });
     },
-    [pathname, router, searchParams]
+    [pathname, router, searchParams],
   );
 
-  const viewTab = resolveTab(searchParams.get("tab"));
-  const statusParam = searchParams.get("status");
+  const viewTab = resolveTab(searchParams.get('tab'));
+  const statusParam = searchParams.get('status');
   const ledgerTab = resolveLedgerStatusTab(statusParam);
   const typeFilter = resolveLedgerTypeFilter(
-    searchParams.get("type"),
-    statusParam
+    searchParams.get('type'),
+    statusParam,
   );
-  const sourceFilter = searchParams.get("member") ?? "all";
-  const teamFilter = searchParams.get("team") ?? "all";
-  const urlQuery = searchParams.get("q") ?? "";
-  const page = Math.max(1, Number(searchParams.get("page") ?? "1") || 1);
+  const sourceFilter = searchParams.get('member') ?? 'all';
+  const teamFilter = searchParams.get('team') ?? 'all';
+  const urlQuery = searchParams.get('q') ?? '';
+  const page = Math.max(1, Number(searchParams.get('page') ?? '1') || 1);
+  const sortKey = resolveLedgerSortKey(searchParams.get('sort'));
+  const sortDir = resolveLedgerSortDir(searchParams.get('dir'), sortKey);
 
   // Typing stays local for responsiveness, then lands in the URL once settled.
   const [q, setQ] = useState(urlQuery);
@@ -130,95 +140,87 @@ function DashboardPageContent() {
     ...tabFilters,
     type: ledgerTypeFilterToApi(typeFilter),
     q: urlQuery,
-    teamId: teamFilter !== "all" ? teamFilter : undefined,
+    teamId: teamFilter !== 'all' ? teamFilter : undefined,
     page,
     limit: 50,
+    sortBy: sortKey,
+    sortDir,
     enabled: !!user,
   });
 
   const { data: teamsData, isLoading: teamsLoading } = useTeams(
     undefined,
-    !!user
+    !!user,
   );
   const { data: legacyTeamData } = useTeam(undefined, !!user);
+  const { data: payoutsData } = useQuery({
+    queryKey: ['payouts'],
+    queryFn: () => apiFetch<{ batches: PayoutBatchListItem[] }>('/api/payouts'),
+    enabled: !!user,
+    staleTime: 60 * 1000,
+  });
+
+  const payoutsCount = payoutsData?.batches.length ?? 0;
 
   function setViewTab(tab: string) {
-    setParams({ tab: tab === "overview" ? null : tab }, { history: true });
+    setParams({ tab: tab === 'overview' ? null : tab }, { history: true });
   }
 
-  function focusCommissions(options?: {
-    status?: LedgerStatusTab;
-    type?: LedgerTypeFilter;
-  }) {
+  function focusTeamMember(
+    sourceId: string,
+    status: 'unpaid' | 'paid' | 'all',
+  ) {
     setParams(
       {
-        tab: "ledger",
-        status:
-          options?.status && options.status !== "all"
-            ? options.status
-            : null,
-        type:
-          options?.type && options.type !== "all" ? options.type : null,
-        member: null,
-        team: null,
-        q: null,
-        page: null,
-      },
-      { history: true }
-    );
-  }
-
-  function focusTeamMember(sourceId: string, status: "unpaid" | "paid" | "all") {
-    setParams(
-      {
-        tab: "ledger",
+        tab: 'ledger',
         team: null,
         member: sourceId,
-        type: status === "all" ? "team" : null,
-        status: status === "all" ? null : status,
+        type: status === 'all' ? 'team' : null,
+        status: status === 'all' ? null : status,
         page: null,
       },
-      { history: true }
+      { history: true },
     );
   }
 
   function focusTeam(teamId: string) {
     setParams(
       {
-        tab: "ledger",
+        tab: 'ledger',
         member: null,
         team: teamId,
-        type: "team",
+        type: 'team',
         status: null,
         page: null,
       },
-      { history: true }
+      { history: true },
     );
   }
 
   function handleTeamFilter(value: string) {
     setParams({
-      team: value === "all" ? null : value,
+      team: value === 'all' ? null : value,
       // A team and a single member are mutually exclusive narrowings.
-      ...(value === "all" ? {} : { member: null }),
+      ...(value === 'all' ? {} : { member: null }),
       page: null,
     });
   }
 
   function handleSourceFilter(value: string) {
-    setParams({ member: value === "all" ? null : value, page: null });
+    setParams({ member: value === 'all' ? null : value, page: null });
   }
 
   function handleTypeFilter(value: LedgerTypeFilter) {
     setParams({
-      type: value === "all" ? null : value,
-      status: statusParam === "overrides" ? null : statusParam,
+      type: value === 'all' ? null : value,
+      status: statusParam === 'overrides' ? null : statusParam,
+      ...(value === 'direct' ? { team: null, member: null } : {}),
       page: null,
     });
   }
 
   function handleLedgerTab(value: LedgerStatusTab) {
-    setParams({ status: value === "all" ? null : value, page: null });
+    setParams({ status: value === 'all' ? null : value, page: null });
   }
 
   function handleLedgerPageChange(nextPage: number) {
@@ -227,8 +229,26 @@ function DashboardPageContent() {
     });
   }
 
+  function handleLedgerSort(key: LedgerSortKey) {
+    const nextDir =
+      sortKey === key
+        ? sortDir === 'asc'
+          ? 'desc'
+          : 'asc'
+        : defaultSortDirection(key);
+
+    handleLedgerSortChange(key, nextDir);
+  }
+
+  function handleLedgerSortChange(key: LedgerSortKey, dir: SortDirection) {
+    setParams({
+      ...ledgerSortParamsForUrl(key, dir),
+      page: null,
+    });
+  }
+
   function clearLedgerFilters() {
-    setQ("");
+    setQ('');
     setParams({
       status: null,
       type: null,
@@ -236,10 +256,13 @@ function DashboardPageContent() {
       team: null,
       q: null,
       page: null,
+      sort: null,
+      dir: null,
     });
   }
 
   const displayName = user?.affiliateName?.trim() || user?.name?.trim() || null;
+  const desktopFill = useMinLg();
 
   if (authLoading || (isLoading && !data)) {
     return <DashboardSkeleton />;
@@ -248,14 +271,14 @@ function DashboardPageContent() {
   const hasTeams = (teamsData?.teams.length ?? 0) > 0;
   const hasTeamBonuses = (data?.teamBonuses.length ?? 0) > 0;
   const filtersActive =
-    ledgerTab !== "all" ||
-    typeFilter !== "all" ||
-    sourceFilter !== "all" ||
-    teamFilter !== "all" ||
-    urlQuery !== "";
+    ledgerTab !== 'all' ||
+    typeFilter !== 'all' ||
+    sourceFilter !== 'all' ||
+    teamFilter !== 'all' ||
+    urlQuery !== '';
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden">
       {error && (
         <ErrorState message={error.message} onRetry={() => refetch()} />
       )}
@@ -264,204 +287,189 @@ function DashboardPageContent() {
         <Tabs
           value={viewTab}
           onValueChange={setViewTab}
-          className="flex min-h-0 flex-1 flex-col overflow-hidden"
+          className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden"
         >
           <TabsContent
             value="overview"
-            className="ts-affiliate-tab-scroll space-y-6 pb-6 lg:grid lg:grid-rows-[auto_auto_auto_minmax(0,1fr)] lg:gap-5 lg:space-y-0 lg:pb-4"
+            className="ts-affiliate-tab-scroll ts-home-overview lg:ts-affiliate-tab-fill lg:grid lg:grid-rows-[auto_auto_auto_minmax(0,1fr)] lg:gap-4 lg:space-y-0 lg:overflow-hidden lg:pb-0"
           >
-            <div>
+            <div className="min-w-0 shrink-0">
               <h1 className="page-title">
-                {displayName ? `Welcome, ${displayName}` : "Welcome"}
+                {displayName ? `Welcome, ${displayName}` : 'Welcome'}
               </h1>
               <p className="page-description">{AFFILIATE_COPY.home.subtitle}</p>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-3">
+            <div className="ts-home-stat-grid shrink-0">
               <AffiliateStatCard
+                compact
+                actionArrow
                 label={AFFILIATE_COPY.stats.owed.label}
-                hint={AFFILIATE_COPY.stats.owed.hint}
                 value={data.summary.unpaidTotal}
                 tone="primary"
-                icon={DollarSign}
                 actionLabel={AFFILIATE_COPY.stats.owed.action}
-                onAction={() => setViewTab("ledger")}
+                onAction={() => setViewTab('ledger')}
               />
               <AffiliateStatCard
+                compact
+                actionArrow
                 label={AFFILIATE_COPY.stats.paid.label}
-                hint={AFFILIATE_COPY.stats.paid.hint}
                 value={data.summary.paidTotal}
                 tone="success"
-                icon={CheckCircle2}
                 actionLabel={AFFILIATE_COPY.stats.paid.action}
-                onAction={() => setViewTab("payouts")}
+                onAction={() => setViewTab('payouts')}
               />
               <AffiliateStatCard
-                label={AFFILIATE_COPY.stats.pending.label}
-                hint={AFFILIATE_COPY.stats.pending.hint}
-                value={data.summary.pendingTotal}
-                tone="warning"
-                icon={Clock}
-                actionLabel={AFFILIATE_COPY.stats.pending.action}
-                onAction={() => setViewTab("teams")}
+                compact
+                actionArrow
+                label={AFFILIATE_COPY.stats.payouts.label}
+                value={String(payoutsCount)}
+                tone="primary"
+                actionLabel={AFFILIATE_COPY.stats.payouts.action}
+                onAction={() => setViewTab('payouts')}
               />
             </div>
 
-            <div className="grid gap-5 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] md:items-start">
-              <AffiliateHomeCard
-                className="min-w-0"
-                title={AFFILIATE_COPY.home.commissionsTitle}
-                description={AFFILIATE_COPY.home.commissionsSubtitle}
-                actionLabel={AFFILIATE_COPY.home.viewAllCommissions}
-                onAction={() => setViewTab("ledger")}
-                contentClassName="pt-0"
-              >
-                <CommissionsHomePreview
-                  enabled={!!user}
-                  onViewCommissions={() => setViewTab("ledger")}
-                  onViewType={(type) => focusCommissions({ type })}
-                />
-              </AffiliateHomeCard>
+            <div className="ts-home-split shrink-0">
+              <CommissionsHomePreview
+                enabled={!!user}
+                onViewCommissions={() => setViewTab('ledger')}
+              />
 
               <AffiliateHomeCard
-                className="min-w-0"
+                className="flex min-h-0 flex-col"
                 title={AFFILIATE_COPY.home.payoutsTitle}
-                description={AFFILIATE_COPY.home.payoutsDescription}
                 actionLabel={AFFILIATE_COPY.home.payoutsAction}
-                onAction={() => setViewTab("payouts")}
-                contentClassName="pt-0"
+                onAction={() => setViewTab('payouts')}
               >
                 <PayoutsList
                   detailHrefPrefix="/dashboard/payouts"
                   affiliateView
                   embedded
                   limit={3}
-                  onViewAll={() => setViewTab("payouts")}
+                  onViewAll={() => setViewTab('payouts')}
                 />
               </AffiliateHomeCard>
             </div>
 
-            {hasTeams ? (
-              <AffiliateHomeCard
-                fill
-                scrollContent
-                title={AFFILIATE_COPY.home.teamsTitle}
-                description={AFFILIATE_COPY.home.teamsSubtitle}
-                actionLabel={AFFILIATE_COPY.home.teamsAction}
-                onAction={() => setViewTab("teams")}
-                contentClassName="pt-0"
-              >
+            <div className={cn(desktopFill && 'min-h-0')}>
+              {teamsLoading ? (
+                <AffiliateHomeCard title={AFFILIATE_COPY.home.teamsTitle}>
+                  <div className="h-48 animate-pulse rounded-lg border border-border/60 bg-muted/15" />
+                </AffiliateHomeCard>
+              ) : hasTeams ? (
                 <TeamHomePreview
+                  fill={desktopFill}
+                  scrollContent={desktopFill}
+                  className={cn(desktopFill && 'min-h-0')}
                   teams={teamsData!.teams}
-                  onViewTeam={() => setViewTab("teams")}
+                  onViewTeam={() => setViewTab('teams')}
                   onViewTeamLedger={focusTeam}
                   onViewMember={(memberId) =>
-                    focusTeamMember(memberId, "unpaid")
+                    focusTeamMember(memberId, 'unpaid')
                   }
                 />
-              </AffiliateHomeCard>
-            ) : hasTeamBonuses ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">
-                    {AFFILIATE_COPY.home.teamEarningsTitle}
-                  </CardTitle>
-                  <CardDescription>
-                    Bonuses earned from your team members&apos; sales
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <AffiliateStatCard
-                      label={AFFILIATE_COPY.team.payout}
-                      hint={AFFILIATE_COPY.stats.owed.hint}
-                      value={data.overrideSummary.unpaidTotal}
-                      tone="primary"
-                    />
-                    <AffiliateStatCard
-                      label={AFFILIATE_COPY.team.paid}
-                      hint={AFFILIATE_COPY.stats.paid.hint}
-                      value={data.overrideSummary.paidTotal}
-                      tone="success"
-                    />
-                  </div>
+              ) : hasTeamBonuses ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">
+                      {AFFILIATE_COPY.home.teamEarningsTitle}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <AffiliateStatCard
+                        label={AFFILIATE_COPY.team.payout}
+                        value={data.overrideSummary.unpaidTotal}
+                        tone="primary"
+                      />
+                      <AffiliateStatCard
+                        label={AFFILIATE_COPY.team.paid}
+                        value={data.overrideSummary.paidTotal}
+                        tone="success"
+                      />
+                    </div>
 
-                  <div className="space-y-3">
-                    {data.teamBonuses.map((bonus) => {
-                      const name = bonus.displayName ?? bonus.email;
+                    <div className="space-y-3">
+                      {data.teamBonuses.map((bonus) => {
+                        const name = bonus.displayName ?? bonus.email;
 
-                      return (
-                        <div
-                          key={bonus.sourceAffiliateId}
-                          className="rounded-lg border border-border bg-background p-4 space-y-3"
-                        >
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                              <p className="font-medium">{name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                Team member
-                              </p>
+                        return (
+                          <div
+                            key={bonus.sourceAffiliateId}
+                            className="rounded-lg border border-border bg-background p-4 space-y-3"
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <p className="font-medium">{name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Team member
+                                </p>
+                              </div>
+                              <div className="flex flex-wrap gap-2 text-sm">
+                                {bonus.unpaidTotal > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      focusTeamMember(
+                                        bonus.sourceAffiliateId,
+                                        'unpaid',
+                                      )
+                                    }
+                                    className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/15"
+                                  >
+                                    {AFFILIATE_COPY.team.payout}{' '}
+                                    {formatCurrency(bonus.unpaidTotal)}
+                                  </button>
+                                )}
+                                {bonus.pendingTotal > 0 && (
+                                  <span className="rounded-full bg-warning/10 px-3 py-1 text-xs font-medium text-warning">
+                                    {AFFILIATE_COPY.team.awaitingMilestone}{' '}
+                                    {formatCurrency(bonus.pendingTotal)}
+                                  </span>
+                                )}
+                                {bonus.paidTotal > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      focusTeamMember(
+                                        bonus.sourceAffiliateId,
+                                        'paid',
+                                      )
+                                    }
+                                    className="rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success hover:bg-success/15"
+                                  >
+                                    {AFFILIATE_COPY.team.paid}{' '}
+                                    {formatCurrency(bonus.paidTotal)}
+                                  </button>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex flex-wrap gap-2 text-sm">
-                              {bonus.unpaidTotal > 0 && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    focusTeamMember(
-                                      bonus.sourceAffiliateId,
-                                      "unpaid"
-                                    )
-                                  }
-                                  className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/15"
-                                >
-                                  {AFFILIATE_COPY.team.payout}{" "}
-                                  {formatCurrency(bonus.unpaidTotal)}
-                                </button>
-                              )}
-                              {bonus.pendingTotal > 0 && (
-                                <span className="rounded-full bg-warning/10 px-3 py-1 text-xs font-medium text-warning">
-                                  {AFFILIATE_COPY.team.awaitingMilestone}{" "}
-                                  {formatCurrency(bonus.pendingTotal)}
-                                </span>
-                              )}
-                              {bonus.paidTotal > 0 && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    focusTeamMember(
-                                      bonus.sourceAffiliateId,
-                                      "paid"
-                                    )
-                                  }
-                                  className="rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success hover:bg-success/15"
-                                >
-                                  {AFFILIATE_COPY.team.paid}{" "}
-                                  {formatCurrency(bonus.paidTotal)}
-                                </button>
-                              )}
-                            </div>
+
+                            {bonus.milestone && (
+                              <MilestoneProgress
+                                current={bonus.milestone.current}
+                                threshold={bonus.milestone.threshold}
+                                remaining={bonus.milestone.remaining}
+                                met={bonus.milestone.met}
+                                compact
+                              />
+                            )}
                           </div>
-
-                          {bonus.milestone && (
-                            <MilestoneProgress
-                              current={bonus.milestone.current}
-                              threshold={bonus.milestone.threshold}
-                              remaining={bonus.milestone.remaining}
-                              met={bonus.milestone.met}
-                              compact
-                            />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            ) : null}
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null}
+            </div>
           </TabsContent>
 
-          <TabsContent value="ledger" className="ts-affiliate-tab-fill">
-            <div className="ts-page-header">
+          <TabsContent
+            value="ledger"
+            className="ts-affiliate-tab-scroll flex min-h-0 min-w-0 max-w-full flex-col gap-4 lg:ts-affiliate-tab-fill lg:gap-5"
+          >
+            <div className="ts-page-header shrink-0">
               <h1 className="page-title">{AFFILIATE_COPY.commissions.title}</h1>
               <p className="page-description">
                 {AFFILIATE_COPY.commissions.description}
@@ -477,6 +485,8 @@ function DashboardPageContent() {
               teamFilter={teamFilter}
               q={q}
               page={page}
+              sortKey={sortKey}
+              sortDir={sortDir}
               isFetching={isFetching}
               filtersActive={filtersActive}
               onLedgerTab={handleLedgerTab}
@@ -484,31 +494,34 @@ function DashboardPageContent() {
               onTeamFilter={handleTeamFilter}
               onSourceFilter={handleSourceFilter}
               onSearchChange={setQ}
+              onSort={handleLedgerSort}
+              onSortChange={handleLedgerSortChange}
               onClearFilters={clearLedgerFilters}
               onPageChange={handleLedgerPageChange}
-              fillHeight
-              className="min-h-0 flex-1"
+              fillHeight={desktopFill}
+              className={cn('min-h-0', desktopFill && 'flex-1')}
             />
           </TabsContent>
 
-          <TabsContent value="teams" className="ts-affiliate-tab-fill">
-            <div className="ts-page-header">
-              <h1 className="page-title">Your Team Roster</h1>
+          <TabsContent
+            value="teams"
+            className="ts-affiliate-tab-scroll flex min-h-0 min-w-0 max-w-full flex-col gap-3 lg:ts-affiliate-tab-fill lg:gap-5"
+          >
+            <div className="ts-page-header shrink-0 max-sm:px-0.5">
+              <h1 className="page-title">{AFFILIATE_COPY.team.rosterTitle}</h1>
               <p className="page-description">
-                Track sales goals, team earnings, and who&apos;s producing.
+                {AFFILIATE_COPY.team.rosterDescription}
               </p>
             </div>
             {teamsLoading ? (
-              <p className="text-sm text-muted-foreground">
-                {AFFILIATE_COPY.team.loading}
-              </p>
+              <TeamsPanelSkeleton />
             ) : teamsData?.teams && teamsData.teams.length > 0 ? (
               <TeamsPanel
                 teams={teamsData.teams}
-                onViewLedger={(memberId) => focusTeamMember(memberId, "unpaid")}
+                onViewLedger={(memberId) => focusTeamMember(memberId, 'unpaid')}
                 onViewTeamLedger={focusTeam}
-                fillHeight
-                className="min-h-0 flex-1"
+                fillHeight={desktopFill}
+                className={cn('min-h-0', desktopFill && 'flex-1')}
               />
             ) : legacyTeamData?.team && legacyTeamData.team.length > 0 ? (
               <TeamPanel team={legacyTeamData.team} />
@@ -516,22 +529,27 @@ function DashboardPageContent() {
               <Card>
                 <CardHeader>
                   <CardTitle>{AFFILIATE_COPY.team.title}</CardTitle>
-                  <CardDescription>
-                    {AFFILIATE_COPY.team.empty}
-                  </CardDescription>
+                  <CardDescription>{AFFILIATE_COPY.team.empty}</CardDescription>
                 </CardHeader>
               </Card>
             )}
           </TabsContent>
 
-          <TabsContent value="payouts" className="ts-affiliate-tab-scroll space-y-6 pb-6">
-            <div className="ts-page-header border-b-0 pb-0">
-              <h1 className="page-title">Payout History</h1>
+          <TabsContent
+            value="payouts"
+            className="ts-affiliate-tab-scroll flex min-h-0 min-w-0 max-w-full flex-col gap-3 lg:ts-affiliate-tab-fill lg:gap-5"
+          >
+            <div className="ts-page-header shrink-0 max-sm:px-0.5">
+              <h1 className="page-title">{AFFILIATE_COPY.payouts.historyTitle}</h1>
               <p className="page-description">
                 {AFFILIATE_COPY.payouts.description}
               </p>
             </div>
-            <PayoutsList detailHrefPrefix="/dashboard/payouts" affiliateView />
+            <PayoutsList
+              detailHrefPrefix="/dashboard/payouts"
+              affiliateView
+              className={cn('min-h-0', desktopFill && 'flex-1')}
+            />
           </TabsContent>
         </Tabs>
       )}

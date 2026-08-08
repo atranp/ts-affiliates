@@ -7,6 +7,12 @@ import { prisma } from "@/lib/prisma";
 import { getMilestoneProgress } from "@/lib/milestone";
 import type { LedgerSummary } from "@/lib/rules-engine";
 import { toNumber } from "@/lib/utils";
+import {
+  buildLedgerOrderBy,
+  defaultSortDirection,
+  type LedgerSortKey,
+  type SortDirection,
+} from "@/lib/ledger/sort";
 
 export type TeamBonusSummary = {
   sourceAffiliateId: string;
@@ -35,6 +41,8 @@ export type LedgerFilters = {
   q?: string;
   page?: number;
   limit?: number;
+  sortBy?: LedgerSortKey;
+  sortDir?: SortDirection;
 };
 
 const DEFAULT_LIMIT = 50;
@@ -202,6 +210,9 @@ export async function getPaginatedLedgerEntries(filters: LedgerFilters) {
   const page = Math.max(1, filters.page ?? 1);
   const limit = Math.min(100, Math.max(1, filters.limit ?? DEFAULT_LIMIT));
   const where = buildWhere(filters);
+  const sortBy = filters.sortBy ?? "date";
+  const sortDir =
+    filters.sortDir ?? defaultSortDirection(sortBy);
 
   const total = await prisma.ledgerEntry.count({ where });
   const entries = await prisma.ledgerEntry.findMany({
@@ -219,9 +230,7 @@ export async function getPaginatedLedgerEntries(filters: LedgerFilters) {
         select: { id: true, label: true, status: true },
       },
     },
-    // Thousands of rows share a sync timestamp, so an unstable sort key would
-    // let OFFSET paging repeat and skip entries. id breaks the ties.
-    orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+    orderBy: buildLedgerOrderBy(sortBy, sortDir),
     skip: (page - 1) * limit,
     take: limit,
   });

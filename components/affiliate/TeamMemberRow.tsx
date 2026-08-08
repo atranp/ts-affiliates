@@ -1,0 +1,161 @@
+"use client";
+
+import { AffiliateAmountCell } from "@/components/affiliate/primitives";
+import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
+import { cn, formatCurrency } from "@/lib/utils";
+
+type MilestoneData = {
+  current: number;
+  threshold: number;
+  met: boolean;
+};
+
+export function TeamMilestoneProgress({
+  current,
+  threshold,
+  met,
+}: MilestoneData) {
+  const percent = met
+    ? 100
+    : Math.min(100, Math.round((current / threshold) * 100));
+  const barTone = met
+    ? "bg-emerald-500"
+    : percent >= 50
+      ? "bg-primary"
+      : percent > 0
+        ? "bg-amber-500"
+        : "bg-transparent";
+
+  return (
+    <div className="flex w-full min-w-0 flex-col gap-1">
+      <p className="ts-micro truncate">
+        {formatCurrency(current)} / {formatCurrency(threshold)}
+      </p>
+      <div className="flex items-center gap-1.5">
+        <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-border/80">
+          <div
+            className={cn("h-full rounded-full transition-all", barTone)}
+            style={{
+              width: met
+                ? "100%"
+                : `${Math.max(percent, percent > 0 ? 10 : 0)}%`,
+            }}
+          />
+        </div>
+        <span
+          className={cn(
+            "ts-micro w-8 shrink-0 text-right",
+            met && "text-emerald-600",
+          )}
+        >
+          {percent}%
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function MemberBonusDisplay({
+  unpaidAmount,
+  pendingAmount,
+}: {
+  unpaidAmount: number;
+  pendingAmount: number;
+}) {
+  if (unpaidAmount > 0) {
+    return (
+      <AffiliateAmountCell
+        amount={formatCurrency(unpaidAmount)}
+        sublabel={AFFILIATE_COPY.team.payout}
+        tone="primary"
+      />
+    );
+  }
+
+  if (pendingAmount > 0) {
+    return (
+      <AffiliateAmountCell
+        amount={formatCurrency(pendingAmount)}
+        sublabel={AFFILIATE_COPY.team.awaitingMilestone}
+        tone="warning"
+      />
+    );
+  }
+
+  return <span className="ts-row-meta text-muted-foreground/70">—</span>;
+}
+
+export type TeamMemberRowProps = {
+  name: string;
+  milestone?: MilestoneData | null;
+  unpaidAmount: number;
+  pendingAmount: number;
+  onClick?: () => void;
+  disabled?: boolean;
+  segment?: "earning" | "ramping" | "inactive";
+  className?: string;
+};
+
+export function TeamMemberRow({
+  name,
+  milestone,
+  unpaidAmount,
+  pendingAmount,
+  onClick,
+  disabled = false,
+  segment,
+  className,
+}: TeamMemberRowProps) {
+  const content = (
+    <div
+      className={cn(
+        "grid w-full min-w-0 grid-cols-[minmax(0,1fr)_5.5rem] items-center gap-x-3 gap-y-1.5 sm:grid-cols-[minmax(0,1fr)_8.5rem_5.5rem] sm:gap-y-0",
+        className,
+      )}
+    >
+      <div className="col-span-2 min-w-0 sm:col-span-1">
+        <p className="ts-row-title truncate">{name}</p>
+      </div>
+      <div className="min-w-0">
+        {milestone?.threshold ? (
+          <TeamMilestoneProgress
+            current={milestone.current}
+            threshold={milestone.threshold}
+            met={milestone.met}
+          />
+        ) : (
+          <span className="ts-row-meta text-muted-foreground/70">—</span>
+        )}
+      </div>
+      <div className="justify-self-end text-right">
+        <MemberBonusDisplay
+          unpaidAmount={unpaidAmount}
+          pendingAmount={pendingAmount}
+        />
+      </div>
+    </div>
+  );
+
+  const rowClass = cn(
+    "ts-list-row min-w-0 max-w-full",
+    segment === "earning" && "bg-success-soft/15",
+    segment === "ramping" && "bg-warning-soft/10",
+    onClick && !disabled && "cursor-pointer",
+    disabled && "cursor-default",
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className={rowClass}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={rowClass}>{content}</div>;
+}

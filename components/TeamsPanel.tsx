@@ -6,7 +6,6 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronUp,
-  Check,
   Clock,
   DollarSign,
   ExternalLink,
@@ -17,6 +16,12 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AffiliateStatCard } from "@/components/affiliate/AffiliateStatCard";
+import { InlinePanelSkeleton } from "@/components/affiliate/DashboardSkeleton";
+import { LedgerFilterSelect } from "@/components/affiliate/LedgerFilterSelect";
+import { TeamMemberRow, TeamMilestoneProgress } from "@/components/affiliate/TeamMemberRow";
+import {
+  AffiliateListPanel,
+} from "@/components/affiliate/primitives";
 import { apiFetch } from "@/lib/api-client";
 import {
   AFFILIATE_COPY,
@@ -101,39 +106,33 @@ function formatRuleSummary(rule: TeamRule, affiliateView: boolean) {
   return parts.join(" · ");
 }
 
-function teamDealHint(rule: TeamRule, affiliateView: boolean) {
-  if (!affiliateView) {
-    return formatRuleSummary(rule, affiliateView);
-  }
-
-  if (rule.milestoneRevenueThreshold) {
-    return `After ${formatCurrency(Number(rule.milestoneRevenueThreshold))} in member sales`;
-  }
-
-  return AFFILIATE_COPY.team.statsHints.teamDeal;
-}
-
 function TeamStats({
   team,
   affiliateView,
   onViewTeamLedger,
   sharedRules = [],
+  hideOnMobile = false,
 }: {
   team: TeamSummary;
   affiliateView: boolean;
   onViewTeamLedger?: (teamId: string) => void;
   sharedRules?: TeamRule[];
+  hideOnMobile?: boolean;
 }) {
-  const { totalRevenue, unpaidTeamBonus, pendingTeamBonus, paidTeamBonus } =
-    team.stats;
+  const { totalRevenue, unpaidTeamBonus, pendingTeamBonus } = team.stats;
 
   const dealRules = teamWideRules(sharedRules);
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div
+      className={cn(
+        "grid gap-2.5 lg:grid-cols-2 lg:gap-3 xl:grid-cols-4",
+        hideOnMobile && "hidden sm:grid"
+      )}
+    >
       <AffiliateStatCard
+        compact={affiliateView}
         label={affiliateView ? AFFILIATE_COPY.team.readyForPayout : "Unpaid"}
-        hint={AFFILIATE_COPY.team.statsHints.payout}
         value={unpaidTeamBonus}
         tone="primary"
         icon={DollarSign}
@@ -151,37 +150,28 @@ function TeamStats({
         }
       />
       <AffiliateStatCard
+        compact={affiliateView}
         label={
           affiliateView ? AFFILIATE_COPY.team.teamRevenue : "Team revenue"
         }
-        hint={AFFILIATE_COPY.team.statsHints.teamRevenue}
         value={totalRevenue}
         tone="primary"
         icon={TrendingUp}
       />
       {pendingTeamBonus > 0 && (
         <AffiliateStatCard
+          compact={affiliateView}
           label={AFFILIATE_COPY.team.awaitingMilestone}
-          hint={AFFILIATE_COPY.team.statsHints.awaitingMilestone}
           value={pendingTeamBonus}
           tone="warning"
           icon={Clock}
         />
       )}
-      {paidTeamBonus > 0 && (
-        <AffiliateStatCard
-          label={AFFILIATE_COPY.team.paid}
-          hint={AFFILIATE_COPY.team.statsHints.paid}
-          value={paidTeamBonus}
-          tone="success"
-          icon={Users}
-        />
-      )}
       {dealRules.map((rule) => (
         <AffiliateStatCard
           key={rule.id}
+          compact={affiliateView}
           label={AFFILIATE_COPY.team.teamDeal}
-          hint={teamDealHint(rule, affiliateView)}
           value={`${rule.ratePercent}%`}
           tone="primary"
           icon={Target}
@@ -277,49 +267,12 @@ function GoalCell({ member }: { member: TeamMemberDetail }) {
     return <span className="text-muted-foreground/70">—</span>;
   }
 
-  if (milestone.met) {
-    return (
-      <Badge variant="paid" className="gap-1 font-semibold">
-        <Check className="h-3 w-3 stroke-[2.5]" aria-hidden />
-        {AFFILIATE_COPY.team.goalReachedShort}
-      </Badge>
-    );
-  }
-
-  const percent = Math.min(
-    100,
-    Math.round((milestone.current / milestone.threshold) * 100)
-  );
-
-  const barTone =
-    percent >= 50
-      ? "bg-primary"
-      : percent > 0
-        ? "bg-amber-500"
-        : "bg-transparent";
-
   return (
-    <div
-      className="flex min-w-[7.5rem] items-center gap-2.5"
-      title={`${formatCurrency(milestone.current)} / ${formatCurrency(
-        milestone.threshold
-      )}`}
-    >
-      <div className="h-2 w-20 shrink-0 overflow-hidden rounded-full bg-border/80">
-        <div
-          className={cn("h-full rounded-full transition-all", barTone)}
-          style={{ width: `${Math.max(percent, percent > 0 ? 8 : 0)}%` }}
-        />
-      </div>
-      <span
-        className={cn(
-          "text-xs font-medium tabular-nums",
-          percent >= 50 ? "text-primary" : "text-muted-foreground"
-        )}
-      >
-        {percent}%
-      </span>
-    </div>
+    <TeamMilestoneProgress
+      current={milestone.current}
+      threshold={milestone.threshold}
+      met={milestone.met}
+    />
   );
 }
 
@@ -412,6 +365,67 @@ function MemberRow({
   );
 }
 
+function MemberMobileCard({
+  member,
+  onViewLedger,
+}: {
+  member: TeamMemberDetail;
+  onViewLedger?: (recruitId: string) => void;
+}) {
+  const name = memberName(member);
+  const segment = segmentOf(member);
+  const milestone = member.stats.milestone;
+  const canViewLedger = !!onViewLedger && unlockedBonus(member) > 0;
+
+  return (
+    <li>
+      <TeamMemberRow
+        name={name}
+        milestone={
+          milestone?.threshold
+            ? {
+                current: milestone.current,
+                threshold: milestone.threshold,
+                met: milestone.met,
+              }
+            : null
+        }
+        unpaidAmount={member.stats.unpaidTeamBonus}
+        pendingAmount={member.stats.pendingTeamBonus}
+        segment={segment}
+        onClick={canViewLedger ? () => onViewLedger(member.id) : undefined}
+        disabled={!canViewLedger}
+      />
+    </li>
+  );
+}
+
+const MOBILE_SORT_OPTIONS: Array<{
+  value: `${SortKey}:${SortDirection}`;
+  label: string;
+}> = [
+  {
+    value: "revenue:desc",
+    label: AFFILIATE_COPY.team.filters.sortSalesHigh,
+  },
+  {
+    value: "revenue:asc",
+    label: AFFILIATE_COPY.team.filters.sortSalesLow,
+  },
+  {
+    value: "goal:desc",
+    label: AFFILIATE_COPY.team.filters.sortGoalHigh,
+  },
+  {
+    value: "owed:desc",
+    label: AFFILIATE_COPY.team.filters.sortUnpaidHigh,
+  },
+  {
+    value: "name:asc",
+    label: AFFILIATE_COPY.team.filters.sortNameAz,
+  },
+];
+
 function TeamRoster({
   members,
   affiliateView,
@@ -464,42 +478,96 @@ function TeamRoster({
     setDirection(defaultDirectionFor(key));
   }
 
-  return (
-    <div className={cn("ts-table-wrap", fillHeight && "ts-table-fill")}>
-        <div className="ts-table-toolbar flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="ts-segment flex-wrap">
-            {filters.map((filter) => (
-              <button
-                key={filter.key}
-                type="button"
-                onClick={() => setSegment(filter.key)}
-                aria-pressed={segment === filter.key}
-                className={cn(
-                  "ts-segment-item",
-                  segment === filter.key
-                    ? "ts-segment-item-active"
-                    : "ts-segment-item-inactive"
-                )}
-              >
-                {filter.label}
-                <span className="ml-1.5 tabular-nums opacity-70">
-                  {filter.count}
-                </span>
-              </button>
-            ))}
-          </div>
+  const mobileSortValue = `${sortKey}:${direction}` as `${SortKey}:${SortDirection}`;
+  const summaryUnpaid = useMemo(
+    () => rows.reduce((sum, member) => sum + member.stats.unpaidTeamBonus, 0),
+    [rows]
+  );
 
-          <div className="relative w-full sm:max-w-xs">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder={AFFILIATE_COPY.team.searchPlaceholder}
-              className="ts-input pl-9"
-              aria-label={AFFILIATE_COPY.team.searchPlaceholder}
-            />
+  return (
+    <div
+      className={cn(
+        "ts-table-wrap min-w-0 max-w-full max-lg:overflow-visible",
+        fillHeight && "ts-table-fill"
+      )}
+    >
+        <div className="ts-table-toolbar shrink-0 space-y-3">
+          <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
+            <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-end sm:gap-2.5">
+              <LedgerFilterSelect
+                ariaLabel="Filter team members"
+                value={segment}
+                onChange={setSegment}
+                className="min-w-0 sm:hidden"
+                options={filters.map((filter) => ({
+                  value: filter.key,
+                  label: filter.label,
+                  count: filter.count,
+                }))}
+              />
+              <LedgerFilterSelect
+                ariaLabel="Sort team members"
+                value={mobileSortValue}
+                onChange={(value) => {
+                  const [key, dir] = value.split(":") as [
+                    SortKey,
+                    SortDirection,
+                  ];
+                  setSortKey(key);
+                  setDirection(dir);
+                }}
+                className="min-w-0 md:hidden sm:min-w-[10.5rem]"
+                options={MOBILE_SORT_OPTIONS}
+              />
+              <div className="ts-segment hidden flex-wrap sm:flex">
+                {filters.map((filter) => (
+                  <button
+                    key={filter.key}
+                    type="button"
+                    onClick={() => setSegment(filter.key)}
+                    aria-pressed={segment === filter.key}
+                    className={cn(
+                      "ts-segment-item",
+                      segment === filter.key
+                        ? "ts-segment-item-active"
+                        : "ts-segment-item-inactive"
+                    )}
+                  >
+                    {filter.label}
+                    <span className="ml-1.5 tabular-nums opacity-70">
+                      {filter.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="relative min-w-0 w-full sm:max-w-xs">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder={AFFILIATE_COPY.team.searchPlaceholder}
+                className="ts-input pl-9"
+                aria-label={AFFILIATE_COPY.team.searchPlaceholder}
+              />
+            </div>
           </div>
         </div>
+
+        {rows.length > 0 && (
+          <div className="ts-table-summary">
+            <p className="ts-row-meta flex w-full min-w-0 items-center justify-between gap-2">
+              <span className="min-w-0 truncate">
+                {rows.length.toLocaleString()}{" "}
+                {rows.length === 1 ? "member" : "members"}
+              </span>
+              <span className="ts-amount shrink-0 whitespace-nowrap text-primary">
+                {formatCurrency(summaryUnpaid)}
+              </span>
+            </p>
+          </div>
+        )}
 
         {rows.length === 0 ? (
           <div
@@ -516,14 +584,16 @@ function TeamRoster({
             </p>
           </div>
         ) : (
-          <div
-            className={cn(
-              fillHeight && "flex min-h-0 flex-1 flex-col overflow-hidden"
-            )}
-          >
-            <Table
-              containerClassName={cn(fillHeight && "ts-table-body-scroll")}
+          <>
+            <div
+              className={cn(
+                "hidden md:block",
+                fillHeight && "flex min-h-0 flex-1 flex-col overflow-hidden"
+              )}
             >
+              <Table
+                containerClassName={cn(fillHeight && "ts-table-body-scroll")}
+              >
             <TableHeader>
               <TableRow className="border-border/80 hover:bg-transparent">
                 <SortableHead
@@ -582,7 +652,20 @@ function TeamRoster({
               ))}
             </TableBody>
           </Table>
-          </div>
+            </div>
+
+            <AffiliateListPanel inset className="ts-table-body md:hidden">
+              <ul className="flex flex-col gap-1.5">
+                {rows.map((member) => (
+                  <MemberMobileCard
+                    key={member.id}
+                    member={member}
+                    onViewLedger={onViewLedger}
+                  />
+                ))}
+              </ul>
+            </AffiliateListPanel>
+          </>
         )}
     </div>
   );
@@ -616,7 +699,7 @@ function TeamDetailSection({
   return (
     <div
       className={cn(
-        fillHeight ? "flex min-h-0 flex-1 basis-0 flex-col gap-6" : "space-y-6"
+        fillHeight ? "flex min-h-0 flex-1 basis-0 flex-col gap-3 sm:gap-5" : "space-y-3 sm:space-y-5"
       )}
     >
       {showStats && (
@@ -626,16 +709,14 @@ function TeamDetailSection({
             affiliateView={affiliateView}
             onViewTeamLedger={onViewTeamLedger}
             sharedRules={sharedRules}
+            hideOnMobile={affiliateView}
           />
         </div>
       )}
 
       {isLoading ? (
-        <div
-          className={cn(
-            "animate-pulse rounded-xl border border-border bg-muted/30",
-            fillHeight ? "min-h-0 flex-1" : "h-64"
-          )}
+        <InlinePanelSkeleton
+          className={fillHeight ? "min-h-[16rem] flex-1" : "h-64"}
         />
       ) : !data || data.team.members.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center">
@@ -839,6 +920,28 @@ export function TeamsPanel({
     const showName =
       !affiliateView ||
       !isSlicewpDownlineTeam({ slicewpKey: team.slicewpKey ?? null });
+
+    if (affiliateView) {
+      return (
+        <section
+          className={cn(
+            "flex min-h-0 min-w-0 max-w-full flex-col gap-3 sm:gap-5",
+            fillHeight && "min-h-0 flex-1",
+            className
+          )}
+        >
+          <TeamDetailSection
+            team={team}
+            teamId={team.id}
+            enabled
+            affiliateView
+            onViewLedger={onViewLedger}
+            onViewTeamLedger={onViewTeamLedger}
+            fillHeight={fillHeight}
+          />
+        </section>
+      );
+    }
 
     return (
       <section

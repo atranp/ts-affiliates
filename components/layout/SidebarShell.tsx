@@ -228,7 +228,7 @@ export function SidebarShell({
         </aside>
 
         {/* Main column */}
-        <div className="flex min-h-0 flex-1 flex-col lg:pl-60">
+        <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col lg:pl-60">
           {/* Mobile top bar */}
           <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-card/95 px-4 backdrop-blur-md lg:hidden">
             <button
@@ -251,12 +251,14 @@ export function SidebarShell({
             </div>
           </header>
 
-          {variant === "admin" && syncBanner}
+          {syncBanner}
 
           <main
             className={cn(
-              "flex min-h-0 flex-1 flex-col overscroll-contain px-4 py-6 pb-12 sm:px-6 lg:px-8",
-              variant === "partner" ? "overflow-hidden" : "overflow-y-auto"
+              "flex min-h-0 min-w-0 max-w-full flex-1 flex-col overscroll-contain px-4 py-4 pb-8 sm:px-6 sm:py-5 lg:px-8 lg:py-6 lg:pb-10",
+              variant === "partner"
+                ? "overflow-x-hidden overflow-y-hidden"
+                : "overflow-y-auto overflow-x-hidden"
             )}
           >
             {children}

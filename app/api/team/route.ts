@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-auth";
 import { jsonCached } from "@/lib/api-cache";
 import { getAffiliateTeam } from "@/lib/admin/team";
+import { isAffiliateMockMode } from "@/lib/mock/config";
+import { mockLegacyTeamResponse } from "@/lib/mock/affiliate-fixtures";
+import { requireAffiliateAuth } from "@/lib/mock/require-affiliate-auth";
 
 export async function GET(request: Request) {
-  const auth = await requireAuth();
+  const auth = await requireAffiliateAuth();
   if ("error" in auth) return auth.error;
+
+  if (isAffiliateMockMode()) {
+    return jsonCached(mockLegacyTeamResponse());
+  }
 
   const { searchParams } = new URL(request.url);
   let affiliateId = auth.user.affiliateId;

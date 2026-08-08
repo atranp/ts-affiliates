@@ -8,9 +8,7 @@ import {
 } from "@prisma/client";
 import { prisma } from "./prisma";
 import {
-  getMilestoneProgress,
   getRecruitCumulativeRevenue,
-  milestoneDescriptionSuffix,
   overrideStatusForMilestone,
   promoteMilestoneOverrides,
 } from "./milestone";
@@ -291,28 +289,23 @@ function buildOverrideEntryData(
   const threshold = rule.milestoneRevenueThreshold
     ? toNumber(rule.milestoneRevenueThreshold)
     : null;
-  const progress = getMilestoneProgress(cumulativeRevenue, threshold);
   const status = overrideStatusForMilestone(
     commission.status,
     cumulativeRevenue,
     threshold
   );
 
-  const rate = toNumber(rule.ratePercent);
-
-  // The ledger shows the sale amount in its own column, so the description
-  // only needs to say whose sale this came from.
   const orderLabel = commission.wooOrderId
     ? ` · Order #${commission.wooOrderId}`
     : "";
-  const baseDescription = `${rate}% of ${sourceName}'s sale${orderLabel}`;
+  const description = `${sourceName}${orderLabel}`;
 
   return {
     affiliateId: rule.sponsorAffiliateId,
     type: LedgerEntryType.OVERRIDE,
     amount,
     status,
-    description: `${baseDescription}${milestoneDescriptionSuffix(progress)}`,
+    description,
     wooOrderId: commission.wooOrderId,
     orderRevenue: commission.orderRevenue,
     sourceAffiliateId,
