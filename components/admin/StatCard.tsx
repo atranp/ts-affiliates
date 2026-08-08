@@ -50,13 +50,13 @@ export function StatCard({
         className
       )}
     >
-      <div className="flex items-start justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
           <span className="ts-stat-label">{label}</span>
           <p className={cn("stat-value mt-1", valueStyles[variant])}>{value}</p>
         </div>
         {Icon && (
-          <div className={cn("ts-icon-box", iconStyles[variant])}>
+          <div className={cn("ts-icon-box hidden sm:block", iconStyles[variant])}>
             <Icon className="h-5 w-5" />
           </div>
         )}
@@ -79,7 +79,7 @@ export function StatCardSkeleton() {
           <Skeleton className="h-3 w-24" />
           <Skeleton className="h-8 w-32" />
         </div>
-        <Skeleton className="h-10 w-10 rounded-lg" />
+        <Skeleton className="hidden h-10 w-10 rounded-lg sm:block" />
       </div>
       <Skeleton className="h-3 w-full" />
     </div>

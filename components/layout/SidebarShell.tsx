@@ -93,6 +93,7 @@ function SidebarPanel({
   navItems,
   navActive,
   onNavigate,
+  headerAction,
 }: {
   homeHref: string;
   portalLabel?: string;
@@ -100,6 +101,7 @@ function SidebarPanel({
   navItems: SidebarNavItem[];
   navActive: (item: SidebarNavItem) => boolean;
   onNavigate?: () => void;
+  headerAction?: React.ReactNode;
 }) {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
@@ -114,8 +116,8 @@ function SidebarPanel({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-border px-4 py-5">
-        <Link href={homeHref} onClick={onNavigate} className="block min-w-0">
+      <div className="flex items-center gap-2 border-b border-border px-4 py-4">
+        <Link href={homeHref} onClick={onNavigate} className="block min-w-0 flex-1">
           <p className="truncate text-base font-bold tracking-tight text-brand-dark">
             TRUE SCIENCES
           </p>
@@ -125,6 +127,7 @@ function SidebarPanel({
             </p>
           )}
         </Link>
+        {headerAction}
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
@@ -218,10 +221,13 @@ export function SidebarShell({
   };
 
   return (
-    <div className="min-h-screen bg-background pt-[var(--impersonation-offset,0px)]">
+    <div className="min-h-[100dvh] bg-background pt-[var(--impersonation-offset,0px)]">
       <ImpersonationBanner />
 
-      <div className="flex h-[calc(100dvh-var(--impersonation-offset,0px))] min-h-0">
+      {/* Below lg the document scrolls. Pinning the shell to the viewport there
+          strands content behind Safari's collapsing toolbar, because `vh`
+          resolves to the toolbar-hidden height while `dvh` tracks the current one. */}
+      <div className="flex min-h-0 lg:h-[calc(100dvh-var(--impersonation-offset,0px))]">
         {/* Desktop sidebar — sits below the impersonation banner when active */}
         <aside className="hidden w-60 shrink-0 border-r border-border bg-card lg:fixed lg:bottom-0 lg:left-0 lg:top-[var(--impersonation-offset,0px)] lg:z-30 lg:flex lg:flex-col">
           <SidebarPanel {...sidebarProps} />
@@ -255,10 +261,10 @@ export function SidebarShell({
 
           <main
             className={cn(
-              "flex min-h-0 min-w-0 max-w-full flex-1 flex-col overscroll-contain px-4 py-4 pb-8 sm:px-6 sm:py-5 lg:px-8 lg:py-6 lg:pb-10",
+              "flex min-h-0 min-w-0 max-w-full flex-1 flex-col px-4 py-4 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-5 lg:overflow-x-hidden lg:overscroll-contain lg:px-8 lg:py-6 lg:pb-10",
               variant === "partner"
-                ? "overflow-x-hidden overflow-y-hidden"
-                : "overflow-y-auto overflow-x-hidden"
+                ? "lg:overflow-y-hidden"
+                : "lg:overflow-y-auto"
             )}
           >
             {children}
@@ -276,19 +282,19 @@ export function SidebarShell({
             onClick={() => setMobileOpen(false)}
           />
           <aside className="absolute bottom-0 left-0 top-[var(--impersonation-offset,0px)] flex w-[min(100%,16rem)] flex-col border-r border-border bg-card shadow-xl">
-            <div className="flex justify-end border-b border-border p-2">
-              <button
-                type="button"
-                onClick={() => setMobileOpen(false)}
-                className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
-                aria-label="Close menu"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="flex min-h-0 flex-1 flex-col">
-              <SidebarPanel {...sidebarProps} />
-            </div>
+            <SidebarPanel
+              {...sidebarProps}
+              headerAction={
+                <button
+                  type="button"
+                  onClick={() => setMobileOpen(false)}
+                  className="-mr-1.5 shrink-0 rounded-lg p-2.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label="Close menu"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              }
+            />
           </aside>
         </div>
       )}

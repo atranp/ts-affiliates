@@ -40,7 +40,7 @@ export default function AdminDashboardPage() {
         <ErrorState message={error.message} onRetry={() => refetch()} />
       )}
 
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-5 lg:grid-cols-4">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
         ) : data ? (

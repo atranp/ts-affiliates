@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { formatAppDate } from "@/lib/timezone";
-import { formatCurrency, formatSaleDate } from "@/lib/utils";
+import { cn, formatCurrency, formatSaleDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -241,7 +241,10 @@ export function AdminLedgerTable({
             <Button
               variant="outline"
               size="sm"
-              className={selected.size > 0 ? undefined : "ml-auto"}
+              className={cn(
+                "w-full sm:w-auto",
+                selected.size > 0 ? undefined : "sm:ml-auto"
+              )}
               onClick={onAddAdjustment}
             >
               <Plus className="mr-2 h-4 w-4" />
@@ -349,9 +352,9 @@ export function AdminLedgerTable({
         {entries.map((entry) => (
           <div
             key={entry.id}
-            className="space-y-3 rounded-lg border border-border bg-card p-3"
+            className="space-y-2.5 rounded-lg border border-border bg-card p-3"
           >
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-2.5">
               <input
                 type="checkbox"
                 checked={selected.has(entry.id)}
@@ -361,13 +364,13 @@ export function AdminLedgerTable({
               />
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="space-y-1">
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                     <p className="text-sm text-muted-foreground">
                       {formatSaleDate(entry.occurredAt)}
                     </p>
                     <EntryTypeBadge type={entry.type} />
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex shrink-0 items-center gap-1">
                     <span className="font-semibold tabular-nums text-success">
                       {formatCurrency(entry.amount)}
                     </span>

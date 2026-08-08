@@ -130,7 +130,7 @@
   }
 
   .stat-value {
-    @apply text-2xl font-bold tracking-tight tabular-nums;
+    @apply text-xl font-bold tracking-tight tabular-nums sm:text-2xl;
   }
 
   .ts-home-card {
@@ -285,7 +285,7 @@
   }
 
   .ts-stat-card {
-    @apply flex min-w-0 max-w-full flex-col justify-between gap-2.5 rounded-xl border border-border/70 bg-gradient-to-b from-muted/40 to-card p-4 shadow-sm transition-all sm:gap-3 sm:p-5;
+    @apply flex min-w-0 max-w-full flex-col justify-between gap-2 rounded-xl border border-border/70 bg-gradient-to-b from-muted/40 to-card p-3 shadow-sm transition-all sm:gap-3 sm:p-5;
   }
 
   .ts-stat-label {
@@ -372,11 +372,11 @@
   }
 
   .ts-panel-header {
-    @apply border-b border-border/70 bg-muted/30 px-5 py-4 sm:px-6;
+    @apply border-b border-border/70 bg-muted/30 px-3 py-3 sm:px-5 sm:py-4 lg:px-6;
   }
 
   .ts-panel-body {
-    @apply p-5 sm:p-6;
+    @apply p-3 sm:p-5 lg:p-6;
   }
 
   .ts-section-title {
@@ -597,13 +597,14 @@
     @apply mt-0 flex min-h-0 flex-1 flex-col gap-5 overflow-hidden;
   }
 
-  /** Scrollable tab body — home, payouts. */
+  /** Scrollable tab body — home, payouts. Only desktop scrolls its own region;
+      on phones a nested scroller fights the document scroll. */
   .ts-affiliate-tab-scroll {
-    @apply mt-0 min-h-0 min-w-0 max-w-full flex-1 overflow-x-hidden overflow-y-auto overscroll-contain bg-background;
+    @apply mt-0 min-h-0 min-w-0 max-w-full flex-1 bg-background lg:overflow-x-hidden lg:overflow-y-auto lg:overscroll-contain;
   }
 
   .ts-panel-scroll {
-    @apply min-h-0 flex-1 overflow-y-auto overscroll-contain;
+    @apply min-h-0 flex-1 lg:overflow-y-auto lg:overscroll-contain;
   }
 }
 

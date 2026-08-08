@@ -26,7 +26,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} min-h-screen font-sans antialiased`}>
+      <body
+        className={`${inter.variable} min-h-[100dvh] overflow-x-hidden font-sans antialiased`}
+      >
         <Providers>{children}</Providers>
       </body>
     </html>

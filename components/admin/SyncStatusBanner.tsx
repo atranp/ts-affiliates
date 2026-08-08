@@ -53,7 +53,7 @@ export function SyncStatusBanner({
     const connected = status.hasWooCommerce && status.hasSliceWP;
 
     return (
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted px-4 py-1.5 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 border-b border-border bg-muted px-4 py-0.5 text-xs text-muted-foreground sm:py-1.5">
         <div className="flex flex-wrap items-center gap-2">
           {connected ? (
             <div className="flex items-center gap-1.5 font-medium text-emerald-700">
@@ -86,7 +86,7 @@ export function SyncStatusBanner({
           type="button"
           onClick={onSync}
           disabled={starting || !status.hasSliceWP}
-          className="flex items-center gap-1.5 font-semibold text-primary hover:text-brand-mid hover:underline disabled:opacity-50"
+          className="-mr-2 flex min-h-9 items-center gap-1.5 px-2 font-semibold text-primary hover:text-brand-mid hover:underline disabled:opacity-50 sm:mr-0 sm:min-h-0 sm:px-0"
         >
           <RefreshCw
             className={`h-3 w-3 ${starting ? "animate-spin" : ""}`}

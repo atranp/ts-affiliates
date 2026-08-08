@@ -56,6 +56,12 @@ import { formatCurrency } from "@/lib/utils";
 
 type ViewTab = "ledger" | "payouts" | "team" | "rules";
 
+/** All four labels only fit a phone without the icons and with tighter padding. */
+const detailTabClass =
+  "relative h-10 shrink-0 rounded-none border-b-2 border-b-transparent bg-transparent px-3 pb-3 pt-2 font-semibold text-muted-foreground shadow-none transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none sm:px-4";
+
+const detailTabIconClass = "mr-2 hidden h-4 w-4 sm:inline-block";
+
 function statusBadgeVariant(
   status: string
 ): "paid" | "pending" | "secondary" | "destructive" {
@@ -323,7 +329,7 @@ function AdminAffiliateDetailPageContent() {
       )}
 
       {affiliateLoading && (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <StatCardSkeleton key={i} />
           ))}
@@ -332,7 +338,7 @@ function AdminAffiliateDetailPageContent() {
 
       {affiliate && (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-4 xl:grid-cols-4">
             <button
               type="button"
               className="text-left"
@@ -436,32 +442,20 @@ function AdminAffiliateDetailPageContent() {
             <div className="flex-1 min-w-0">
               <Tabs value={viewTab} onValueChange={(v) => setViewTab(v as typeof viewTab)} className="w-full">
                 <TabsList className="mb-4 h-10 w-full justify-start overflow-x-auto overflow-y-hidden rounded-none border-b border-border bg-transparent p-0">
-                  <TabsTrigger 
-                    value="ledger" 
-                    className="relative h-10 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground shadow-none transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                  >
-                    <FileText className="mr-2 h-4 w-4" />
+                  <TabsTrigger value="ledger" className={detailTabClass}>
+                    <FileText className={detailTabIconClass} />
                     Ledger
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="payouts" 
-                    className="relative h-10 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground shadow-none transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                  >
-                    <DollarSign className="mr-2 h-4 w-4" />
+                  <TabsTrigger value="payouts" className={detailTabClass}>
+                    <DollarSign className={detailTabIconClass} />
                     Payouts
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="team" 
-                    className="relative h-10 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground shadow-none transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                  >
-                    <Users className="mr-2 h-4 w-4" />
+                  <TabsTrigger value="team" className={detailTabClass}>
+                    <Users className={detailTabIconClass} />
                     Teams{teamCount > 0 ? ` (${teamCount})` : ""}
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="rules" 
-                    className="relative h-10 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground shadow-none transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                  >
-                    <Share2 className="mr-2 h-4 w-4" />
+                  <TabsTrigger value="rules" className={detailTabClass}>
+                    <Share2 className={detailTabIconClass} />
                     Deal rules{ruleCount > 0 ? ` (${ruleCount})` : ""}
                   </TabsTrigger>
                 </TabsList>
@@ -515,7 +509,7 @@ function AdminAffiliateDetailPageContent() {
                               setPage(1);
                             }}
                           >
-                          <TabsList className="h-auto flex-wrap">
+                          <TabsList className="flex h-auto w-full flex-wrap justify-start">
                             <TabsTrigger value="all">All</TabsTrigger>
                             <TabsTrigger value="unpaid">Unpaid</TabsTrigger>
                             <TabsTrigger value="paid">Paid</TabsTrigger>

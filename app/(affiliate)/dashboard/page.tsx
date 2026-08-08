@@ -287,7 +287,7 @@ function DashboardPageContent() {
         <Tabs
           value={viewTab}
           onValueChange={setViewTab}
-          className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden"
+          className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col lg:overflow-hidden"
         >
           <TabsContent
             value="overview"

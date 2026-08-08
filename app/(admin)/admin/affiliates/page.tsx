@@ -119,7 +119,7 @@ export default function AdminAffiliatesPage() {
           </div>
         </div>
 
-        <div className="p-4 space-y-4">
+        <div className="space-y-3 p-2.5 sm:space-y-4 sm:p-4">
 
           {error && (
             <ErrorState message={error.message} onRetry={() => refetch()} />
