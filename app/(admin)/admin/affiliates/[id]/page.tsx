@@ -34,7 +34,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TableSkeleton } from "@/components/admin/TableSkeleton";
 import { useQueryClient } from "@tanstack/react-query";
-import { adminMutate, queryKeys, useAdminAffiliate } from "@/hooks/use-admin-query";
+import {
+  adminMutate,
+  queryKeys,
+  useAdminAffiliate,
+  useAdminQuery,
+} from "@/hooks/use-admin-query";
 import { ledgerTabToFilters, useLedger, type LedgerTab } from "@/hooks/use-ledger";
 import { TeamPanel, useTeam } from "@/components/TeamPanel";
 import { TeamsPanel, useTeams } from "@/components/TeamsPanel";
@@ -42,7 +47,11 @@ import type {
   AdminAffiliateDetail,
 } from "@/lib/admin/types";
 import { AffiliatePortalPanel } from "@/components/admin/AffiliatePortalPanel";
-import { PayoutBuilder } from "@/components/payouts/PayoutBuilder";
+import { CreatePayoutPanel } from "@/components/payouts/CreatePayoutPanel";
+import {
+  PayoutHistoryPanel,
+  type PayoutBatchRow,
+} from "@/components/payouts/PayoutHistoryPanel";
 import { formatCurrency } from "@/lib/utils";
 
 type ViewTab = "ledger" | "payouts" | "team" | "rules";
@@ -97,6 +106,7 @@ function AdminAffiliateDetailPageContent() {
   const [adjustmentOpen, setAdjustmentOpen] = useState(false);
   const [ledgerSaving, setLedgerSaving] = useState(false);
   const [debouncedQ, setDebouncedQ] = useState("");
+  const [payoutSearch, setPayoutSearch] = useState("");
 
   const {
     data: affiliate,
@@ -130,6 +140,17 @@ function AdminAffiliateDetailPageContent() {
     limit: 50,
     enabled: !!affiliateId,
   });
+
+  const {
+    data: payoutBatches,
+    isLoading: payoutBatchesLoading,
+    refetch: refetchPayoutBatches,
+  } = useAdminQuery<{ batches: PayoutBatchRow[] }>(
+    ["admin", "payout-batches", affiliateId],
+    affiliateId
+      ? `/api/admin/payouts/batches?sponsorAffiliateId=${affiliateId}`
+      : null
+  );
 
   const { data: teamData, isLoading: teamLoading } = useTeam(
     affiliateId,
@@ -560,24 +581,37 @@ function AdminAffiliateDetailPageContent() {
                   </Card>
                 </TabsContent>
 
-                <TabsContent value="payouts" className="mt-0">
+                <TabsContent value="payouts" className="mt-0 space-y-4">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Payouts</CardTitle>
+                      <CardTitle>Record payout</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <PayoutBuilder
-                        affiliateId={affiliate.id}
-                        displayName={displayName}
-                        onBatchCreated={() => {
+                      <CreatePayoutPanel
+                        fixedAffiliate={{
+                          id: affiliate.id,
+                          name: displayName,
+                        }}
+                        onCreated={() => {
                           void queryClient.invalidateQueries({
                             queryKey: queryKeys.admin.affiliate(affiliateId),
                           });
                           void refetchAffiliate();
+                          void refetchPayoutBatches();
                         }}
                       />
                     </CardContent>
                   </Card>
+
+                  <PayoutHistoryPanel
+                    batches={payoutBatches?.batches ?? []}
+                    loading={payoutBatchesLoading}
+                    search={payoutSearch}
+                    onSearchChange={setPayoutSearch}
+                    onRefresh={() => {
+                      void refetchPayoutBatches();
+                    }}
+                  />
                 </TabsContent>
 
                 <TabsContent value="team" className="mt-0 space-y-4">

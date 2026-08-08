@@ -1,5 +1,3 @@
-export type PayoutScope = "all" | "team" | "direct" | "recruit";
-
 export type PayoutRecruitLine = {
   sourceAffiliateId: string;
   displayName: string | null;
@@ -8,19 +6,6 @@ export type PayoutRecruitLine = {
   overrideCount: number;
   /** Sale value behind the bonus, so the effective rate can be shown. */
   sourceRevenue: number;
-};
-
-/** A single sale behind a payout, shown so the rate can be checked before paying. */
-export type PayoutPreviewEntry = {
-  id: string;
-  occurredAt: string;
-  type: string;
-  description: string | null;
-  wooOrderId: number | null;
-  orderRevenue: number | null;
-  amount: number;
-  affiliateName: string;
-  sourceAffiliateName: string | null;
 };
 
 export type PayoutBatchEntry = {

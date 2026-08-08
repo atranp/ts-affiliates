@@ -67,7 +67,7 @@ export default function AdminDashboardPage() {
               <StatCard
                 label="Unpaid Total"
                 value={formatCurrency(data.ledger.unpaidTotal)}
-                hint="Ready for payout run"
+                hint="Owed across all ambassadors"
                 variant="primary"
                 icon={DollarSign}
                 footer={
@@ -130,11 +130,11 @@ export default function AdminDashboardPage() {
                 desc: "View affiliate status, portal invites, and manual adjustments",
               },
               {
-                href: "/admin/payouts",
+                href: "/admin/payouts/new",
                 icon: DollarSign,
                 iconClass: "bg-emerald-700 text-white",
-                title: "Execute Custom Payout Run",
-                desc: "Select sponsor/team, date range, preview run, and mark paid",
+                title: "Record a Payout",
+                desc: "Pick an ambassador, review what they're owed, and mark it paid",
               },
               {
                 href: "/admin/deal-rules",

@@ -19,8 +19,6 @@ export type PayoutTarget =
   | { scope: "direct" }
   | { scope: "member"; teamId: string; memberId: string };
 
-export type PayoutScopeName = PayoutTarget["scope"];
-
 export type PayoutSelection = {
   affiliateId: string;
   target: PayoutTarget;
@@ -233,10 +231,7 @@ async function loadTargetContext(
   };
 }
 
-export function buildPayoutLabel(
-  context: TargetContext,
-  cutoff: Date
-): string {
+export function buildPayoutLabel(context: TargetContext, cutoff: Date): string {
   return `${context.affiliateName} · ${context.targetLabel} through ${formatAppDateTime(cutoff)}`;
 }
 
@@ -298,6 +293,77 @@ export async function previewPayout(
         : null,
     })),
     entriesTruncated: entryCount > entries.length,
+  };
+}
+
+const CSV_COLUMNS = [
+  "Sale date",
+  "Type",
+  "Member",
+  "Order",
+  "Sale amount",
+  "Rate",
+  "Earned",
+  "Description",
+];
+
+function csvCell(value: string | null): string {
+  if (value == null) return "";
+  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+/**
+ * The full selection, not the truncated preview — this file exists to be
+ * reconciled line by line against SliceWP before the money moves.
+ */
+export async function buildPayoutCsv(
+  selection: PayoutSelection
+): Promise<{ filename: string; csv: string }> {
+  const [context, entries] = await Promise.all([
+    loadTargetContext(selection),
+    prisma.ledgerEntry.findMany({
+      where: buildUnpaidWhere(selection),
+      orderBy: { occurredAt: "asc" },
+      select: {
+        occurredAt: true,
+        type: true,
+        description: true,
+        wooOrderId: true,
+        orderRevenue: true,
+        amount: true,
+        sourceAffiliate: { select: { displayName: true, email: true } },
+      },
+    }),
+  ]);
+
+  const rows = entries.map((entry) => {
+    const amount = toNumber(entry.amount);
+    const revenue =
+      entry.orderRevenue == null ? null : toNumber(entry.orderRevenue);
+    return [
+      entry.occurredAt.toISOString().slice(0, 10),
+      entry.type === LedgerEntryType.OVERRIDE ? "Team earnings" : "Direct",
+      entry.sourceAffiliate
+        ? (entry.sourceAffiliate.displayName ?? entry.sourceAffiliate.email)
+        : "",
+      entry.wooOrderId ? `#${entry.wooOrderId}` : "",
+      revenue == null ? "" : revenue.toFixed(2),
+      revenue ? `${((amount / revenue) * 100).toFixed(2)}%` : "",
+      amount.toFixed(2),
+      entry.description ?? "",
+    ]
+      .map(csvCell)
+      .join(",");
+  });
+
+  const slug = buildPayoutLabel(context, selection.cutoff)
+    .replace(/[^\w]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase();
+
+  return {
+    filename: `payout-${slug}.csv`,
+    csv: [CSV_COLUMNS.join(","), ...rows].join("\n"),
   };
 }
 

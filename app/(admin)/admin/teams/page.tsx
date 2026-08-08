@@ -66,15 +66,15 @@ function TeamActions({
 }) {
   return (
     <>
+      {/* Team earnings are paid one member at a time, so this lands on the
+          sponsor's payout tab rather than a team-wide payout screen. */}
       <Button
         variant="ghost"
         size="icon"
         asChild
-        title="Create a payout for this team"
+        title={`Pay ${team.sponsorAffiliate.displayName ?? team.sponsorAffiliate.email} for this team`}
       >
-        <Link
-          href={`/admin/payouts?teamId=${team.id}&sponsorAffiliateId=${team.sponsorAffiliateId}`}
-        >
+        <Link href={`/admin/affiliates/${team.sponsorAffiliateId}?tab=payouts`}>
           <DollarSign className="h-4 w-4" />
         </Link>
       </Button>

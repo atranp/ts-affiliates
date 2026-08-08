@@ -64,7 +64,9 @@ Rules are evaluated on every commission sync. Override entries appear in the spo
 | `POST /api/sync` | Full SliceWP sync (admin or cron bearer token) |
 | `GET /api/ledger` | Affiliate commission ledger |
 | `POST /api/admin/deal-rules` | Create deal rule |
-| `POST /api/admin/payouts/run` | Mark due unpaid entries as paid |
+| `GET /api/admin/payouts/create/options` | What an ambassador can be paid for right now |
+| `GET /api/admin/payouts/create` | Preview one payout target (add `/export` for CSV) |
+| `POST /api/admin/payouts/create` | Mark the previewed entries paid and write the receipt |
 
 ## Cron sync (automated)
 

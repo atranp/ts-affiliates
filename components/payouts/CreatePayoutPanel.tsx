@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { AlertTriangle, Check, RefreshCw } from "lucide-react";
+import { AlertTriangle, Check, Download, RefreshCw } from "lucide-react";
 import {
   AffiliateSearchCombobox,
   type AffiliateOption,
@@ -38,7 +38,20 @@ function targetParams(target: PayoutTarget): Record<string, string> {
     : { scope: target.scope };
 }
 
-export function CreatePayoutPanel() {
+type CreatePayoutPanelProps = {
+  /**
+   * Locks the panel to one ambassador and drops the search step. Used where the
+   * page already answers "who" — the affiliate detail screen.
+   */
+  fixedAffiliate?: { id: string; name: string };
+  /** Runs after a payout is recorded, in place of navigating to the receipt. */
+  onCreated?: (payout: CreatedPayout) => void;
+};
+
+export function CreatePayoutPanel({
+  fixedAffiliate,
+  onCreated,
+}: CreatePayoutPanelProps = {}) {
   const router = useRouter();
 
   const [affiliate, setAffiliate] = useState<AffiliateOption | null>(null);
@@ -57,7 +70,9 @@ export function CreatePayoutPanel() {
     null
   );
 
-  const affiliateId = affiliate?.id ?? null;
+  const affiliateId = fixedAffiliate?.id ?? affiliate?.id ?? null;
+  // Steps renumber rather than showing a disabled step 1 nobody can act on.
+  const stepOffset = fixedAffiliate ? 0 : 1;
 
   const runSync = useCallback(async (id: string) => {
     setSyncing(true);
@@ -182,7 +197,14 @@ export function CreatePayoutPanel() {
         description: `${payout.entryCount.toLocaleString("en-US")} commissions recorded on this receipt.`,
       });
       setConfirmOpen(false);
-      router.push(`/admin/payouts/${payout.batchId}`);
+      setSelectedKey(null);
+
+      if (onCreated) {
+        onCreated(payout);
+        refresh();
+      } else {
+        router.push(`/admin/payouts/${payout.batchId}`);
+      }
     } catch (err) {
       setConfirmOpen(false);
       toast.error(err instanceof Error ? err.message : "Payout failed", {
@@ -196,20 +218,32 @@ export function CreatePayoutPanel() {
 
   return (
     <div className="space-y-5">
-      <Step number={1} title="Pick the ambassador">
-        <AffiliateSearchCombobox
-          id="create-payout-affiliate"
-          label="Ambassador"
-          value={affiliateId ?? ""}
-          selected={affiliate}
-          onChange={(_id, option) => {
-            setSelectedKey(null);
-            setAffiliate(option);
-          }}
-        />
-      </Step>
+      {fixedAffiliate && (
+        <p className="text-sm text-muted-foreground">
+          Paying{" "}
+          <span className="font-semibold text-brand-dark">
+            {fixedAffiliate.name}
+          </span>{" "}
+          everything they are owed up to right now.
+        </p>
+      )}
 
-      <Step number={2} title="Choose what to pay">
+      {!fixedAffiliate && (
+        <Step number={1} title="Pick the ambassador">
+          <AffiliateSearchCombobox
+            id="create-payout-affiliate"
+            label="Ambassador"
+            value={affiliateId ?? ""}
+            selected={affiliate}
+            onChange={(_id, option) => {
+              setSelectedKey(null);
+              setAffiliate(option);
+            }}
+          />
+        </Step>
+      )}
+
+      <Step number={stepOffset + 1} title="Choose what to pay">
         {!affiliateId ? (
           <p className="text-sm text-muted-foreground">
             Pick an ambassador above and their unpaid totals will show up here.
@@ -249,7 +283,7 @@ export function CreatePayoutPanel() {
         )}
       </Step>
 
-      <Step number={3} title="Review and pay" last>
+      <Step number={stepOffset + 2} title="Review and pay" last>
         {!selected ? (
           <p className="text-sm text-muted-foreground">
             Pick something to pay above and its commissions will show up here.
@@ -324,6 +358,17 @@ export function CreatePayoutPanel() {
               >
                 <Check className="mr-2 h-4 w-4" />
                 Pay {formatCurrency(draft.totalAmount)}
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-11 rounded-lg"
+                asChild
+              >
+                <a href={`/api/admin/payouts/create/export?${draftQuery}`}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Export CSV
+                </a>
               </Button>
               <p className="text-xs leading-relaxed text-muted-foreground">
                 Marks these commissions paid and creates a receipt listing every
@@ -405,8 +450,7 @@ function OptionTree({
             <span className="font-semibold">
               {formatCurrency(data.unattributed.amount)}
             </span>{" "}
-            across{" "}
-            {data.unattributed.entryCount.toLocaleString("en-US")} unpaid{" "}
+            across {data.unattributed.entryCount.toLocaleString("en-US")} unpaid{" "}
             {data.unattributed.entryCount === 1 ? "entry" : "entries"} is not
             listed above — bonuses, adjustments, and overrides with no team or
             member attached. Nothing on this screen can pay those yet.
@@ -512,7 +556,7 @@ function EntriesTable({ draft }: { draft: PayoutDraft }) {
     <div className="space-y-2">
       <p className="text-xs text-muted-foreground">
         {draft.entriesTruncated
-          ? `Showing the ${draft.entries.length} most recent of ${draft.entryCount.toLocaleString("en-US")} commissions. The total above covers all of them.`
+          ? `Showing the ${draft.entries.length} most recent of ${draft.entryCount.toLocaleString("en-US")} commissions. The total above covers all of them — export the CSV for every line.`
           : `All ${draft.entries.length} commissions in this payout.`}
       </p>
       <div className="ts-table-wrap">
