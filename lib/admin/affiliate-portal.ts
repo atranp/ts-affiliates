@@ -2,17 +2,13 @@ import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { linkProfileToAffiliateByEmail } from "@/lib/sync";
+import {
+  buildPortalInviteMessage,
+  randomPassword,
+} from "./portal-credentials";
 import { logAdminAction } from "./audit-log";
 
-function randomPassword(length = 16): string {
-  const chars =
-    "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let result = "";
-  for (let i = 0; i < length; i++) {
-    result += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return result;
-}
+export { buildPortalInviteMessage };
 
 export type InviteAffiliateResult = {
   created: boolean;
@@ -28,31 +24,6 @@ export type PortalActionResult = {
   temporaryPassword?: string;
   inviteMessage?: string;
 };
-
-function portalLoginUrl(): string {
-  const base =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ??
-    "http://localhost:3000";
-  return `${base}/login`;
-}
-
-export function buildPortalInviteMessage(input: {
-  name: string;
-  email: string;
-  temporaryPassword: string;
-}): string {
-  return [
-    `Hi ${input.name},`,
-    "",
-    "Your True Sciences affiliate portal is ready.",
-    "",
-    `Login: ${portalLoginUrl()}`,
-    `Email: ${input.email}`,
-    `Temporary password: ${input.temporaryPassword}`,
-    "",
-    "Please sign in and change your password when prompted.",
-  ].join("\n");
-}
 
 async function getAffiliateWithProfile(affiliateId: string) {
   const affiliate = await prisma.affiliate.findUnique({

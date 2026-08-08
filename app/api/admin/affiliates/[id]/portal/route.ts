@@ -6,14 +6,23 @@ import {
   forceAffiliateSignOut,
   resetAffiliatePortalPassword,
 } from "@/lib/admin/affiliate-portal";
+import { isAdminMockMode } from "@/lib/mock/config";
+import { mockPortalAction } from "@/lib/mock/admin-fixtures";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-type PortalAction =
-  | "reset-password"
-  | "disable"
-  | "enable"
-  | "sign-out";
+const PORTAL_ACTIONS = [
+  "reset-password",
+  "disable",
+  "enable",
+  "sign-out",
+] as const;
+
+type PortalAction = (typeof PORTAL_ACTIONS)[number];
+
+function isPortalAction(value: unknown): value is PortalAction {
+  return PORTAL_ACTIONS.includes(value as PortalAction);
+}
 
 export async function POST(request: Request, context: RouteContext) {
   const auth = await requireAdmin();
@@ -23,13 +32,21 @@ export async function POST(request: Request, context: RouteContext) {
 
   let action: PortalAction;
   try {
-    const body = (await request.json()) as { action?: PortalAction };
-    action = body.action ?? "reset-password";
+    const body = (await request.json()) as { action?: unknown };
+    const requested = body.action ?? "reset-password";
+    if (!isPortalAction(requested)) {
+      return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+    }
+    action = requested;
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
   try {
+    if (isAdminMockMode()) {
+      return NextResponse.json(mockPortalAction(id, action));
+    }
+
     switch (action) {
       case "reset-password": {
         const result = await resetAffiliatePortalPassword(id, auth.user.id);
@@ -47,8 +64,6 @@ export async function POST(request: Request, context: RouteContext) {
         const result = await forceAffiliateSignOut(id, auth.user.id);
         return NextResponse.json(result);
       }
-      default:
-        return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }
   } catch (error) {
     console.error("Portal action failed:", error);

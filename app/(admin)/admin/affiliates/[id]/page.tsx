@@ -168,12 +168,15 @@ function AdminAffiliateDetailPageContent() {
 
   async function handleViewAsAffiliate() {
     try {
-      await adminMutate<{ redirectTo: string }>("/api/admin/impersonate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ affiliateId }),
-      });
-      window.location.href = "/dashboard";
+      const { redirectTo } = await adminMutate<{ redirectTo: string }>(
+        "/api/admin/impersonate",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ affiliateId }),
+        }
+      );
+      window.location.href = redirectTo ?? "/dashboard";
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not start preview");
     }

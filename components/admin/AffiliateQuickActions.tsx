@@ -22,7 +22,7 @@ type AffiliateQuickActionsProps = {
   affiliateId: string;
   hasPortalAccess: boolean;
   portalDisabled?: boolean;
-  onViewAsAffiliate?: () => void;
+  onViewAsAffiliate?: () => void | Promise<void>;
   onGoToPayouts?: () => void;
 };
 

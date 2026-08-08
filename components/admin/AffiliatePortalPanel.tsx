@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import {
   Eye,
   KeyRound,
+  Loader2,
   LogOut,
   ShieldOff,
   ShieldCheck,
@@ -19,6 +20,10 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import {
+  PortalCredentialsDialog,
+  type PortalCredentials,
+} from "@/components/admin/PortalCredentialsDialog";
 import { adminMutate } from "@/hooks/use-admin-query";
 import type {
   AdminAffiliatePortal,
@@ -42,11 +47,6 @@ function formatDate(iso: string | null) {
   });
 }
 
-async function copyText(text: string, label: string) {
-  await navigator.clipboard.writeText(text);
-  toast.success(`${label} copied`);
-}
-
 export function AffiliatePortalPanel({
   affiliateId,
   affiliateName,
@@ -56,8 +56,10 @@ export function AffiliatePortalPanel({
 }: AffiliatePortalPanelProps) {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
+  const [signOutOpen, setSignOutOpen] = useState(false);
   const [disableOpen, setDisableOpen] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
+  const [credentials, setCredentials] = useState<PortalCredentials | null>(null);
 
   async function handleInvite() {
     setLoading("invite");
@@ -67,23 +69,27 @@ export function AffiliatePortalPanel({
         { method: "POST" }
       );
 
+      setInviteOpen(false);
+
       if (result.temporaryPassword && result.inviteMessage) {
-        await copyText(result.inviteMessage, "Invite message");
-        toast.success("Portal login created", {
-          description: "Invite message copied to clipboard.",
-          duration: 10000,
+        setCredentials({
+          title: "Portal login created",
+          description: `${affiliateName} can now sign in with these credentials.`,
+          email: result.email,
+          temporaryPassword: result.temporaryPassword,
+          inviteMessage: result.inviteMessage,
         });
       } else if (result.linked) {
         toast.success("Portal access linked");
       }
-
-      setInviteOpen(false);
-      await onUpdated();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Invite failed");
+      return;
     } finally {
       setLoading(null);
     }
+
+    await onUpdated();
   }
 
   async function runPortalAction(
@@ -101,11 +107,19 @@ export function AffiliatePortalPanel({
         }
       );
 
-      if (action === "reset-password" && result.inviteMessage) {
-        await copyText(result.inviteMessage, "Invite message");
-        toast.success("Password reset", {
-          description: "New invite message copied to clipboard.",
-          duration: 10000,
+      close?.();
+
+      if (
+        action === "reset-password" &&
+        result.temporaryPassword &&
+        result.inviteMessage
+      ) {
+        setCredentials({
+          title: "Password reset",
+          description: `The previous password for ${affiliateName} no longer works.`,
+          email: result.email,
+          temporaryPassword: result.temporaryPassword,
+          inviteMessage: result.inviteMessage,
         });
       } else if (action === "disable") {
         toast.success("Portal access disabled");
@@ -114,14 +128,14 @@ export function AffiliatePortalPanel({
       } else if (action === "sign-out") {
         toast.success("Affiliate signed out everywhere");
       }
-
-      close?.();
-      await onUpdated();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Action failed");
+      return;
     } finally {
       setLoading(null);
     }
+
+    await onUpdated();
   }
 
   return (
@@ -146,19 +160,19 @@ export function AffiliatePortalPanel({
           </div>
 
           {portal.hasAccess && (
-            <dl className="grid gap-2 text-sm sm:grid-cols-2">
-              <div>
+            <dl className="space-y-3 text-sm">
+              <div className="flex flex-col gap-0.5">
                 <dt className="text-muted-foreground">Login email</dt>
-                <dd className="font-medium">{portal.loginEmail}</dd>
+                <dd className="break-all font-medium">{portal.loginEmail}</dd>
               </div>
-              <div>
+              <div className="flex flex-col gap-0.5">
                 <dt className="text-muted-foreground">Last sign-in</dt>
                 <dd className="font-medium">{formatDate(portal.lastSignInAt)}</dd>
               </div>
             </dl>
           )}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
             {!portal.hasAccess ? (
               <Button size="sm" onClick={() => setInviteOpen(true)}>
                 <UserPlus className="h-4 w-4" />
@@ -185,9 +199,13 @@ export function AffiliatePortalPanel({
                   size="sm"
                   variant="outline"
                   disabled={!!loading}
-                  onClick={() => runPortalAction("sign-out")}
+                  onClick={() => setSignOutOpen(true)}
                 >
-                  <LogOut className="h-4 w-4" />
+                  {loading === "sign-out" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <LogOut className="h-4 w-4" />
+                  )}
                   Sign out everywhere
                 </Button>
                 {portal.disabled ? (
@@ -197,7 +215,11 @@ export function AffiliatePortalPanel({
                     disabled={!!loading}
                     onClick={() => runPortalAction("enable")}
                   >
-                    <ShieldCheck className="h-4 w-4" />
+                    {loading === "enable" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ShieldCheck className="h-4 w-4" />
+                    )}
                     Enable access
                   </Button>
                 ) : (
@@ -217,8 +239,8 @@ export function AffiliatePortalPanel({
 
           {!portal.hasAccess && (
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Creates a login with a temporary password and copies an invite
-              message you can send to {affiliateName}.
+              Creates a login with a temporary password and an invite message
+              you can send to {affiliateName}.
             </p>
           )}
         </CardContent>
@@ -227,7 +249,7 @@ export function AffiliatePortalPanel({
       <ConfirmDialog
         open={inviteOpen}
         title="Create portal login?"
-        description={`Generates a temporary password for ${portal.loginEmail ?? "this affiliate"} and copies an invite message.`}
+        description={`Generates a temporary password for ${portal.loginEmail ?? affiliateName} and an invite message you can send them.`}
         confirmLabel="Create login"
         loading={loading === "invite"}
         onConfirm={handleInvite}
@@ -237,7 +259,7 @@ export function AffiliatePortalPanel({
       <ConfirmDialog
         open={resetOpen}
         title="Reset portal password?"
-        description="Generates a new temporary password and copies an invite message to share."
+        description="The current password stops working immediately. You'll get a new temporary password to share."
         confirmLabel="Reset password"
         loading={loading === "reset-password"}
         onConfirm={() => runPortalAction("reset-password", () => setResetOpen(false))}
@@ -245,13 +267,29 @@ export function AffiliatePortalPanel({
       />
 
       <ConfirmDialog
+        open={signOutOpen}
+        title="Sign out everywhere?"
+        description={`Ends every active session for ${affiliateName}. Their password still works, so they can sign back in.`}
+        confirmLabel="Sign out"
+        loading={loading === "sign-out"}
+        onConfirm={() => runPortalAction("sign-out", () => setSignOutOpen(false))}
+        onCancel={() => setSignOutOpen(false)}
+      />
+
+      <ConfirmDialog
         open={disableOpen}
         title="Disable portal access?"
-        description="The affiliate will be signed out and unable to log in until re-enabled."
+        description={`${affiliateName} will be signed out and blocked from logging in until you re-enable them.`}
         confirmLabel="Disable access"
+        destructive
         loading={loading === "disable"}
         onConfirm={() => runPortalAction("disable", () => setDisableOpen(false))}
         onCancel={() => setDisableOpen(false)}
+      />
+
+      <PortalCredentialsDialog
+        credentials={credentials}
+        onClose={() => setCredentials(null)}
       />
     </>
   );

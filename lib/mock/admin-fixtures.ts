@@ -1,4 +1,13 @@
-import type { AdminAffiliateDetail } from "@/lib/admin/types";
+import type {
+  AdminAffiliateDetail,
+  AdminAffiliatePortal,
+  InviteAffiliateResult,
+  PortalActionResult,
+} from "@/lib/admin/types";
+import {
+  buildPortalInviteMessage,
+  randomPassword,
+} from "@/lib/admin/portal-credentials";
 import type { AffiliateOption } from "@/components/admin/AffiliateSearchCombobox";
 import type { PayoutBatchRow } from "@/components/payouts/PayoutHistoryPanel";
 import {
@@ -127,6 +136,7 @@ type MockSession = {
   batches: MockBatchRecord[];
   batchDetails: Map<string, PayoutBatchDetail>;
   nextReceipt: number;
+  portals: Map<string, AdminAffiliatePortal>;
 };
 
 function payee(affiliate: AffiliateOption, share?: number) {
@@ -330,14 +340,21 @@ function seedBatches(): MockBatchRecord[] {
   }));
 }
 
-const session: MockSession = {
+const globalForMock = globalThis as unknown as {
+  tsMockAdminSession: MockSession | undefined;
+};
+
+/** Next gives each route handler its own module instance, so mutations made by
+ *  one endpoint are invisible to the next unless the state is process-global. */
+const session: MockSession = (globalForMock.tsMockAdminSession ??= {
   cutoff: now.toISOString(),
   paidDirect: false,
   paidMembers: new Set(),
   batches: seedBatches(),
   batchDetails: new Map(),
   nextReceipt: 1,
-};
+  portals: new Map(),
+});
 
 function memberTarget(memberId: string): PayoutTarget {
   return { scope: "member", teamId: MOCK_TEAM_ID, memberId };
@@ -426,6 +443,110 @@ export function mockAdminSearchAffiliates(q: string, limit: number) {
   return { items: items.slice(0, Math.min(50, Math.max(1, limit))) };
 }
 
+function findMockAffiliate(affiliateId: string): AffiliateOption | null {
+  return SEARCHABLE.find((option) => option.id === affiliateId) ?? null;
+}
+
+function mockPortalState(affiliate: AffiliateOption): AdminAffiliatePortal {
+  const existing = session.portals.get(affiliate.id);
+  if (existing) return existing;
+
+  /** Jordan starts without a login so the invite flow is reachable in mock mode. */
+  const hasAccess = affiliate.id !== MOCK_JORDAN_ID;
+  const initial: AdminAffiliatePortal = {
+    hasAccess,
+    disabled: false,
+    mustChangePassword: false,
+    lastSignInAt: hasAccess ? daysAgo(2) : null,
+    loginEmail: hasAccess ? affiliate.email : null,
+  };
+  session.portals.set(affiliate.id, initial);
+  return initial;
+}
+
+/** Mirrors the real portal actions so the admin UI is exercisable without a DB. */
+export function mockPortalAction(
+  affiliateId: string,
+  action: "reset-password" | "disable" | "enable" | "sign-out"
+): PortalActionResult {
+  const affiliate = findMockAffiliate(affiliateId);
+  if (!affiliate) throw new Error("Affiliate not found");
+
+  const portal = mockPortalState(affiliate);
+  if (!portal.hasAccess) throw new Error("Affiliate does not have portal access");
+
+  const name = affiliate.displayName ?? affiliate.email;
+  const email = portal.loginEmail ?? affiliate.email;
+
+  switch (action) {
+    case "reset-password": {
+      const temporaryPassword = randomPassword();
+      session.portals.set(affiliateId, {
+        ...portal,
+        mustChangePassword: true,
+        disabled: false,
+      });
+      return {
+        email,
+        temporaryPassword,
+        inviteMessage: buildPortalInviteMessage({
+          name,
+          email,
+          temporaryPassword,
+        }),
+      };
+    }
+    case "disable":
+      session.portals.set(affiliateId, { ...portal, disabled: true });
+      return { email };
+    case "enable":
+      session.portals.set(affiliateId, { ...portal, disabled: false });
+      return { email };
+    case "sign-out":
+      session.portals.set(affiliateId, { ...portal, lastSignInAt: null });
+      return { email };
+  }
+}
+
+export function mockInviteAffiliate(affiliateId: string): InviteAffiliateResult {
+  const affiliate = findMockAffiliate(affiliateId);
+  if (!affiliate) throw new Error("Affiliate not found");
+
+  const portal = mockPortalState(affiliate);
+  const name = affiliate.displayName ?? affiliate.email;
+
+  if (portal.hasAccess) {
+    return {
+      created: false,
+      linked: true,
+      email: portal.loginEmail ?? affiliate.email,
+      profileId: `mock-profile-${affiliateId}`,
+    };
+  }
+
+  const temporaryPassword = randomPassword();
+  session.portals.set(affiliateId, {
+    hasAccess: true,
+    disabled: false,
+    mustChangePassword: true,
+    lastSignInAt: null,
+    loginEmail: affiliate.email,
+  });
+
+  return {
+    created: true,
+    linked: true,
+    email: affiliate.email,
+    profileId: `mock-profile-${affiliateId}`,
+    temporaryPassword,
+    inviteMessage: buildPortalInviteMessage({
+      name,
+      email: affiliate.email,
+      temporaryPassword,
+    }),
+  };
+}
+
 export function mockAdminAffiliateDetail(
   affiliateId: string
 ): AdminAffiliateDetail | null {
@@ -458,13 +579,7 @@ export function mockAdminAffiliateDetail(
     commissionRate: affiliateId === MOCK_AFFILIATE_ID ? "30" : "25",
     syncedAt: daysAgo(0),
     profile: null,
-    portal: {
-      hasAccess: true,
-      disabled: false,
-      mustChangePassword: false,
-      lastSignInAt: daysAgo(2),
-      loginEmail: affiliate.email,
-    },
+    portal: mockPortalState(affiliate),
     ledger: {
       unpaidTotal,
       unpaidCount:

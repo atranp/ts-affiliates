@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-auth";
 import { inviteAffiliateToPortal } from "@/lib/admin/affiliate-portal";
+import { isAdminMockMode } from "@/lib/mock/config";
+import { mockInviteAffiliate } from "@/lib/mock/admin-fixtures";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -11,6 +13,10 @@ export async function POST(_request: Request, context: RouteContext) {
   const { id } = await context.params;
 
   try {
+    if (isAdminMockMode()) {
+      return NextResponse.json(mockInviteAffiliate(id));
+    }
+
     const result = await inviteAffiliateToPortal(id, auth.user.id);
     return NextResponse.json(result);
   } catch (error) {

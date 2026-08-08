@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { DialogOverlay } from "@/components/admin/DialogOverlay";
 import {
   Card,
   CardDescription,
@@ -30,27 +31,31 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <button
-        type="button"
-        className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
-        aria-label="Close dialog"
-        onClick={onCancel}
-      />
-      <Card className="relative z-10 w-full max-w-md shadow-lg">
+    <DialogOverlay
+      open={open}
+      label={title}
+      onDismiss={loading ? undefined : onCancel}
+    >
+      <Card className="shadow-lg">
         <CardHeader>
           <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
+          <CardDescription className="leading-relaxed">
+            {description}
+          </CardDescription>
         </CardHeader>
-        <CardFooter className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onCancel} disabled={loading}>
+        <CardFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={onCancel}
+            disabled={loading}
+          >
             Cancel
           </Button>
           <Button
             variant={destructive ? "destructive" : "default"}
+            className="w-full sm:w-auto"
             onClick={onConfirm}
             disabled={loading}
           >
@@ -58,6 +63,6 @@ export function ConfirmDialog({
           </Button>
         </CardFooter>
       </Card>
-    </div>
+    </DialogOverlay>
   );
 }
