@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, Receipt } from "lucide-react";
+import { Receipt } from "lucide-react";
 import {
   formatCommissionStatus,
   formatCommissionType,
@@ -15,9 +15,8 @@ import {
   effectiveLedgerStatus,
 } from "@/lib/payouts/status";
 import { cn, formatCurrency, formatSaleDate } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 
-const PREVIEW_LIMIT = 5;
+const PREVIEW_LIMIT = 3;
 
 type CommissionsHomePreviewProps = {
   enabled?: boolean;
@@ -66,7 +65,7 @@ export function CommissionsHomePreview({
 
   if (isLoading) {
     return (
-      <div className="h-40 animate-pulse rounded-xl border border-border bg-muted/30" />
+      <div className="h-full min-h-0 animate-pulse rounded-xl border border-border bg-muted/30" />
     );
   }
 
@@ -77,8 +76,8 @@ export function CommissionsHomePreview({
   const hasTeam = tabCounts.overrides > 0;
 
   return (
-    <div className="w-full space-y-4">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <div className="flex h-full min-h-0 w-full flex-col">
+      <div className="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1.5 font-medium text-brand-dark">
           <Receipt className="h-3.5 w-3.5 text-primary" aria-hidden />
           {tabCounts.all.toLocaleString()} total entries
@@ -106,11 +105,11 @@ export function CommissionsHomePreview({
       </div>
 
       {entries.length > 0 ? (
-        <div className="w-full">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="mt-3 flex min-h-0 flex-1 flex-col">
+          <p className="mb-2 shrink-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {AFFILIATE_COPY.home.recentCommissions}
           </p>
-          <div className="w-full overflow-hidden rounded-xl border border-border/80">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-xl border border-border/80">
             <ul className="divide-y divide-border/60">
               {entries.map((entry) => {
                 const status = effectiveLedgerStatus(
@@ -129,7 +128,7 @@ export function CommissionsHomePreview({
                       type="button"
                       onClick={onViewCommissions}
                       className={cn(
-                        "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+                        "flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
                         entry.type === "OVERRIDE" && "bg-purple-50/15",
                         entry.type !== "OVERRIDE" &&
                           status === "UNPAID" &&
@@ -180,22 +179,10 @@ export function CommissionsHomePreview({
           </div>
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">
+        <p className="mt-3 shrink-0 text-sm text-muted-foreground">
           {AFFILIATE_COPY.commissions.empty}
         </p>
       )}
-
-      <div className="flex justify-end border-t border-border/60 pt-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-1 text-primary"
-          onClick={onViewCommissions}
-        >
-          {AFFILIATE_COPY.home.viewAllCommissions}
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
     </div>
   );
 }

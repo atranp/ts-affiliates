@@ -256,12 +256,14 @@ function DashboardPageContent() {
     urlQuery !== "";
 
   const fillTab = viewTab === "ledger" || viewTab === "teams";
+  const overviewFill = viewTab === "overview";
 
   return (
     <div
       className={cn(
         "flex flex-col",
-        fillTab && "min-h-0 flex-1 basis-0 overflow-hidden"
+        fillTab && "min-h-0 flex-1 basis-0 overflow-hidden",
+        overviewFill && "lg:min-h-0 lg:flex-1 lg:overflow-hidden"
       )}
     >
       {error && (
@@ -274,18 +276,26 @@ function DashboardPageContent() {
           onValueChange={setViewTab}
           className={cn(
             "flex flex-col",
-            fillTab && "min-h-0 flex-1 basis-0 overflow-hidden"
+            fillTab && "min-h-0 flex-1 basis-0 overflow-hidden",
+            overviewFill && "lg:min-h-0 lg:flex-1 lg:overflow-hidden"
           )}
         >
-          <TabsContent value="overview" className="w-full min-w-0 space-y-6 pb-6">
-            <div>
+          <TabsContent
+            value="overview"
+            className={cn(
+              "w-full min-w-0 space-y-6 pb-6",
+              overviewFill &&
+                "lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:gap-5 lg:space-y-0 lg:overflow-hidden lg:pb-4"
+            )}
+          >
+            <div className="shrink-0">
               <h1 className="page-title">
                 {displayName ? `Welcome, ${displayName}` : "Welcome"}
               </h1>
               <p className="page-description">{AFFILIATE_COPY.home.subtitle}</p>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-3">
+            <div className="grid shrink-0 gap-5 md:grid-cols-3">
               <AffiliateStatCard
                 label={AFFILIATE_COPY.stats.owed.label}
                 hint={AFFILIATE_COPY.stats.owed.hint}
@@ -315,28 +325,28 @@ function DashboardPageContent() {
               />
             </div>
 
-            <div className="grid gap-5 lg:grid-cols-3 lg:items-start">
-              <Card className="min-w-0 lg:col-span-2">
-                <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
-                  <div>
+            <div className="grid shrink-0 gap-5 lg:grid-cols-3 lg:items-stretch lg:max-h-[14.5rem]">
+              <Card className="flex min-h-0 min-w-0 flex-col overflow-hidden lg:col-span-2">
+                <CardHeader className="flex shrink-0 flex-row items-start justify-between gap-3 pb-2">
+                  <div className="min-w-0">
                     <CardTitle className="text-base">
                       {AFFILIATE_COPY.home.commissionsTitle}
                     </CardTitle>
-                    <CardDescription className="mt-1">
+                    <CardDescription className="mt-0.5 line-clamp-1">
                       {AFFILIATE_COPY.home.commissionsSubtitle}
                     </CardDescription>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="shrink-0 gap-1 text-primary"
+                    className="-mr-2 shrink-0 gap-1 text-primary"
                     onClick={() => setViewTab("ledger")}
                   >
                     {AFFILIATE_COPY.home.viewAllCommissions}
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="min-h-0 flex-1 overflow-hidden pt-0">
                   <CommissionsHomePreview
                     enabled={!!user}
                     onViewCommissions={() => setViewTab("ledger")}
@@ -345,32 +355,32 @@ function DashboardPageContent() {
                 </CardContent>
               </Card>
 
-              <Card className="min-w-0">
-                <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
+              <Card className="flex min-h-0 min-w-0 flex-col overflow-hidden">
+                <CardHeader className="flex shrink-0 flex-row items-start justify-between gap-3 pb-2">
                   <div className="min-w-0">
                     <CardTitle className="text-base">
                       {AFFILIATE_COPY.home.payoutsTitle}
                     </CardTitle>
-                    <CardDescription className="mt-1">
+                    <CardDescription className="mt-0.5 line-clamp-1">
                       {AFFILIATE_COPY.home.payoutsDescription}
                     </CardDescription>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="shrink-0 gap-1 text-primary"
+                    className="-mr-2 shrink-0 gap-1 text-primary"
                     onClick={() => setViewTab("payouts")}
                   >
                     {AFFILIATE_COPY.home.payoutsAction}
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="min-h-0 flex-1 overflow-hidden pt-0">
                   <PayoutsList
                     detailHrefPrefix="/dashboard/payouts"
                     affiliateView
                     embedded
-                    limit={5}
+                    limit={3}
                     onViewAll={() => setViewTab("payouts")}
                   />
                 </CardContent>
@@ -378,8 +388,8 @@ function DashboardPageContent() {
             </div>
 
             {hasTeams ? (
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
+              <Card className="flex min-h-0 min-w-0 flex-col overflow-hidden lg:min-h-0 lg:flex-1">
+                <CardHeader className="flex shrink-0 flex-row items-center justify-between gap-4 pb-3">
                   <div>
                     <CardTitle className="text-base">
                       {AFFILIATE_COPY.home.teamsTitle}
@@ -398,7 +408,7 @@ function DashboardPageContent() {
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
                   <TeamHomePreview
                     teams={teamsData!.teams}
                     onViewTeam={() => setViewTab("teams")}

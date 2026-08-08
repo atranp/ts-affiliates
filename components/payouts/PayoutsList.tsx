@@ -96,13 +96,15 @@ export function PayoutsList({
 
   if (embedded) {
     return (
-      <div className="space-y-3">
-        {list}
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          {list}
+        </div>
         {hasMore && onViewAll && (
           <button
             type="button"
             onClick={onViewAll}
-            className="text-xs font-medium text-primary hover:underline"
+            className="mt-2 shrink-0 text-xs font-medium text-primary hover:underline"
           >
             +{batches.length - limit!} more — {AFFILIATE_COPY.home.payoutsAction}
           </button>
@@ -153,7 +155,7 @@ function PayoutBatchRow({
       className={cn(
         "flex transition-colors hover:bg-muted/50",
         compact
-          ? "items-start gap-3 py-3 first:pt-0 last:pb-0"
+          ? "items-start gap-3 py-2.5 first:pt-0 last:pb-0"
           : "items-center justify-between gap-4 p-5"
       )}
     >
