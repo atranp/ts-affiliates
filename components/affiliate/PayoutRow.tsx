@@ -3,12 +3,15 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { AffiliateAmountCell } from "@/components/affiliate/primitives";
+import { PayoutSourceBadge } from "@/components/payouts/PayoutSourceBadge";
 import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
+import type { PayoutSource } from "@/lib/payouts/types";
 import { formatAppDate } from "@/lib/timezone";
 import { cn, formatCurrency } from "@/lib/utils";
 
 export type PayoutRowData = {
   id: string;
+  source: PayoutSource;
   label: string;
   status: string;
   processedAt: string | null;
@@ -39,6 +42,7 @@ type PayoutRowProps = PayoutRowData & {
 };
 
 export function PayoutRow({
+  source,
   label,
   processedAt,
   createdAt,
@@ -60,7 +64,10 @@ export function PayoutRow({
         <AffiliateAmountCell amount={formatCurrency(totalAmount)} tone="success" />
       </div>
       <div className="flex min-w-0 items-center justify-between gap-2">
-        <p className="ts-row-meta min-w-0 truncate">{dateLabel}</p>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <p className="ts-row-meta min-w-0 truncate">{dateLabel}</p>
+          <PayoutSourceBadge source={source} />
+        </div>
         <p className="ts-row-meta shrink-0 text-right">{entriesLabel}</p>
       </div>
     </>
@@ -120,12 +127,15 @@ export function PayoutDesktopTable({
                 className="border-b border-border/60 transition-colors hover:bg-muted/50"
               >
                 <td className="px-4 py-3.5 first:pl-5">
-                  <Link
-                    href={href}
-                    className="font-semibold text-brand-dark transition-colors hover:text-primary hover:underline"
-                  >
-                    {batch.label}
-                  </Link>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Link
+                      href={href}
+                      className="font-semibold text-brand-dark transition-colors hover:text-primary hover:underline"
+                    >
+                      {batch.label}
+                    </Link>
+                    <PayoutSourceBadge source={batch.source} />
+                  </div>
                 </td>
                 <td className="ts-row-meta whitespace-nowrap px-4 py-3.5">
                   {payoutDateLabel(batch)}

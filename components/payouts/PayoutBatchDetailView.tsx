@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { WooOrderLink } from "@/components/admin/WooOrderLink";
+import { PayoutSourceBadge } from "@/components/payouts/PayoutSourceBadge";
 import {
   DataCard,
   DataCardHeader,
@@ -75,10 +76,18 @@ export function PayoutBatchDetailView({
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="page-title">{batch.label}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="page-title">{batch.label}</h1>
+            <PayoutSourceBadge source={batch.source} />
+          </div>
           <p className="page-description">
-            {batch.teamName ? `${batch.teamName} · ` : ""}
-            Recorded {recordedAt}
+            {[
+              batch.teamName,
+              `Recorded ${recordedAt}`,
+              batch.payoutMethod ? `Paid via ${batch.payoutMethod}` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
         </div>
         {actions && (

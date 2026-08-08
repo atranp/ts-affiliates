@@ -147,9 +147,7 @@ function AdminAffiliateDetailPageContent() {
     refetch: refetchPayoutBatches,
   } = useAdminQuery<{ batches: PayoutBatchRow[] }>(
     ["admin", "payout-batches", affiliateId],
-    affiliateId
-      ? `/api/admin/payouts/batches?sponsorAffiliateId=${affiliateId}`
-      : null
+    affiliateId ? `/api/admin/payouts/batches?affiliateId=${affiliateId}` : null
   );
 
   const { data: teamData, isLoading: teamLoading } = useTeam(

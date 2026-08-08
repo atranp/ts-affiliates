@@ -281,6 +281,7 @@ const ALL_ENTRIES: LedgerEntry[] = [
 export const MOCK_PAYOUT_BATCHES: PayoutBatchListItem[] = [
   {
     id: "pb-1",
+    source: "PLATFORM",
     label: "January payout",
     status: PAID_STATUS,
     periodStart: daysAgo(45),
@@ -295,7 +296,24 @@ export const MOCK_PAYOUT_BATCHES: PayoutBatchListItem[] = [
     totalAmount: 12_450.22,
   },
   {
+    id: "pb-slicewp-1",
+    source: "SLICEWP",
+    label: "Trindalyn Mackenzie · payout through Dec 12, 2025",
+    status: PAID_STATUS,
+    periodStart: daysAgo(70),
+    periodEnd: daysAgo(48),
+    processedAt: daysAgo(48),
+    createdAt: daysAgo(48),
+    teamId: null,
+    teamName: null,
+    sponsorAffiliateId: MOCK_AFFILIATE_ID,
+    entryCount: 63,
+    affiliateCount: 1,
+    totalAmount: 6_812.4,
+  },
+  {
     id: "pb-2",
+    source: "PLATFORM",
     label: "December payout",
     status: PAID_STATUS,
     periodStart: daysAgo(75),
@@ -513,6 +531,7 @@ export function mockPayoutDetailResponse(
   return {
     batch: {
       id: summary.id,
+      source: summary.source,
       label: summary.label,
       status: summary.status,
       periodStart: summary.periodStart,
@@ -522,6 +541,7 @@ export function mockPayoutDetailResponse(
       teamId: summary.teamId,
       teamName: summary.teamName,
       sponsorAffiliateId: summary.sponsorAffiliateId,
+      payoutMethod: summary.source === "SLICEWP" ? "paypal" : null,
       totals: {
         grandTotal,
         directTotal,

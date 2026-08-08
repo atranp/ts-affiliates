@@ -28,6 +28,7 @@ type PayoutsListProps = {
 function toPayoutRowData(batch: PayoutBatchListItem) {
   return {
     id: batch.id,
+    source: batch.source,
     label: batch.label,
     status: batch.status,
     processedAt: batch.processedAt,

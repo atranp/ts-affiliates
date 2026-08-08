@@ -82,6 +82,7 @@ type MockBatchRecord = PayoutBatchRow & {
 function toPayoutBatchRow(batch: MockBatchRecord): PayoutBatchRow {
   return {
     id: batch.id,
+    source: batch.source,
     label: batch.label,
     status: batch.status,
     processedAt: batch.processedAt,
@@ -117,6 +118,7 @@ function seedBatches(): MockBatchRecord[] {
   return [
     {
       id: "pb-mock-1",
+      source: "PLATFORM",
       label: "Trindalyn Mackenzie · direct sales through Jan 15, 2026",
       status: PAID_STATUS,
       periodStart: daysAgo(45),
@@ -132,7 +134,25 @@ function seedBatches(): MockBatchRecord[] {
       totalAmount: 3_842.15,
     },
     {
+      id: "pb-mock-slicewp",
+      source: "SLICEWP",
+      label: "Trindalyn Mackenzie · payout through Dec 28, 2025",
+      status: PAID_STATUS,
+      periodStart: daysAgo(70),
+      periodEnd: daysAgo(50),
+      processedAt: daysAgo(50),
+      createdAt: daysAgo(50),
+      teamId: null,
+      teamName: null,
+      sponsorAffiliateId: MOCK_AFFILIATE_ID,
+      sponsorName: TRINDALYN.displayName,
+      entryCount: 63,
+      affiliateCount: 1,
+      totalAmount: 6_812.4,
+    },
+    {
       id: "pb-mock-2",
+      source: "PLATFORM",
       label: "Trindalyn Mackenzie · Blair Rodgers · My downline through Dec 20, 2025",
       status: PAID_STATUS,
       periodStart: daysAgo(75),
@@ -317,6 +337,7 @@ export function mockAdminAffiliateSync(affiliateId: string) {
     displayName: affiliate.displayName,
     recruitsIncluded: affiliateId === MOCK_AFFILIATE_ID ? 4 : 0,
     commissionsUpserted: affiliateId === MOCK_AFFILIATE_ID ? 312 : 0,
+    slicewpPayoutsSynced: affiliateId === MOCK_AFFILIATE_ID ? 1 : 0,
   };
 }
 
@@ -492,6 +513,7 @@ export function mockAdminCreatePayout(
 
   const row: MockBatchRecord = {
     id: batchId,
+    source: "PLATFORM",
     label,
     status: PAID_STATUS,
     periodStart: draft.oldestOccurredAt ?? processedAt,
@@ -520,6 +542,7 @@ export function mockAdminCreatePayout(
 
   session.batchDetails.set(batchId, {
     id: batchId,
+    source: "PLATFORM",
     label,
     status: PAID_STATUS,
     periodStart: row.periodStart,
@@ -529,6 +552,7 @@ export function mockAdminCreatePayout(
     teamId: row.teamId,
     teamName: row.teamName,
     sponsorAffiliateId: selection.affiliateId,
+    payoutMethod: null,
     totals: {
       grandTotal: draft.totalAmount,
       directTotal,
@@ -649,6 +673,7 @@ export function mockAdminPayoutBatchDetail(
   return {
     batch: {
       id: summary.id,
+      source: summary.source,
       label: summary.label,
       status: summary.status,
       periodStart: summary.periodStart,
@@ -658,6 +683,7 @@ export function mockAdminPayoutBatchDetail(
       teamId: summary.teamId,
       teamName: summary.teamName,
       sponsorAffiliateId: summary.sponsorAffiliateId ?? null,
+      payoutMethod: summary.source === "SLICEWP" ? "paypal" : null,
       totals: {
         grandTotal: summary.totalAmount,
         directTotal: summary.teamId ? 0 : summary.totalAmount,

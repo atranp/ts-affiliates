@@ -8,7 +8,7 @@ import type { SyncResult } from "@/lib/admin/types";
 
 export type SyncStatus = {
   running: boolean;
-  step: "affiliates" | "profiles" | "commissions" | null;
+  step: "affiliates" | "profiles" | "commissions" | "payouts" | null;
   startedAt: string | null;
   lastAffiliateSyncAt: string | null;
   lastCommissionSyncAt: string | null;
@@ -29,6 +29,8 @@ export function syncStepLabel(step: SyncStatus["step"]) {
       return "Linking portal accounts…";
     case "commissions":
       return "Syncing commissions & deal rules…";
+    case "payouts":
+      return "Importing SliceWP payouts…";
     default:
       return "Syncing…";
   }
@@ -77,9 +79,14 @@ export function useSyncStatus(options?: { poll?: boolean }) {
             toast.error(next.lastSyncError);
           } else if (next.lastSyncResult) {
             const r = next.lastSyncResult;
-            toast.success(
-              `Sync complete — ${r.affiliatesUpserted} affiliates, ${r.commissionsUpserted} commissions`
-            );
+            const parts = [
+              `${r.affiliatesUpserted} affiliates`,
+              `${r.commissionsUpserted} commissions`,
+              r.slicewpPayoutsSynced
+                ? `${r.slicewpPayoutsSynced} SliceWP payouts`
+                : null,
+            ].filter(Boolean);
+            toast.success(`Sync complete — ${parts.join(", ")}`);
           }
           await queryClient.invalidateQueries({ queryKey: ["admin"] });
           await queryClient.invalidateQueries({ queryKey: ["ledger"] });

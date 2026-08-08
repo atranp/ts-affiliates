@@ -47,6 +47,7 @@ export type SyncResult = {
   profilesLinked: number;
   overridesCreated: number;
   teamsSynced?: number;
+  slicewpPayoutsSynced?: number;
 };
 
 export type AdminAffiliateProfile = {

@@ -107,12 +107,23 @@ export interface SliceWPCommission {
   date_created?: string;
 }
 
-export interface SliceWPPayout {
+/**
+ * SliceWP's per-affiliate payout receipt. Its `payouts` records are only the
+ * admin-side container that groups these, so `payments` is what an affiliate's
+ * payout history is actually made of.
+ */
+export interface SliceWPPayment {
   id: number | string;
   affiliate_id?: number | string;
+  payout_id?: number | string;
+  /** Comma-separated list of the commission ids this payment settled. */
+  commission_ids?: string;
   amount?: string;
+  currency?: string;
+  payout_method?: string;
   status?: string;
   date_created?: string;
+  date_modified?: string;
 }
 
 function normalizeList<T>(data: T[] | T): T[] {
@@ -306,6 +317,55 @@ export async function fetchSliceWPCommissionsForAffiliates(
   );
 
   return sortCommissionsByDate(pages.flat());
+}
+
+export async function fetchAllSliceWPPayments(
+  storeUrl: string,
+  consumerKey: string,
+  consumerSecret: string
+): Promise<SliceWPPayment[]> {
+  return fetchAllSliceWPPages<SliceWPPayment>(
+    storeUrl,
+    consumerKey,
+    consumerSecret,
+    "/payments/"
+  );
+}
+
+/** SliceWP filters `/payments/` by affiliate_id server-side. */
+export async function fetchSliceWPPaymentsForAffiliates(
+  storeUrl: string,
+  consumerKey: string,
+  consumerSecret: string,
+  affiliateSlicewpIds: number[]
+): Promise<SliceWPPayment[]> {
+  const pages = await mapWithConcurrency(
+    affiliateSlicewpIds,
+    SLICEWP_PAGE_CONCURRENCY,
+    (affiliateId) =>
+      fetchAllSliceWPPages<SliceWPPayment>(
+        storeUrl,
+        consumerKey,
+        consumerSecret,
+        "/payments/",
+        { affiliate_id: String(affiliateId) },
+        1
+      )
+  );
+
+  return pages.flat();
+}
+
+export function parseSliceWPCommissionIds(raw?: string): number[] {
+  if (!raw) return [];
+  return Array.from(
+    new Set(
+      raw
+        .split(",")
+        .map((part) => Number(part.trim()))
+        .filter((id) => Number.isFinite(id) && id > 0)
+    )
+  );
 }
 
 /**

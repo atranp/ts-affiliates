@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
-import { getPayoutBatchDetail } from "@/lib/payouts/queries";
+import { getPayoutDetail } from "@/lib/payouts/history";
 import { isAdminMockMode } from "@/lib/mock/config";
 import { mockAdminPayoutBatchDetail } from "@/lib/mock/admin-fixtures";
 export async function GET(
@@ -19,7 +19,7 @@ export async function GET(
     return NextResponse.json(batch);
   }
 
-  const batch = await getPayoutBatchDetail(params.id);
+  const batch = await getPayoutDetail(params.id);
   if (!batch) {
     return NextResponse.json({ error: "Payout not found" }, { status: 404 });
   }
@@ -43,6 +43,21 @@ export async function DELETE(
     select: { id: true, label: true },
   });
   if (!batch) {
+    // A SliceWP payout is a mirror of a WordPress record, so deleting our copy
+    // would only put it back on the next sync.
+    const slicewpPayment = await prisma.slicewpPayment.findUnique({
+      where: { id: params.id },
+      select: { id: true },
+    });
+    if (slicewpPayment) {
+      return NextResponse.json(
+        {
+          error:
+            "This payout was recorded in SliceWP. Delete it in WordPress and re-sync.",
+        },
+        { status: 409 }
+      );
+    }
     return NextResponse.json({ error: "Payout not found" }, { status: 404 });
   }
 

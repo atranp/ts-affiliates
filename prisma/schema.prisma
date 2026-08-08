@@ -58,6 +58,11 @@ enum PayoutBatchStatus {
   COMPLETED
 }
 
+enum PayoutSource {
+  PLATFORM
+  SLICEWP
+}
+
 model Profile {
   id                 String     @id @db.Uuid
   email              String     @unique
@@ -107,6 +112,7 @@ model Affiliate {
   sponsorRules         DealRule[]           @relation("SponsorRules")
   sourceRules          DealRule[]           @relation("SourceRules")
   payoutBatchItems     PayoutBatchItem[]
+  slicewpPayments      SlicewpPayment[]
   managedTeams         Team[]               @relation("SponsorTeams")
 
   @@index([parentAffiliateId])
@@ -235,6 +241,30 @@ model PayoutBatchItem {
   entryCount  Int
 
   @@unique([batchId, affiliateId])
+}
+
+/// A payout recorded in SliceWP rather than in this app. SliceWP's own
+/// "payout" is just the admin-side container; its `payments` rows are the
+/// per-affiliate receipts, which is what an affiliate's history is made of.
+model SlicewpPayment {
+  id               String    @id @default(cuid())
+  slicewpPaymentId Int       @unique
+  slicewpPayoutId  Int?
+  affiliateId      String
+  affiliate        Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  amount           Decimal   @db.Decimal(12, 2)
+  currency         String?
+  status           String
+  payoutMethod     String?
+  /// SliceWP stores these comma-separated on the payment row. Kept so the
+  /// receipt can be itemised from the commissions we already sync.
+  commissionIds    Int[]
+  dateCreated      DateTime
+  dateModified     DateTime?
+  syncedAt         DateTime  @default(now())
+
+  @@index([affiliateId, dateCreated])
+  @@index([slicewpPayoutId])
 }
 
 model Settings {

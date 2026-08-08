@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getPayoutBatchDetail } from "@/lib/payouts/queries";
+import { getPayoutDetail } from "@/lib/payouts/history";
 import { isAffiliateMockMode } from "@/lib/mock/config";
 import { mockPayoutDetailResponse } from "@/lib/mock/affiliate-fixtures";
 import { requireAffiliateAuth } from "@/lib/mock/require-affiliate-auth";
@@ -26,7 +26,7 @@ export async function GET(
     );
   }
 
-  const batch = await getPayoutBatchDetail(params.id, {
+  const batch = await getPayoutDetail(params.id, {
     affiliateId: auth.user.affiliateId,
   });
 

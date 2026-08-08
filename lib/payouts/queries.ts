@@ -1,11 +1,11 @@
 import { LedgerEntryType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { toNumber } from "@/lib/utils";
+import { recruitBreakdownFromEntries } from "./shared";
 import type {
   PayoutBatchDetail,
   PayoutBatchEntry,
   PayoutBatchListItem,
-  PayoutRecruitLine,
 } from "./types";
 
 function mapEntry(entry: {
@@ -36,42 +36,6 @@ function mapEntry(entry: {
     sourceAffiliate: entry.sourceAffiliate,
     dealRule: entry.dealRule,
   };
-}
-
-function recruitBreakdownFromEntries(
-  entries: Array<{
-    type: LedgerEntryType;
-    amount: { toString(): string };
-    orderRevenue: { toString(): string } | null;
-    sourceAffiliate: {
-      id: string;
-      displayName: string | null;
-      email: string;
-    } | null;
-  }>
-): PayoutRecruitLine[] {
-  const map = new Map<string, PayoutRecruitLine>();
-
-  for (const entry of entries) {
-    if (entry.type !== LedgerEntryType.OVERRIDE || !entry.sourceAffiliate) continue;
-    const id = entry.sourceAffiliate.id;
-    const current = map.get(id) ?? {
-      sourceAffiliateId: id,
-      displayName: entry.sourceAffiliate.displayName,
-      email: entry.sourceAffiliate.email,
-      overrideTotal: 0,
-      overrideCount: 0,
-      sourceRevenue: 0,
-    };
-    current.overrideTotal += toNumber(entry.amount);
-    current.overrideCount += 1;
-    current.sourceRevenue += toNumber(entry.orderRevenue);
-    map.set(id, current);
-  }
-
-  return Array.from(map.values()).sort((a, b) =>
-    (a.displayName ?? a.email).localeCompare(b.displayName ?? b.email)
-  );
 }
 
 export async function getPayoutBatchDetail(
@@ -154,6 +118,7 @@ export async function getPayoutBatchDetail(
 
   return {
     id: batch.id,
+    source: "PLATFORM",
     label: batch.label,
     status: batch.status,
     periodStart: batch.periodStart.toISOString(),
@@ -163,6 +128,7 @@ export async function getPayoutBatchDetail(
     teamId: batch.teamId,
     teamName: batch.team?.name ?? null,
     sponsorAffiliateId: batch.sponsorAffiliateId,
+    payoutMethod: null,
     totals: {
       grandTotal: directTotal + overrideTotal + otherTotal,
       directTotal,
@@ -171,7 +137,7 @@ export async function getPayoutBatchDetail(
       entryCount: entries.length,
     },
     items,
-    recruitBreakdown: recruitBreakdownFromEntries(batch.ledgerEntries),
+    recruitBreakdown: recruitBreakdownFromEntries(entries),
     entries,
   };
 }
@@ -193,6 +159,7 @@ export async function listPayoutBatchesForSponsor(
 
   return batches.map((batch) => ({
     id: batch.id,
+    source: "PLATFORM",
     label: batch.label,
     status: batch.status,
     periodStart: batch.periodStart.toISOString(),
@@ -228,6 +195,7 @@ export async function listPayoutBatchesForAffiliate(
 
   return batches.map((batch) => ({
     id: batch.id,
+    source: "PLATFORM",
     label: batch.label,
     status: batch.status,
     periodStart: batch.periodStart.toISOString(),

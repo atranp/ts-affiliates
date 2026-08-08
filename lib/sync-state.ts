@@ -1,7 +1,7 @@
 import { prisma } from "./prisma";
 import type { SyncResult } from "./sync";
 
-export type SyncStep = "affiliates" | "profiles" | "commissions";
+export type SyncStep = "affiliates" | "profiles" | "commissions" | "payouts";
 
 export type SyncStatus = {
   running: boolean;

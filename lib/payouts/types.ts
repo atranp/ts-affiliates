@@ -1,3 +1,6 @@
+/** Where a payout was recorded: this app, or SliceWP in WordPress. */
+export type PayoutSource = "PLATFORM" | "SLICEWP";
+
 export type PayoutRecruitLine = {
   sourceAffiliateId: string;
   displayName: string | null;
@@ -27,6 +30,7 @@ export type PayoutBatchEntry = {
 
 export type PayoutBatchDetail = {
   id: string;
+  source: PayoutSource;
   label: string;
   status: string;
   periodStart: string;
@@ -36,6 +40,8 @@ export type PayoutBatchDetail = {
   teamId: string | null;
   teamName: string | null;
   sponsorAffiliateId: string | null;
+  /** How SliceWP sent the money, e.g. "manual" or "paypal". */
+  payoutMethod: string | null;
   totals: {
     grandTotal: number;
     directTotal: number;
@@ -59,6 +65,7 @@ export type PayoutBatchDetail = {
 
 export type PayoutBatchListItem = {
   id: string;
+  source: PayoutSource;
   label: string;
   status: string;
   periodStart: string;

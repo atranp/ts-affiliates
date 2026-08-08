@@ -25,6 +25,10 @@ import {
 } from "./teams/slicewp-sync";
 import { createSyncDealRuleProcessor } from "./rules-engine";
 import {
+  isMissingPaymentsEndpoint,
+  syncSlicewpPayments,
+} from "./payouts/slicewp-sync";
+import {
   bulkUpsertCommissions,
   syncDirectLedgerEntries,
   type CommissionUpsertRow,
@@ -37,6 +41,7 @@ export type SyncResult = {
   profilesLinked: number;
   overridesCreated: number;
   teamsSynced: number;
+  slicewpPayoutsSynced: number;
 };
 
 /** Rows per bulk statement. Larger chunks mean fewer round-trips. */
@@ -396,6 +401,7 @@ export type AffiliateSyncResult = {
   displayName: string | null;
   recruitsIncluded: number;
   commissionsUpserted: number;
+  slicewpPayoutsSynced: number;
 };
 
 /**
@@ -468,6 +474,7 @@ export async function syncAffiliate(
   );
 
   const commissionsUpserted = await persistRemoteCommissions(remoteCommissions);
+  const slicewpPayoutsSynced = await syncSlicewpPayoutsSafely([affiliate.id]);
 
   await prisma.syncLog.create({
     data: {
@@ -479,6 +486,7 @@ export async function syncAffiliate(
         slicewpId: affiliate.slicewpId,
         recruitsIncluded: recruits.length,
         commissionsUpserted,
+        slicewpPayoutsSynced,
       },
     },
   });
@@ -489,6 +497,7 @@ export async function syncAffiliate(
     displayName: affiliate.displayName,
     recruitsIncluded: recruits.length,
     commissionsUpserted,
+    slicewpPayoutsSynced,
   };
 }
 
@@ -535,6 +544,9 @@ export async function runFullSync(): Promise<SyncResult> {
   await setSyncStep("commissions");
   const commissionsUpserted = await syncCommissionsFromSliceWP();
 
+  await setSyncStep("payouts");
+  const slicewpPayoutsSynced = await syncSlicewpPayoutsSafely();
+
   const overridesCreated = await prisma.ledgerEntry.count({
     where: { type: "OVERRIDE" },
   });
@@ -545,7 +557,44 @@ export async function runFullSync(): Promise<SyncResult> {
     profilesLinked,
     overridesCreated,
     teamsSynced,
+    slicewpPayoutsSynced,
   };
+}
+
+/**
+ * Payout receipts are a read-only mirror, so a store whose REST add-on
+ * predates `/payments/` should still get its affiliates and commissions
+ * rather than failing the whole run.
+ */
+async function syncSlicewpPayoutsSafely(
+  affiliateIds?: string[]
+): Promise<number> {
+  try {
+    const { upserted, removed } = await syncSlicewpPayments(
+      affiliateIds ? { affiliateIds } : undefined
+    );
+    await prisma.syncLog.create({
+      data: {
+        type: "slicewp-payouts",
+        status: "success",
+        message: `Synced ${upserted} SliceWP payouts`,
+        metadata: { upserted, removed },
+      },
+    });
+    return upserted;
+  } catch (error) {
+    const message = formatSyncError(error);
+    await prisma.syncLog.create({
+      data: {
+        type: "slicewp-payouts",
+        status: isMissingPaymentsEndpoint(error) ? "skipped" : "error",
+        message: isMissingPaymentsEndpoint(error)
+          ? "SliceWP has no /payments/ endpoint — update the REST API add-on to import payouts."
+          : message,
+      },
+    });
+    return 0;
+  }
 }
 
 export async function runFullSyncJob() {

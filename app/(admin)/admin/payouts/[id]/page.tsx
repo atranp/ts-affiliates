@@ -67,15 +67,21 @@ export default function AdminPayoutDetailPage() {
             : "Back to payouts"
         }
         actions={
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={busy}
-            onClick={() => setConfirmDelete(true)}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
-          </Button>
+          batch.source === "SLICEWP" ? (
+            <p className="text-xs text-muted-foreground">
+              Recorded in SliceWP — edit it in WordPress.
+            </p>
+          ) : (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              onClick={() => setConfirmDelete(true)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </Button>
+          )
         }
       />
 

@@ -23,11 +23,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PayoutSourceBadge } from "@/components/payouts/PayoutSourceBadge";
+import type { PayoutSource } from "@/lib/payouts/types";
 import { formatAppDate } from "@/lib/timezone";
 import { cn, formatCurrency } from "@/lib/utils";
 
 export type PayoutBatchRow = {
   id: string;
+  source: PayoutSource;
   label: string;
   status: string;
   processedAt: string | null;
@@ -77,9 +80,18 @@ function exportCsv(batches: PayoutBatchRow[]) {
     return;
   }
 
-  const header = ["Payout", "Ambassador", "Team", "Date", "Total", "Sales"];
+  const header = [
+    "Payout",
+    "Source",
+    "Ambassador",
+    "Team",
+    "Date",
+    "Total",
+    "Sales",
+  ];
   const rows = batches.map((batch) => [
     batch.label,
+    batch.source === "SLICEWP" ? "SliceWP" : "Platform",
     batch.sponsorName ?? "",
     batch.teamName ?? "",
     batchDate(batch),
@@ -210,9 +222,12 @@ export function PayoutHistoryPanel({
                         onClick={() => router.push(`/admin/payouts/${batch.id}`)}
                       >
                         <TableCell>
-                          <p className="font-semibold text-brand-dark">
-                            {batch.label}
-                          </p>
+                          <div className="flex min-w-0 items-center gap-2">
+                            <p className="font-semibold text-brand-dark">
+                              {batch.label}
+                            </p>
+                            <PayoutSourceBadge source={batch.source} />
+                          </div>
                           <p className="mt-0.5 text-xs text-muted-foreground">
                             {batchCounts(batch)}
                           </p>

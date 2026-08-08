@@ -9,6 +9,7 @@ import { apiFetch } from "@/lib/api-client";
 type AffiliateSyncResult = {
   recruitsIncluded: number;
   commissionsUpserted: number;
+  slicewpPayoutsSynced: number;
 };
 
 type AffiliateSyncButtonProps = {
@@ -30,14 +31,23 @@ export function AffiliateSyncButton({
         { method: "POST" }
       );
 
+      const details = [
+        result.recruitsIncluded > 0
+          ? `${result.recruitsIncluded} direct ${
+              result.recruitsIncluded === 1 ? "recruit" : "recruits"
+            }`
+          : null,
+        result.slicewpPayoutsSynced > 0
+          ? `${result.slicewpPayoutsSynced} SliceWP ${
+              result.slicewpPayoutsSynced === 1 ? "payout" : "payouts"
+            }`
+          : null,
+      ].filter(Boolean);
+
       toast.success(
         `Synced ${result.commissionsUpserted} commissions`,
-        result.recruitsIncluded > 0
-          ? {
-              description: `Includes ${result.recruitsIncluded} direct ${
-                result.recruitsIncluded === 1 ? "recruit" : "recruits"
-              }`,
-            }
+        details.length > 0
+          ? { description: `Includes ${details.join(" and ")}` }
           : undefined
       );
 
