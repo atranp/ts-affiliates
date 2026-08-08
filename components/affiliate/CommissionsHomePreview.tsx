@@ -65,7 +65,7 @@ export function CommissionsHomePreview({
 
   if (isLoading) {
     return (
-      <div className="h-full min-h-0 animate-pulse rounded-xl border border-border bg-muted/30" />
+      <div className="h-28 animate-pulse rounded-xl border border-border bg-muted/30" />
     );
   }
 
@@ -76,8 +76,8 @@ export function CommissionsHomePreview({
   const hasTeam = tabCounts.overrides > 0;
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col">
-      <div className="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <div className="w-full space-y-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1.5 font-medium text-brand-dark">
           <Receipt className="h-3.5 w-3.5 text-primary" aria-hidden />
           {tabCounts.all.toLocaleString()} total entries
@@ -105,11 +105,11 @@ export function CommissionsHomePreview({
       </div>
 
       {entries.length > 0 ? (
-        <div className="mt-3 flex min-h-0 flex-1 flex-col">
-          <p className="mb-2 shrink-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {AFFILIATE_COPY.home.recentCommissions}
           </p>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-xl border border-border/80">
+          <div className="max-h-[11rem] overflow-y-auto overscroll-contain rounded-xl border border-border/80">
             <ul className="divide-y divide-border/60">
               {entries.map((entry) => {
                 const status = effectiveLedgerStatus(
@@ -179,7 +179,7 @@ export function CommissionsHomePreview({
           </div>
         </div>
       ) : (
-        <p className="mt-3 shrink-0 text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           {AFFILIATE_COPY.commissions.empty}
         </p>
       )}

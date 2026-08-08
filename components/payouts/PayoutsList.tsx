@@ -96,15 +96,15 @@ export function PayoutsList({
 
   if (embedded) {
     return (
-      <div className="flex h-full min-h-0 flex-col">
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      <div>
+        <div className="max-h-[11rem] overflow-y-auto overscroll-contain">
           {list}
         </div>
         {hasMore && onViewAll && (
           <button
             type="button"
             onClick={onViewAll}
-            className="mt-2 shrink-0 text-xs font-medium text-primary hover:underline"
+            className="mt-2 text-xs font-medium text-primary hover:underline"
           >
             +{batches.length - limit!} more — {AFFILIATE_COPY.home.payoutsAction}
           </button>
