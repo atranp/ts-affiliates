@@ -77,7 +77,55 @@
   }
 
   .stat-value {
-    @apply text-2xl font-bold tracking-tight;
+    @apply text-2xl font-bold tracking-tight tabular-nums;
+  }
+
+  .ts-home-card {
+    @apply rounded-xl border border-border/80 bg-card shadow-xs;
+  }
+
+  .ts-section-label {
+    @apply text-[11px] font-semibold uppercase tracking-wider text-muted-foreground;
+  }
+
+  .ts-compact-stat {
+    @apply w-full min-w-0 rounded-lg border border-border/80 bg-muted/20 px-3 py-2.5;
+  }
+
+  .ts-compact-stat-label {
+    @apply text-[10px] font-semibold uppercase tracking-wider text-muted-foreground;
+  }
+
+  .ts-compact-stat-value {
+    @apply mt-0.5 text-base font-bold tabular-nums;
+  }
+
+  .ts-meta-line {
+    @apply flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground;
+  }
+
+  .ts-list-panel {
+    @apply overflow-hidden rounded-xl border border-border/80 bg-card;
+  }
+
+  .ts-list-panel-scroll {
+    @apply max-h-[11rem] overflow-y-auto overscroll-contain;
+  }
+
+  .ts-list-row {
+    @apply flex w-full text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset;
+  }
+
+  .ts-text-link {
+    @apply inline-flex items-center gap-0.5 text-xs font-semibold text-primary transition-colors hover:text-primary/80 hover:underline;
+  }
+
+  .ts-empty-inline {
+    @apply rounded-xl border border-dashed border-border/70 bg-muted/15 px-4 py-8 text-center text-sm leading-relaxed text-muted-foreground;
+  }
+
+  .ts-page-header {
+    @apply shrink-0 border-b border-border/50 pb-4;
   }
 
   .filter-pill {
@@ -117,11 +165,11 @@
   }
 
   .ts-stat-card {
-    @apply ts-card flex flex-col justify-between space-y-3 p-5 transition-colors;
+    @apply ts-card flex flex-col justify-between gap-3 p-5 ring-1 ring-border/35 transition-colors;
   }
 
   .ts-stat-label {
-    @apply block text-xs font-semibold uppercase tracking-wider text-muted-foreground;
+    @apply block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground;
   }
 
   .ts-icon-box {
@@ -129,7 +177,7 @@
   }
 
   .ts-table-toolbar {
-    @apply space-y-4 border-b border-border bg-muted/50 p-4;
+    @apply space-y-4 border-b border-border/60 bg-muted/30 p-4;
   }
 
   .ts-status-badge {
@@ -185,7 +233,7 @@
   }
 
   .ts-segment-item-active {
-    @apply bg-card text-brand-dark shadow-xs;
+    @apply bg-card font-semibold text-brand-dark shadow-xs;
   }
 
   .ts-segment-item-inactive {
@@ -253,7 +301,7 @@
   }
 
   .ts-table-wrap {
-    @apply overflow-hidden rounded-xl border border-border/80;
+    @apply overflow-hidden rounded-xl border border-border/80 bg-card shadow-xs;
   }
 
   .ts-table-fill {

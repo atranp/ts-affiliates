@@ -2,6 +2,14 @@
 
 import { Receipt } from "lucide-react";
 import {
+  AffiliateAmountCell,
+  AffiliateEmptyState,
+  AffiliateListPanel,
+  AffiliateMetaLine,
+  AffiliateMetaHighlight,
+  AffiliateSectionLabel,
+} from "@/components/affiliate/primitives";
+import {
   formatCommissionStatus,
   formatCommissionType,
   AFFILIATE_COPY,
@@ -44,12 +52,13 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function amountClass(status: string): string {
-  if (status === "PAID") return "text-emerald-700";
-  if (status === "PENDING" || status === AWAITING_PAYMENT)
-    return "text-amber-700";
-  if (status === "UNPAID") return "text-primary";
-  return "text-foreground";
+function amountTone(
+  status: string
+): "primary" | "success" | "warning" | "default" {
+  if (status === "PAID") return "success";
+  if (status === "PENDING" || status === AWAITING_PAYMENT) return "warning";
+  if (status === "UNPAID") return "primary";
+  return "default";
 }
 
 export function CommissionsHomePreview({
@@ -76,17 +85,16 @@ export function CommissionsHomePreview({
   const hasTeam = tabCounts.overrides > 0;
 
   return (
-    <div className="w-full space-y-3">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5 font-medium text-brand-dark">
-          <Receipt className="h-3.5 w-3.5 text-primary" aria-hidden />
+    <div className="w-full space-y-4">
+      <AffiliateMetaLine>
+        <AffiliateMetaHighlight icon={Receipt}>
           {tabCounts.all.toLocaleString()} total entries
-        </span>
+        </AffiliateMetaHighlight>
         {hasDirect && (
           <button
             type="button"
             onClick={() => onViewType("direct")}
-            className="hover:text-foreground hover:underline"
+            className="font-normal hover:text-foreground hover:underline"
           >
             {tabCounts.direct.toLocaleString()}{" "}
             {AFFILIATE_COPY.commissions.typeDirect.toLowerCase()}
@@ -96,20 +104,20 @@ export function CommissionsHomePreview({
           <button
             type="button"
             onClick={() => onViewType("team")}
-            className="hover:text-foreground hover:underline"
+            className="font-normal hover:text-foreground hover:underline"
           >
             {tabCounts.overrides.toLocaleString()}{" "}
             {AFFILIATE_COPY.commissions.typeTeam.toLowerCase()}
           </button>
         )}
-      </div>
+      </AffiliateMetaLine>
 
       {entries.length > 0 ? (
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <AffiliateSectionLabel>
             {AFFILIATE_COPY.home.recentCommissions}
-          </p>
-          <div className="max-h-[11rem] overflow-y-auto overscroll-contain rounded-xl border border-border/80">
+          </AffiliateSectionLabel>
+          <AffiliateListPanel scroll>
             <ul className="divide-y divide-border/60">
               {entries.map((entry) => {
                 const status = effectiveLedgerStatus(
@@ -128,7 +136,7 @@ export function CommissionsHomePreview({
                       type="button"
                       onClick={onViewCommissions}
                       className={cn(
-                        "flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+                        "ts-list-row items-start gap-3 py-3",
                         entry.type === "OVERRIDE" && "bg-purple-50/15",
                         entry.type !== "OVERRIDE" &&
                           status === "UNPAID" &&
@@ -148,7 +156,7 @@ export function CommissionsHomePreview({
                           </span>
                           <StatusBadge status={status} />
                         </div>
-                        <p className="mt-1 truncate text-sm font-medium text-brand-dark">
+                        <p className="mt-1 truncate text-sm font-semibold text-brand-dark">
                           {details}
                         </p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
@@ -158,30 +166,22 @@ export function CommissionsHomePreview({
                             : ""}
                         </p>
                       </div>
-                      <div className="shrink-0 text-right">
-                        <p
-                          className={cn(
-                            "text-sm font-bold tabular-nums",
-                            amountClass(status)
-                          )}
-                        >
-                          {formatCurrency(entry.amount)}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {AFFILIATE_COPY.commissions.columns.amount}
-                        </p>
-                      </div>
+                      <AffiliateAmountCell
+                        amount={formatCurrency(entry.amount)}
+                        sublabel={formatCommissionStatus(status)}
+                        tone={amountTone(status)}
+                      />
                     </button>
                   </li>
                 );
               })}
             </ul>
-          </div>
+          </AffiliateListPanel>
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">
+        <AffiliateEmptyState>
           {AFFILIATE_COPY.commissions.empty}
-        </p>
+        </AffiliateEmptyState>
       )}
     </div>
   );

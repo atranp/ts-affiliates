@@ -3,6 +3,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronRight, Users } from "lucide-react";
 import { useMemo } from "react";
+import {
+  AffiliateAmountCell,
+  AffiliateCompactStat,
+  AffiliateListPanel,
+  AffiliateMetaLine,
+  AffiliateMetaHighlight,
+  AffiliateSectionLabel,
+} from "@/components/affiliate/primitives";
 import { apiFetch } from "@/lib/api-client";
 import { AFFILIATE_COPY, memberCountLabel } from "@/lib/affiliate/copy";
 import type { TeamDetail, TeamSummary } from "@/lib/teams/queries";
@@ -100,36 +108,6 @@ function MilestonePreview({
   );
 }
 
-function CompactStat({
-  label,
-  value,
-  tone = "default",
-}: {
-  label: string;
-  value: string;
-  tone?: "default" | "primary" | "success" | "warning";
-}) {
-  const valueClass =
-    tone === "primary"
-      ? "text-primary"
-      : tone === "success"
-        ? "text-emerald-700"
-        : tone === "warning"
-          ? "text-amber-700"
-          : "text-brand-dark";
-
-  return (
-    <div className="w-full min-w-0 rounded-lg border border-border/80 bg-muted/20 px-3 py-2.5">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
-      <p className={cn("mt-0.5 text-base font-bold tabular-nums", valueClass)}>
-        {value}
-      </p>
-    </div>
-  );
-}
-
 function SegmentSummary({
   memberCount,
   segments,
@@ -138,12 +116,11 @@ function SegmentSummary({
   segments: ReturnType<typeof countSegments> | null;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-      <span className="inline-flex items-center gap-1.5 font-medium text-brand-dark">
-        <Users className="h-3.5 w-3.5 text-primary" aria-hidden />
+    <AffiliateMetaLine>
+      <AffiliateMetaHighlight icon={Users}>
         {memberCountLabel(memberCount)}
-      </span>
-      {segments && (
+      </AffiliateMetaHighlight>
+      {segments ? (
         <>
           {segments.earning > 0 && (
             <span>
@@ -168,8 +145,8 @@ function SegmentSummary({
             </span>
           )}
         </>
-      )}
-    </div>
+      ) : null}
+    </AffiliateMetaLine>
   );
 }
 
@@ -209,24 +186,24 @@ function SingleTeamPreview({
       <SegmentSummary memberCount={team.memberCount} segments={segments} />
 
       <div className="grid w-full min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
-        <CompactStat
+        <AffiliateCompactStat
           label={AFFILIATE_COPY.team.readyForPayout}
           value={formatCurrency(stats.unpaidTeamBonus)}
           tone="primary"
         />
-        <CompactStat
+        <AffiliateCompactStat
           label={AFFILIATE_COPY.team.teamRevenue}
           value={formatCurrency(stats.totalRevenue)}
         />
         {stats.pendingTeamBonus > 0 && (
-          <CompactStat
+          <AffiliateCompactStat
             label={AFFILIATE_COPY.team.awaitingMilestone}
             value={formatCurrency(stats.pendingTeamBonus)}
             tone="warning"
           />
         )}
         {stats.paidTeamBonus > 0 && (
-          <CompactStat
+          <AffiliateCompactStat
             label={AFFILIATE_COPY.team.paid}
             value={formatCurrency(stats.paidTeamBonus)}
             tone="success"
@@ -238,21 +215,22 @@ function SingleTeamPreview({
         <div className="h-40 animate-pulse rounded-xl border border-border bg-muted/30" />
       ) : topMembers.length > 0 ? (
         <div>
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              {AFFILIATE_COPY.home.topProducers}
-            </p>
-            {stats.unpaidTeamBonus > 0 && (
-              <button
-                type="button"
-                onClick={() => onViewTeamLedger(team.id)}
-                className="text-xs font-medium text-primary hover:underline"
-              >
-                {AFFILIATE_COPY.team.viewUnpaid}
-              </button>
-            )}
-          </div>
-          <div className="overflow-hidden rounded-xl border border-border/80">
+          <AffiliateSectionLabel
+            action={
+              stats.unpaidTeamBonus > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => onViewTeamLedger(team.id)}
+                  className="ts-text-link"
+                >
+                  {AFFILIATE_COPY.team.viewUnpaid}
+                </button>
+              ) : undefined
+            }
+          >
+            {AFFILIATE_COPY.home.topProducers}
+          </AffiliateSectionLabel>
+          <AffiliateListPanel>
             <ul className="divide-y divide-border/60">
               {topMembers.map((member) => {
                 const name = memberName(member);
@@ -267,8 +245,8 @@ function SingleTeamPreview({
                       onClick={() => canView && onViewMember(member.id)}
                       disabled={!canView}
                       className={cn(
-                        "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors",
-                        canView && "hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+                        "ts-list-row items-center py-3",
+                        canView && "cursor-pointer",
                         !canView && "cursor-default",
                         segment === "earning" && "bg-success-soft/15",
                         segment === "ramping" && "bg-warning-soft/10"
@@ -298,34 +276,29 @@ function SingleTeamPreview({
                           </span>
                         )}
                       </div>
-                      <div className="shrink-0 text-right">
-                        {member.stats.unpaidTeamBonus > 0 ? (
-                          <p className="text-sm font-semibold tabular-nums text-primary">
-                            {formatCurrency(member.stats.unpaidTeamBonus)}
-                          </p>
-                        ) : member.stats.pendingTeamBonus > 0 ? (
-                          <p className="text-xs font-medium tabular-nums text-amber-700">
-                            {formatCurrency(member.stats.pendingTeamBonus)}
-                          </p>
-                        ) : (
-                          <span className="text-xs text-muted-foreground/70">
-                            —
-                          </span>
-                        )}
-                        <p className="text-[10px] text-muted-foreground">
-                          {member.stats.unpaidTeamBonus > 0
-                            ? AFFILIATE_COPY.team.payout
-                            : member.stats.pendingTeamBonus > 0
-                              ? AFFILIATE_COPY.team.awaitingMilestone
-                              : ""}
-                        </p>
-                      </div>
+                      {member.stats.unpaidTeamBonus > 0 ? (
+                        <AffiliateAmountCell
+                          amount={formatCurrency(member.stats.unpaidTeamBonus)}
+                          sublabel={AFFILIATE_COPY.team.payout}
+                          tone="primary"
+                        />
+                      ) : member.stats.pendingTeamBonus > 0 ? (
+                        <AffiliateAmountCell
+                          amount={formatCurrency(member.stats.pendingTeamBonus)}
+                          sublabel={AFFILIATE_COPY.team.awaitingMilestone}
+                          tone="warning"
+                        />
+                      ) : (
+                        <span className="shrink-0 text-xs text-muted-foreground/70">
+                          —
+                        </span>
+                      )}
                     </button>
                   </li>
                 );
               })}
             </ul>
-          </div>
+          </AffiliateListPanel>
         </div>
       ) : null}
 
@@ -333,7 +306,7 @@ function SingleTeamPreview({
         <Button
           variant="ghost"
           size="sm"
-          className="gap-1 text-primary"
+          className="h-8 gap-1 px-2 text-primary"
           onClick={onViewTeam}
         >
           {AFFILIATE_COPY.home.viewFullRoster}
@@ -368,12 +341,12 @@ function MultiTeamPreview({
               {memberCountLabel(team.memberCount)}
             </p>
             <div className="mt-3 grid grid-cols-2 gap-2">
-              <CompactStat
+              <AffiliateCompactStat
                 label={AFFILIATE_COPY.team.readyForPayout}
                 value={formatCurrency(team.stats.unpaidTeamBonus)}
                 tone="primary"
               />
-              <CompactStat
+              <AffiliateCompactStat
                 label={AFFILIATE_COPY.team.teamRevenue}
                 value={formatCurrency(team.stats.totalRevenue)}
               />
@@ -393,7 +366,7 @@ function MultiTeamPreview({
         <Button
           variant="ghost"
           size="sm"
-          className="gap-1 text-primary"
+          className="h-8 gap-1 px-2 text-primary"
           onClick={onViewTeam}
         >
           {AFFILIATE_COPY.home.viewFullRoster}

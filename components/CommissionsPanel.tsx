@@ -160,7 +160,7 @@ export function CommissionsPanel({
 
       <div
         className={cn(
-          "ts-table-wrap bg-card shadow-xs",
+          "ts-table-wrap",
           fillHeight && "ts-table-fill"
         )}
       >

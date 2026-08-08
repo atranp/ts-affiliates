@@ -62,8 +62,8 @@ export function AffiliateStatCard({
           </div>
         )}
       </div>
-      <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-2 text-xs text-muted-foreground">
-        <span>{hint}</span>
+      <div className="flex items-center justify-between gap-3 border-t border-border/50 pt-3 text-xs leading-snug text-muted-foreground">
+        <span className="min-w-0">{hint}</span>
         {actionLabel && (
           <span
             className={cn(

@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { AffiliateStatCard } from "@/components/affiliate/AffiliateStatCard";
+import { AffiliateHomeCard } from "@/components/affiliate/primitives";
 import { DashboardSkeleton } from "@/components/affiliate/DashboardSkeleton";
 import { MilestoneProgress } from "@/components/affiliate/MilestoneProgress";
 import { CommissionsHomePreview } from "@/components/affiliate/CommissionsHomePreview";
@@ -14,11 +15,9 @@ import { TeamPanel, useTeam } from "@/components/TeamPanel";
 import { ErrorState } from "@/components/admin/ErrorState";
 import {
   CheckCircle2,
-  ChevronRight,
   Clock,
   DollarSign,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -309,99 +308,58 @@ function DashboardPageContent() {
             </div>
 
             <div className="grid gap-5 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] md:items-start">
-              <Card className="min-w-0">
-                <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-                  <div className="min-w-0">
-                    <CardTitle className="text-base">
-                      {AFFILIATE_COPY.home.commissionsTitle}
-                    </CardTitle>
-                    <CardDescription className="mt-0.5">
-                      {AFFILIATE_COPY.home.commissionsSubtitle}
-                    </CardDescription>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="-mr-2 shrink-0 gap-1 text-primary"
-                    onClick={() => setViewTab("ledger")}
-                  >
-                    {AFFILIATE_COPY.home.viewAllCommissions}
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <CommissionsHomePreview
-                    enabled={!!user}
-                    onViewCommissions={() => setViewTab("ledger")}
-                    onViewType={(type) => focusCommissions({ type })}
-                  />
-                </CardContent>
-              </Card>
+              <AffiliateHomeCard
+                className="min-w-0"
+                title={AFFILIATE_COPY.home.commissionsTitle}
+                description={AFFILIATE_COPY.home.commissionsSubtitle}
+                actionLabel={AFFILIATE_COPY.home.viewAllCommissions}
+                onAction={() => setViewTab("ledger")}
+                contentClassName="pt-0"
+              >
+                <CommissionsHomePreview
+                  enabled={!!user}
+                  onViewCommissions={() => setViewTab("ledger")}
+                  onViewType={(type) => focusCommissions({ type })}
+                />
+              </AffiliateHomeCard>
 
-              <Card className="min-w-0">
-                <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-                  <div className="min-w-0">
-                    <CardTitle className="text-base">
-                      {AFFILIATE_COPY.home.payoutsTitle}
-                    </CardTitle>
-                    <CardDescription className="mt-0.5">
-                      {AFFILIATE_COPY.home.payoutsDescription}
-                    </CardDescription>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="-mr-2 shrink-0 gap-1 text-primary"
-                    onClick={() => setViewTab("payouts")}
-                  >
-                    {AFFILIATE_COPY.home.payoutsAction}
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <PayoutsList
-                    detailHrefPrefix="/dashboard/payouts"
-                    affiliateView
-                    embedded
-                    limit={3}
-                    onViewAll={() => setViewTab("payouts")}
-                  />
-                </CardContent>
-              </Card>
+              <AffiliateHomeCard
+                className="min-w-0"
+                title={AFFILIATE_COPY.home.payoutsTitle}
+                description={AFFILIATE_COPY.home.payoutsDescription}
+                actionLabel={AFFILIATE_COPY.home.payoutsAction}
+                onAction={() => setViewTab("payouts")}
+                contentClassName="pt-0"
+              >
+                <PayoutsList
+                  detailHrefPrefix="/dashboard/payouts"
+                  affiliateView
+                  embedded
+                  limit={3}
+                  onViewAll={() => setViewTab("payouts")}
+                />
+              </AffiliateHomeCard>
             </div>
 
             {hasTeams ? (
-              <Card className="flex min-h-0 min-w-0 flex-col overflow-hidden">
-                <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
-                  <div>
-                    <CardTitle className="text-base">
-                      {AFFILIATE_COPY.home.teamsTitle}
-                    </CardTitle>
-                    <CardDescription className="mt-1">
-                      {AFFILIATE_COPY.home.teamsSubtitle}
-                    </CardDescription>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="shrink-0 gap-1 text-primary"
-                    onClick={() => setViewTab("teams")}
-                  >
-                    {AFFILIATE_COPY.home.teamsAction}
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </CardHeader>
-                <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-                  <TeamHomePreview
-                    teams={teamsData!.teams}
-                    onViewTeam={() => setViewTab("teams")}
-                    onViewTeamLedger={focusTeam}
-                    onViewMember={(memberId) =>
-                      focusTeamMember(memberId, "unpaid")
-                    }
-                  />
-                </CardContent>
-              </Card>
+              <AffiliateHomeCard
+                fill
+                scrollContent
+                title={AFFILIATE_COPY.home.teamsTitle}
+                description={AFFILIATE_COPY.home.teamsSubtitle}
+                actionLabel={AFFILIATE_COPY.home.teamsAction}
+                onAction={() => setViewTab("teams")}
+                contentClassName="pt-0"
+              >
+                <TeamHomePreview
+                  teams={teamsData!.teams}
+                  onViewTeam={() => setViewTab("teams")}
+                  onViewTeamLedger={focusTeam}
+                  onViewMember={(memberId) =>
+                    focusTeamMember(memberId, "unpaid")
+                  }
+                />
+              </AffiliateHomeCard>
             ) : hasTeamBonuses ? (
               <Card>
                 <CardHeader>
@@ -503,7 +461,7 @@ function DashboardPageContent() {
           </TabsContent>
 
           <TabsContent value="ledger" className="ts-affiliate-tab-fill">
-            <div className="shrink-0">
+            <div className="ts-page-header">
               <h1 className="page-title">{AFFILIATE_COPY.commissions.title}</h1>
               <p className="page-description">
                 {AFFILIATE_COPY.commissions.description}
@@ -534,7 +492,7 @@ function DashboardPageContent() {
           </TabsContent>
 
           <TabsContent value="teams" className="ts-affiliate-tab-fill">
-            <div className="shrink-0">
+            <div className="ts-page-header">
               <h1 className="page-title">Your Team Roster</h1>
               <p className="page-description">
                 Track sales goals, team earnings, and who&apos;s producing.
@@ -567,7 +525,7 @@ function DashboardPageContent() {
           </TabsContent>
 
           <TabsContent value="payouts" className="ts-affiliate-tab-scroll space-y-6 pb-6">
-            <div>
+            <div className="ts-page-header border-b-0 pb-0">
               <h1 className="page-title">Payout History</h1>
               <p className="page-description">
                 {AFFILIATE_COPY.payouts.description}
