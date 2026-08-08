@@ -267,7 +267,10 @@ function DashboardPageContent() {
           onValueChange={setViewTab}
           className="flex min-h-0 flex-1 basis-0 flex-col overflow-hidden"
         >
-          <TabsContent value="overview" className="space-y-6">
+          <TabsContent
+            value="overview"
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain space-y-6 pb-2"
+          >
             <div>
               <h1 className="page-title">
                 {displayName ? `Welcome, ${displayName}` : "Welcome"}
@@ -500,7 +503,7 @@ function DashboardPageContent() {
 
           <TabsContent
             value="ledger"
-            className="ts-workspace mt-0 gap-5 data-[state=active]:flex"
+            className="ts-workspace mt-0 flex min-h-0 flex-1 basis-0 flex-col gap-5 overflow-hidden"
           >
             <div className="shrink-0">
               <h1 className="page-title">{AFFILIATE_COPY.commissions.title}</h1>
@@ -534,7 +537,7 @@ function DashboardPageContent() {
 
           <TabsContent
             value="teams"
-            className="ts-workspace mt-0 gap-5 data-[state=active]:flex"
+            className="ts-workspace mt-0 flex min-h-0 flex-1 basis-0 flex-col gap-5 overflow-hidden"
           >
             <div className="shrink-0">
               <h1 className="page-title">Your Team Roster</h1>
@@ -568,7 +571,10 @@ function DashboardPageContent() {
             )}
           </TabsContent>
 
-          <TabsContent value="payouts" className="space-y-6">
+          <TabsContent
+            value="payouts"
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain space-y-6 pb-2"
+          >
             <div>
               <h1 className="page-title">Payout History</h1>
               <p className="page-description">
