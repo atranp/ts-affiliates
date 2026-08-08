@@ -16,12 +16,20 @@ import type { PayoutOptions } from "@/lib/payouts/options";
 import type { PayoutBatchDetail } from "@/lib/payouts/types";
 import { PAID_STATUS } from "@/lib/payouts/status";
 import { MOCK_AFFILIATE_ID } from "./affiliate-auth";
+import {
+  MOCK_RECRUITS,
+  buildMockPayoutDetail,
+  buildMockPayoutListItem,
+  type MockPayoutSpec,
+} from "./payout-fixtures";
 
 /** Shared IDs — keep in sync with lib/mock/affiliate-fixtures.ts */
 export const MOCK_TEAM_ID = "mock-team-downline";
 export const MOCK_BLAIR_ID = "mock-member-blair";
 export const MOCK_PEDRO_ID = "mock-member-pedro";
 export const MOCK_JORDAN_ID = "mock-affiliate-jordan";
+export const MOCK_CASEY_ID = "mock-affiliate-casey";
+export const MOCK_RILEY_ID = "mock-affiliate-riley";
 
 const now = new Date();
 const daysAgo = (n: number) =>
@@ -43,7 +51,23 @@ const JORDAN: AffiliateOption = {
   status: "ACTIVE",
 };
 
-const SEARCHABLE: AffiliateOption[] = [TRINDALYN, JORDAN];
+const CASEY: AffiliateOption = {
+  id: MOCK_CASEY_ID,
+  email: "casey.okonkwo@example.com",
+  displayName: "Casey Okonkwo",
+  slicewpId: 1103,
+  status: "ACTIVE",
+};
+
+const RILEY: AffiliateOption = {
+  id: MOCK_RILEY_ID,
+  email: "riley.vandenberg@example.com",
+  displayName: "Riley Van den Berg",
+  slicewpId: 1104,
+  status: "ACTIVE",
+};
+
+const SEARCHABLE: AffiliateOption[] = [TRINDALYN, JORDAN, CASEY, RILEY];
 
 /** Priced like production: direct from SliceWP rates, Blair at 10% override. */
 type MockPricing = {
@@ -105,70 +129,215 @@ type MockSession = {
   nextReceipt: number;
 };
 
+function payee(affiliate: AffiliateOption, share?: number) {
+  return {
+    affiliateId: affiliate.id,
+    displayName: affiliate.displayName,
+    email: affiliate.email,
+    share,
+  };
+}
+
+/**
+ * Payout history for the admin screens. Deliberately spans the awkward shapes —
+ * a one-line payout, a 140-line team batch, a transfer split across three
+ * affiliates, bonuses alongside commissions, and both payout sources — so the
+ * UI gets laid out against the range it will actually see.
+ */
+const SEEDED_PAYOUTS: MockPayoutSpec[] = [
+  {
+    id: "pb-mock-1",
+    source: "PLATFORM",
+    label: "Trindalyn Mackenzie · direct sales",
+    payees: [payee(TRINDALYN)],
+    sponsorAffiliateId: MOCK_AFFILIATE_ID,
+    sponsorName: TRINDALYN.displayName,
+    recordedDaysAgo: 4,
+    periodDays: 14,
+    entryCount: 98,
+    totalAmount: 3_842.15,
+  },
+  {
+    id: "pb-mock-slicewp-1",
+    source: "SLICEWP",
+    label: "Trindalyn Mackenzie · payout",
+    payees: [payee(TRINDALYN)],
+    sponsorAffiliateId: MOCK_AFFILIATE_ID,
+    sponsorName: TRINDALYN.displayName,
+    recordedDaysAgo: 11,
+    periodDays: 30,
+    entryCount: 63,
+    totalAmount: 6_812.4,
+    payoutMethod: "paypal",
+  },
+  {
+    id: "pb-mock-2",
+    source: "PLATFORM",
+    label: "Trindalyn Mackenzie · My downline",
+    payees: [payee(TRINDALYN)],
+    sponsorAffiliateId: MOCK_AFFILIATE_ID,
+    sponsorName: TRINDALYN.displayName,
+    teamId: MOCK_TEAM_ID,
+    teamName: "My downline",
+    recordedDaysAgo: 18,
+    periodDays: 30,
+    entryCount: 142,
+    totalAmount: 1_640,
+    overrideRatio: 1,
+    recruits: [
+      MOCK_RECRUITS.blair,
+      MOCK_RECRUITS.pedro,
+      MOCK_RECRUITS.marina,
+      MOCK_RECRUITS.whitney,
+    ],
+  },
+  {
+    id: "pb-mock-3",
+    source: "PLATFORM",
+    label: "Q1 ambassador settlement · direct sales and downline overrides",
+    payees: [
+      payee(TRINDALYN, 5),
+      payee(JORDAN, 3),
+      payee(CASEY, 2),
+      payee(RILEY, 1),
+    ],
+    sponsorAffiliateId: null,
+    sponsorName: null,
+    recordedDaysAgo: 25,
+    periodDays: 45,
+    entryCount: 214,
+    totalAmount: 18_430.77,
+    overrideRatio: 0.35,
+    recruits: [MOCK_RECRUITS.blair, MOCK_RECRUITS.pedro, MOCK_RECRUITS.marina],
+  },
+  {
+    id: "pb-mock-4",
+    source: "PLATFORM",
+    label: "Jordan Lee · direct sales + launch bonus",
+    payees: [payee(JORDAN)],
+    sponsorAffiliateId: MOCK_JORDAN_ID,
+    sponsorName: JORDAN.displayName,
+    recordedDaysAgo: 7,
+    periodDays: 21,
+    entryCount: 34,
+    totalAmount: 2_115.5,
+    bonuses: [
+      { description: "Spring launch bonus · top 10 finish", amount: 500 },
+      { description: "Chargeback adjustment · Order #8811", amount: -64.25 },
+    ],
+  },
+  {
+    id: "pb-mock-slicewp-2",
+    source: "SLICEWP",
+    label: "Jordan Lee · payout",
+    payees: [payee(JORDAN)],
+    sponsorAffiliateId: MOCK_JORDAN_ID,
+    sponsorName: JORDAN.displayName,
+    recordedDaysAgo: 33,
+    periodDays: 30,
+    entryCount: 41,
+    totalAmount: 1_204.88,
+    payoutMethod: "bank_transfer",
+  },
+  {
+    id: "pb-mock-5",
+    source: "PLATFORM",
+    label: "Casey Okonkwo · direct sales",
+    payees: [payee(CASEY)],
+    sponsorAffiliateId: MOCK_CASEY_ID,
+    sponsorName: CASEY.displayName,
+    recordedDaysAgo: 2,
+    periodDays: 7,
+    entryCount: 1,
+    totalAmount: 12.4,
+  },
+  {
+    id: "pb-mock-6",
+    source: "PLATFORM",
+    label: "Riley Van den Berg · Pacific Northwest downline",
+    payees: [payee(RILEY)],
+    sponsorAffiliateId: MOCK_RILEY_ID,
+    sponsorName: RILEY.displayName,
+    teamId: "mock-team-pnw",
+    teamName: "Pacific Northwest",
+    recordedDaysAgo: 41,
+    periodDays: 30,
+    entryCount: 76,
+    totalAmount: 903.12,
+    overrideRatio: 1,
+    recruits: [MOCK_RECRUITS.whitney, MOCK_RECRUITS.marina],
+  },
+  {
+    id: "pb-mock-slicewp-3",
+    source: "SLICEWP",
+    label: "Casey Okonkwo · payout",
+    payees: [payee(CASEY)],
+    sponsorAffiliateId: MOCK_CASEY_ID,
+    sponsorName: CASEY.displayName,
+    recordedDaysAgo: 52,
+    periodDays: 30,
+    entryCount: 12,
+    totalAmount: 418.6,
+    payoutMethod: "paypal",
+  },
+  {
+    id: "pb-mock-7",
+    source: "PLATFORM",
+    label: "Trindalyn Mackenzie · direct sales",
+    payees: [payee(TRINDALYN)],
+    sponsorAffiliateId: MOCK_AFFILIATE_ID,
+    sponsorName: TRINDALYN.displayName,
+    recordedDaysAgo: 61,
+    periodDays: 14,
+    entryCount: 55,
+    totalAmount: 2_190.06,
+  },
+  {
+    id: "pb-mock-8",
+    source: "PLATFORM",
+    label: "Riley Van den Berg · direct sales",
+    payees: [payee(RILEY)],
+    sponsorAffiliateId: MOCK_RILEY_ID,
+    sponsorName: RILEY.displayName,
+    recordedDaysAgo: 74,
+    periodDays: 21,
+    entryCount: 8,
+    totalAmount: 231.9,
+  },
+  {
+    id: "pb-mock-slicewp-4",
+    source: "SLICEWP",
+    label: "Trindalyn Mackenzie · payout",
+    payees: [payee(TRINDALYN)],
+    sponsorAffiliateId: MOCK_AFFILIATE_ID,
+    sponsorName: TRINDALYN.displayName,
+    recordedDaysAgo: 88,
+    periodDays: 30,
+    entryCount: 71,
+    totalAmount: 5_007.33,
+    payoutMethod: "store_credit",
+  },
+];
+
+const SEEDED_DETAILS = new Map(
+  SEEDED_PAYOUTS.map((spec) => [spec.id, buildMockPayoutDetail(spec)])
+);
+
+function seedBatches(): MockBatchRecord[] {
+  return SEEDED_PAYOUTS.map((spec) => ({
+    ...buildMockPayoutListItem(spec),
+    sponsorName: spec.sponsorName,
+  }));
+}
+
 const session: MockSession = {
   cutoff: now.toISOString(),
   paidDirect: false,
   paidMembers: new Set(),
   batches: seedBatches(),
   batchDetails: new Map(),
-  nextReceipt: 3,
+  nextReceipt: 1,
 };
-
-function seedBatches(): MockBatchRecord[] {
-  return [
-    {
-      id: "pb-mock-1",
-      source: "PLATFORM",
-      label: "Trindalyn Mackenzie · direct sales through Jan 15, 2026",
-      status: PAID_STATUS,
-      periodStart: daysAgo(45),
-      periodEnd: daysAgo(30),
-      processedAt: daysAgo(30),
-      createdAt: daysAgo(30),
-      teamId: null,
-      teamName: null,
-      sponsorAffiliateId: MOCK_AFFILIATE_ID,
-      sponsorName: TRINDALYN.displayName,
-      entryCount: 98,
-      affiliateCount: 1,
-      totalAmount: 3_842.15,
-    },
-    {
-      id: "pb-mock-slicewp",
-      source: "SLICEWP",
-      label: "Trindalyn Mackenzie · payout through Dec 28, 2025",
-      status: PAID_STATUS,
-      periodStart: daysAgo(70),
-      periodEnd: daysAgo(50),
-      processedAt: daysAgo(50),
-      createdAt: daysAgo(50),
-      teamId: null,
-      teamName: null,
-      sponsorAffiliateId: MOCK_AFFILIATE_ID,
-      sponsorName: TRINDALYN.displayName,
-      entryCount: 63,
-      affiliateCount: 1,
-      totalAmount: 6_812.4,
-    },
-    {
-      id: "pb-mock-2",
-      source: "PLATFORM",
-      label: "Trindalyn Mackenzie · Blair Rodgers · My downline through Dec 20, 2025",
-      status: PAID_STATUS,
-      periodStart: daysAgo(75),
-      periodEnd: daysAgo(60),
-      processedAt: daysAgo(58),
-      createdAt: daysAgo(58),
-      teamId: MOCK_TEAM_ID,
-      teamName: "My downline",
-      sponsorAffiliateId: MOCK_AFFILIATE_ID,
-      sponsorName: TRINDALYN.displayName,
-      entryCount: 142,
-      affiliateCount: 1,
-      totalAmount: 1_640.0,
-    },
-  ];
-}
 
 function memberTarget(memberId: string): PayoutTarget {
   return { scope: "member", teamId: MOCK_TEAM_ID, memberId };
@@ -500,7 +669,7 @@ export function mockAdminCreatePayout(
   }
 
   const processedAt = new Date().toISOString();
-  const batchId = `pb-mock-${session.nextReceipt++}`;
+  const batchId = `pb-mock-new-${session.nextReceipt++}`;
   const label = draft.targetLabel.includes("direct")
     ? `${draft.affiliateName} · direct sales through ${new Date(selection.cutoff).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`
     : `${draft.affiliateName} · Blair Rodgers · My downline through ${new Date(selection.cutoff).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`;
@@ -657,66 +826,22 @@ export function mockAdminPayoutBatches(sponsorAffiliateId?: string | null) {
         (batch) => batch.sponsorAffiliateId === sponsorAffiliateId
       )
     : session.batches
-  ).map(toPayoutBatchRow);
+  )
+    .map(toPayoutBatchRow)
+    .sort((a, b) =>
+      (b.processedAt ?? b.createdAt).localeCompare(a.processedAt ?? a.createdAt)
+    );
   return { batches };
 }
 
 export function mockAdminPayoutBatchDetail(
   batchId: string
 ): { batch: PayoutBatchDetail } | null {
-  const detail = session.batchDetails.get(batchId);
-  if (detail) return { batch: detail };
+  const created = session.batchDetails.get(batchId);
+  if (created) return { batch: created };
 
-  const summary = session.batches.find((batch) => batch.id === batchId);
-  if (!summary) return null;
-
-  return {
-    batch: {
-      id: summary.id,
-      source: summary.source,
-      label: summary.label,
-      status: summary.status,
-      periodStart: summary.periodStart,
-      periodEnd: summary.periodEnd,
-      processedAt: summary.processedAt,
-      createdAt: summary.createdAt,
-      teamId: summary.teamId,
-      teamName: summary.teamName,
-      sponsorAffiliateId: summary.sponsorAffiliateId ?? null,
-      payoutMethod: summary.source === "SLICEWP" ? "paypal" : null,
-      totals: {
-        grandTotal: summary.totalAmount,
-        directTotal: summary.teamId ? 0 : summary.totalAmount,
-        overrideTotal: summary.teamId ? summary.totalAmount : 0,
-        otherTotal: 0,
-        entryCount: summary.entryCount,
-      },
-      items: [
-        {
-          affiliateId: summary.sponsorAffiliateId ?? MOCK_AFFILIATE_ID,
-          displayName: summary.sponsorName ?? null,
-          email: TRINDALYN.email,
-          totalAmount: summary.totalAmount,
-          entryCount: summary.entryCount,
-          directTotal: summary.teamId ? 0 : summary.totalAmount,
-          overrideTotal: summary.teamId ? summary.totalAmount : 0,
-        },
-      ],
-      recruitBreakdown: summary.teamId
-        ? [
-            {
-              sourceAffiliateId: MOCK_BLAIR_ID,
-              displayName: "Blair Rodgers",
-              email: "blair@example.com",
-              overrideTotal: summary.totalAmount,
-              overrideCount: summary.entryCount,
-              sourceRevenue: PRICING.blair.revenue,
-            },
-          ]
-        : [],
-      entries: [],
-    },
-  };
+  const seeded = SEEDED_DETAILS.get(batchId);
+  return seeded ? { batch: seeded } : null;
 }
 
 /** Reset in-memory payout state — useful when hot-reloading gets confusing. */
@@ -726,5 +851,5 @@ export function resetAdminMockSession() {
   session.paidMembers.clear();
   session.batches = seedBatches();
   session.batchDetails.clear();
-  session.nextReceipt = 3;
+  session.nextReceipt = 1;
 }

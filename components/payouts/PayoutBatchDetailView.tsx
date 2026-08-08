@@ -34,6 +34,13 @@ function formatRate(amount: number, revenue: number) {
   return `${rate.toFixed(1).replace(/\.0$/, "")}%`;
 }
 
+/** Anything that is neither a sale nor a team override is an adjustment. */
+function entryBadge(type: string) {
+  if (type === "DIRECT") return { label: "Direct", variant: "secondary" } as const;
+  if (type === "OVERRIDE") return { label: "Bonus", variant: "unpaid" } as const;
+  return { label: "Adjustment", variant: "outline" } as const;
+}
+
 function entryDetails(entry: PayoutBatchDetail["entries"][number]) {
   return (
     entry.description ??
@@ -194,12 +201,10 @@ export function PayoutBatchDetailView({
                       </TableCell>
                       <TableCell>
                         <Badge
-                          variant={
-                            entry.type === "OVERRIDE" ? "unpaid" : "secondary"
-                          }
+                          variant={entryBadge(entry.type).variant}
                           className="text-xs"
                         >
-                          {entry.type === "OVERRIDE" ? "Bonus" : "Direct"}
+                          {entryBadge(entry.type).label}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm">
@@ -255,12 +260,10 @@ export function PayoutBatchDetailView({
                   />
                   <DataCardMeta>
                     <Badge
-                      variant={
-                        entry.type === "OVERRIDE" ? "unpaid" : "secondary"
-                      }
+                      variant={entryBadge(entry.type).variant}
                       className="text-xs"
                     >
-                      {entry.type === "OVERRIDE" ? "Bonus" : "Direct"}
+                      {entryBadge(entry.type).label}
                     </Badge>
                     {entry.wooOrderId &&
                       !entryDetails(entry).includes(`#${entry.wooOrderId}`) &&

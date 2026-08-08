@@ -2,6 +2,13 @@ import type { LedgerData, LedgerEntry } from "@/hooks/use-ledger";
 import type { LedgerSortKey, SortDirection } from "@/lib/ledger/sort";
 import { defaultSortDirection, sortLedgerEntries } from "@/lib/ledger/sort";
 import type { PayoutBatchDetail, PayoutBatchListItem } from "@/lib/payouts/types";
+import {
+  MOCK_RECRUITS,
+  buildMockPayoutDetail,
+  buildMockPayoutListItem,
+  type MockPayoutPayee,
+  type MockPayoutSpec,
+} from "./payout-fixtures";
 import { PAID_STATUS } from "@/lib/payouts/status";
 import type { TeamDetail, TeamSummary } from "@/lib/teams/queries";
 import { MOCK_AFFILIATE_ID } from "./affiliate-auth";
@@ -278,56 +285,106 @@ const ALL_ENTRIES: LedgerEntry[] = [
   },
 ];
 
-export const MOCK_PAYOUT_BATCHES: PayoutBatchListItem[] = [
+const SELF: MockPayoutPayee = {
+  affiliateId: MOCK_AFFILIATE_ID,
+  displayName: "Trindalyn Mackenzie",
+  email: "demo.affiliate@true-sciences.local",
+};
+
+/** What the signed-in affiliate has been paid, newest first. */
+const PAYOUT_SPECS: MockPayoutSpec[] = [
   {
     id: "pb-1",
     source: "PLATFORM",
     label: "January payout",
-    status: PAID_STATUS,
-    periodStart: daysAgo(45),
-    periodEnd: daysAgo(15),
-    processedAt: daysAgo(30),
-    createdAt: daysAgo(30),
-    teamId: null,
-    teamName: null,
+    payees: [SELF],
     sponsorAffiliateId: MOCK_AFFILIATE_ID,
+    sponsorName: SELF.displayName,
+    recordedDaysAgo: 6,
+    periodDays: 30,
     entryCount: 142,
-    affiliateCount: 1,
     totalAmount: 12_450.22,
+    overrideRatio: 0.4,
+    recruits: [MOCK_RECRUITS.blair, MOCK_RECRUITS.pedro, MOCK_RECRUITS.marina],
   },
   {
     id: "pb-slicewp-1",
     source: "SLICEWP",
-    label: "Trindalyn Mackenzie · payout through Dec 12, 2025",
-    status: PAID_STATUS,
-    periodStart: daysAgo(70),
-    periodEnd: daysAgo(48),
-    processedAt: daysAgo(48),
-    createdAt: daysAgo(48),
-    teamId: null,
-    teamName: null,
+    label: "Trindalyn Mackenzie · payout",
+    payees: [SELF],
     sponsorAffiliateId: MOCK_AFFILIATE_ID,
+    sponsorName: SELF.displayName,
+    recordedDaysAgo: 22,
+    periodDays: 22,
     entryCount: 63,
-    affiliateCount: 1,
     totalAmount: 6_812.4,
+    payoutMethod: "paypal",
   },
   {
     id: "pb-2",
     source: "PLATFORM",
     label: "December payout",
-    status: PAID_STATUS,
-    periodStart: daysAgo(75),
-    periodEnd: daysAgo(45),
-    processedAt: daysAgo(58),
-    createdAt: daysAgo(60),
-    teamId: null,
-    teamName: null,
+    payees: [SELF],
     sponsorAffiliateId: MOCK_AFFILIATE_ID,
+    sponsorName: SELF.displayName,
+    recordedDaysAgo: 37,
+    periodDays: 30,
     entryCount: 118,
-    affiliateCount: 1,
     totalAmount: 14_524.15,
+    overrideRatio: 0.3,
+    recruits: [MOCK_RECRUITS.blair, MOCK_RECRUITS.whitney],
+    bonuses: [
+      { description: "Year-end volume bonus", amount: 1_000 },
+      { description: "Refund adjustment · Order #8042", amount: -212.4 },
+    ],
+  },
+  {
+    id: "pb-3",
+    source: "PLATFORM",
+    label: "November payout",
+    payees: [SELF],
+    sponsorAffiliateId: MOCK_AFFILIATE_ID,
+    sponsorName: SELF.displayName,
+    recordedDaysAgo: 66,
+    periodDays: 30,
+    entryCount: 91,
+    totalAmount: 8_207.66,
+    overrideRatio: 0.25,
+    recruits: [MOCK_RECRUITS.pedro],
+  },
+  {
+    id: "pb-slicewp-2",
+    source: "SLICEWP",
+    label: "Trindalyn Mackenzie · payout",
+    payees: [SELF],
+    sponsorAffiliateId: MOCK_AFFILIATE_ID,
+    sponsorName: SELF.displayName,
+    recordedDaysAgo: 84,
+    periodDays: 28,
+    entryCount: 7,
+    totalAmount: 318.75,
+    payoutMethod: "store_credit",
+  },
+  {
+    id: "pb-4",
+    source: "PLATFORM",
+    label: "October payout",
+    payees: [SELF],
+    sponsorAffiliateId: MOCK_AFFILIATE_ID,
+    sponsorName: SELF.displayName,
+    recordedDaysAgo: 97,
+    periodDays: 30,
+    entryCount: 2,
+    totalAmount: 96.5,
   },
 ];
+
+const PAYOUT_DETAILS = new Map(
+  PAYOUT_SPECS.map((spec) => [spec.id, buildMockPayoutDetail(spec)])
+);
+
+export const MOCK_PAYOUT_BATCHES: PayoutBatchListItem[] =
+  PAYOUT_SPECS.map(buildMockPayoutListItem);
 
 const SUMMARY = {
   unpaidTotal: 21_658.62,
@@ -467,103 +524,8 @@ export function mockPayoutsResponse() {
 export function mockPayoutDetailResponse(
   batchId: string
 ): { batch: PayoutBatchDetail } | null {
-  const summary = MOCK_PAYOUT_BATCHES.find((batch) => batch.id === batchId);
-  if (!summary) return null;
-
-  const linked = ALL_ENTRIES.filter((entry) => entry.payoutBatchId === batchId);
-  const entries = (linked.length > 0 ? linked : ALL_ENTRIES.slice(0, 4)).map(
-    (entry) => ({
-      id: entry.id,
-      type: entry.type,
-      amount: Number(entry.amount),
-      status: entry.status,
-      description: entry.description,
-      wooOrderId: entry.wooOrderId,
-      orderRevenue: entry.orderRevenue ? Number(entry.orderRevenue) : null,
-      occurredAt: entry.occurredAt,
-      sourceAffiliate: entry.sourceAffiliateId
-        ? {
-            id: entry.sourceAffiliateId,
-            displayName: entry.sourceAffiliate?.displayName ?? null,
-            email: entry.sourceAffiliate?.email ?? "",
-          }
-        : null,
-      dealRule: null,
-    })
-  );
-
-  const directTotal = entries
-    .filter((entry) => entry.type === "DIRECT")
-    .reduce((sum, entry) => sum + entry.amount, 0);
-  const overrideTotal = entries
-    .filter((entry) => entry.type === "OVERRIDE")
-    .reduce((sum, entry) => sum + entry.amount, 0);
-  const grandTotal = directTotal + overrideTotal || summary.totalAmount;
-
-  const recruitMap = new Map<
-    string,
-    {
-      sourceAffiliateId: string;
-      displayName: string | null;
-      email: string;
-      overrideTotal: number;
-      overrideCount: number;
-      sourceRevenue: number;
-    }
-  >();
-
-  for (const entry of entries) {
-    if (entry.type !== "OVERRIDE" || !entry.sourceAffiliate) continue;
-    const current = recruitMap.get(entry.sourceAffiliate.id) ?? {
-      sourceAffiliateId: entry.sourceAffiliate.id,
-      displayName: entry.sourceAffiliate.displayName,
-      email: entry.sourceAffiliate.email,
-      overrideTotal: 0,
-      overrideCount: 0,
-      sourceRevenue: 0,
-    };
-    current.overrideTotal += entry.amount;
-    current.overrideCount += 1;
-    current.sourceRevenue += entry.orderRevenue ?? 0;
-    recruitMap.set(entry.sourceAffiliate.id, current);
-  }
-
-  return {
-    batch: {
-      id: summary.id,
-      source: summary.source,
-      label: summary.label,
-      status: summary.status,
-      periodStart: summary.periodStart,
-      periodEnd: summary.periodEnd,
-      processedAt: summary.processedAt,
-      createdAt: summary.createdAt,
-      teamId: summary.teamId,
-      teamName: summary.teamName,
-      sponsorAffiliateId: summary.sponsorAffiliateId,
-      payoutMethod: summary.source === "SLICEWP" ? "paypal" : null,
-      totals: {
-        grandTotal,
-        directTotal,
-        overrideTotal,
-        otherTotal: 0,
-        entryCount: entries.length,
-      },
-      items: [
-        {
-          affiliateId: MOCK_AFFILIATE_ID,
-          displayName: "Trindalyn Mackenzie",
-          email: "demo.affiliate@true-sciences.local",
-          totalAmount: grandTotal,
-          entryCount: entries.length,
-          directTotal,
-          overrideTotal,
-        },
-      ],
-      recruitBreakdown: Array.from(recruitMap.values()),
-      entries,
-    },
-  };
+  const batch = PAYOUT_DETAILS.get(batchId);
+  return batch ? { batch } : null;
 }
 
 /** Legacy `/api/team` shape (flat member list with deal rules). */
