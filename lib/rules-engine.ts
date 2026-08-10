@@ -324,10 +324,9 @@ function resolveOverrideStatusOnSync(
   },
   computed: CommissionStatus
 ): CommissionStatus {
-  if (
-    existing.status === CommissionStatus.PAID &&
-    (existing.payoutBatchId || existing.paidAt)
-  ) {
+  // Never downgrade PAID — covers platform payout batches and bonuses that
+  // were marked paid under the old SliceWP-mirror behavior before deploy.
+  if (existing.status === CommissionStatus.PAID) {
     return CommissionStatus.PAID;
   }
   return computed;

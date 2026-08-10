@@ -40,16 +40,15 @@ export function getMilestoneProgress(
 }
 
 /**
- * Team bonus status.
+ * Team bonus status for newly computed overrides.
  *
- * The milestone gate comes first: an unearned bonus stays PENDING whatever the
- * underlying sale did. Past that the bonus mirrors the recruit's SliceWP
- * commission, because direct commissions are still paid out through SliceWP's
- * own payout tool and the two settle on the same order at the same time. A
- * bonus on an order SliceWP has already paid is therefore not still owed.
+ * Milestone gate first: an unearned bonus stays PENDING. Once earned, team
+ * earnings stay UNPAID here until paid through this platform — a recruit's
+ * direct commission being paid in SliceWP no longer settles the sponsor bonus.
+ * REJECTED still propagates from the underlying sale.
  *
- * Bonuses settled by one of our own payout batches are protected separately —
- * see resolveOverrideStatusOnSync — so this never downgrades money we paid.
+ * Existing ledger rows are reconciled separately — see resolveOverrideStatusOnSync
+ * in rules-engine.ts, which never downgrades an override already marked PAID.
  */
 export function overrideStatusForMilestone(
   sourceCommissionStatus: CommissionStatus,
@@ -58,7 +57,10 @@ export function overrideStatusForMilestone(
 ): CommissionStatus {
   const progress = getMilestoneProgress(cumulativeRevenue, milestoneThreshold);
   if (progress && !progress.met) return CommissionStatus.PENDING;
-  return sourceCommissionStatus;
+  if (sourceCommissionStatus === CommissionStatus.REJECTED) {
+    return CommissionStatus.REJECTED;
+  }
+  return CommissionStatus.UNPAID;
 }
 
 /** Unlock PENDING team bonuses once recruit revenue crosses the milestone. */
