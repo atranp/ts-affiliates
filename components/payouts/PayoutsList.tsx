@@ -6,6 +6,10 @@ import { ErrorState } from "@/components/admin/ErrorState";
 import { InlinePanelSkeleton } from "@/components/affiliate/DashboardSkeleton";
 import { PayoutDesktopTable, PayoutRow } from "@/components/affiliate/PayoutRow";
 import {
+  PayoutsHomeTable,
+  PayoutsHomeTableSkeleton,
+} from "@/components/affiliate/PayoutsHomeTable";
+import {
   AffiliateEmptyState,
   AffiliateListPanel,
 } from "@/components/affiliate/primitives";
@@ -41,13 +45,15 @@ function toPayoutRowData(batch: PayoutBatchListItem) {
 function PayoutBatchListItem({
   batch,
   href,
+  layout = "card",
 }: {
   batch: PayoutBatchListItem;
   href: string;
+  layout?: "card" | "flat";
 }) {
   return (
     <li>
-      <PayoutRow {...toPayoutRowData(batch)} href={href} />
+      <PayoutRow {...toPayoutRowData(batch)} href={href} layout={layout} />
     </li>
   );
 }
@@ -80,11 +86,18 @@ export function PayoutsList({
     ) : (
       <div
         className={cn(
-          "ts-table-wrap min-w-0 max-w-full max-lg:overflow-visible",
+          "ts-table-wrap min-w-0 max-w-full overflow-hidden",
           className,
         )}
       >
-        <InlinePanelSkeleton className="m-3 min-h-[12rem] rounded-lg border-0" />
+        <div className="ts-table-summary">
+          <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+        </div>
+        {affiliateView ? (
+          <PayoutsHomeTableSkeleton />
+        ) : (
+          <InlinePanelSkeleton className="m-3 min-h-[12rem] rounded-lg border-0" />
+        )}
       </div>
     );
   }
@@ -136,15 +149,14 @@ export function PayoutsList({
       key={batch.id}
       batch={batch}
       href={`${detailHrefPrefix}/${batch.id}`}
+      layout={affiliateView ? "flat" : "card"}
     />
   ));
 
   if (embedded) {
     return (
       <div className="space-y-2.5">
-        <AffiliateListPanel scroll inset>
-          <ul className="flex flex-col gap-1.5">{rows}</ul>
-        </AffiliateListPanel>
+        <ul className="ts-divider-list">{rows}</ul>
         {hasMore && onViewAll && (
           <button type="button" onClick={onViewAll} className="ts-text-link">
             +{batches.length - limit!} more — {AFFILIATE_COPY.home.payoutsAction}
@@ -157,7 +169,7 @@ export function PayoutsList({
   return (
     <div
       className={cn(
-        "ts-table-wrap min-w-0 max-w-full overflow-x-auto max-lg:overflow-visible",
+        "ts-table-wrap min-w-0 max-w-full overflow-hidden",
         className,
       )}
     >
@@ -167,22 +179,41 @@ export function PayoutsList({
             {visible.length.toLocaleString()}{" "}
             {visible.length === 1 ? "payout" : "payouts"}
           </span>
-          <span className="ts-amount shrink-0 whitespace-nowrap text-primary">
+          <span className="ts-amount shrink-0 whitespace-nowrap text-emerald-700">
             {formatCurrency(summaryTotal)}
           </span>
         </p>
       </div>
 
-      <AffiliateListPanel inset className="ts-table-body lg:hidden">
-        <ul className="flex flex-col gap-1.5">{rows}</ul>
-      </AffiliateListPanel>
+      {affiliateView ? (
+        <>
+          <div className="ts-table-body p-0 lg:hidden">
+            <PayoutsHomeTable
+              batches={visible}
+              detailHrefPrefix={detailHrefPrefix}
+            />
+          </div>
+          <div className="ts-table-body hidden p-0 lg:block">
+            <PayoutDesktopTable
+              batches={visible.map(toPayoutRowData)}
+              detailHrefPrefix={detailHrefPrefix}
+            />
+          </div>
+        </>
+      ) : (
+        <>
+          <AffiliateListPanel inset className="ts-table-body lg:hidden">
+            <ul className="ts-divider-list">{rows}</ul>
+          </AffiliateListPanel>
 
-      <div className="ts-table-body hidden lg:block">
-        <PayoutDesktopTable
-          batches={visible.map(toPayoutRowData)}
-          detailHrefPrefix={detailHrefPrefix}
-        />
-      </div>
+          <div className="ts-table-body hidden lg:block">
+            <PayoutDesktopTable
+              batches={visible.map(toPayoutRowData)}
+              detailHrefPrefix={detailHrefPrefix}
+            />
+          </div>
+        </>
+      )}
 
       {hasMore && onViewAll && (
         <div className="border-t border-border/50 px-4 py-3 text-center">

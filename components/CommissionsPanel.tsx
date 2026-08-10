@@ -129,7 +129,7 @@ function FilterPill({
     <button
       type="button"
       onClick={onRemove}
-      className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs text-foreground transition-colors hover:bg-muted"
+      className="inline-flex items-center gap-1 rounded-full border-0 bg-muted/60 px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
       aria-label={`${AFFILIATE_COPY.commissions.filters.removeFilter}: ${label}`}
     >
       {label}
@@ -252,7 +252,7 @@ export function CommissionsPanel({
     >
       <div
         className={cn(
-          'hidden shrink-0 gap-2.5 sm:grid lg:grid-cols-2 lg:gap-3',
+          'grid shrink-0 grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3',
           showTeamEarningsStat ? 'xl:grid-cols-4' : 'xl:grid-cols-3',
         )}
       >

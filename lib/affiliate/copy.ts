@@ -240,6 +240,11 @@ export const AFFILIATE_COPY = {
       submitRequired: 'Continue to dashboard',
       submitting: 'Saving…',
       success: 'Password updated',
+      successTitle: 'Password updated',
+      successDescription:
+        'Your new password is saved. You can use the Ambassador Portal now.',
+      successRedirecting: 'Taking you to your dashboard…',
+      successAction: 'Go to dashboard',
       footer:
         'Need help? Contact your True Sciences administrator to reset your password.',
       errors: {

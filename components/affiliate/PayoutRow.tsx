@@ -1,13 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { AffiliateAmountCell } from "@/components/affiliate/primitives";
 import { PayoutSourceBadge } from "@/components/payouts/PayoutSourceBadge";
 import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
 import type { PayoutSource } from "@/lib/payouts/types";
 import { formatAppDate } from "@/lib/timezone";
 import { cn, formatCurrency } from "@/lib/utils";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export type PayoutRowData = {
   id: string;
@@ -22,11 +30,13 @@ export type PayoutRowData = {
 
 function payoutDateLabel(
   batch: Pick<PayoutRowData, "processedAt" | "createdAt">,
+  withYear = false,
 ) {
   const dateIso = batch.processedAt ?? batch.createdAt;
   return formatAppDate(dateIso, {
     month: "short",
     day: "numeric",
+    ...(withYear ? { year: "numeric" } : {}),
   });
 }
 
@@ -38,6 +48,7 @@ function entryCountLabel(count: number) {
 
 type PayoutRowProps = PayoutRowData & {
   href?: string;
+  layout?: "card" | "flat";
   className?: string;
 };
 
@@ -49,19 +60,35 @@ export function PayoutRow({
   entryCount,
   totalAmount,
   href,
+  layout = "card",
   className,
 }: PayoutRowProps) {
-  const dateLabel = payoutDateLabel({
-    processedAt,
-    createdAt,
-  });
+  const flat = layout === "flat";
+  const dateLabel = payoutDateLabel({ processedAt, createdAt }, flat);
   const entriesLabel = entryCountLabel(entryCount);
 
-  const content = (
+  const content = flat ? (
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0 flex-1 space-y-1">
+        <p className="ts-row-title line-clamp-2 leading-snug">{label}</p>
+        <p className="ts-row-meta">{dateLabel}</p>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <p className="ts-row-meta">{entriesLabel}</p>
+          <PayoutSourceBadge source={source} />
+        </div>
+      </div>
+      <p className="ts-amount shrink-0 whitespace-nowrap tabular-nums text-emerald-700">
+        {formatCurrency(totalAmount)}
+      </p>
+    </div>
+  ) : (
     <>
       <div className="flex min-w-0 items-start justify-between gap-3">
         <p className="ts-row-title min-w-0 flex-1 leading-snug">{label}</p>
-        <AffiliateAmountCell amount={formatCurrency(totalAmount)} tone="success" />
+        <AffiliateAmountCell
+          amount={formatCurrency(totalAmount)}
+          tone="success"
+        />
       </div>
       <div className="flex min-w-0 items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">
@@ -74,7 +101,10 @@ export function PayoutRow({
   );
 
   const rowClass = cn(
-    "ts-list-row min-w-0 max-w-full flex-col items-stretch gap-1.5",
+    "min-w-0 max-w-full",
+    flat
+      ? "ts-divider-row"
+      : "ts-list-row flex-col items-stretch gap-1.5",
     className,
   );
 
@@ -96,73 +126,79 @@ export function PayoutDesktopTable({
   batches: PayoutRowData[];
   detailHrefPrefix: string;
 }) {
+  const router = useRouter();
+  const cols = AFFILIATE_COPY.payouts.columns;
+  const thClass =
+    "ts-table-header h-9 whitespace-nowrap bg-muted/30 px-3 text-[11px] first:pl-4 sm:px-4 sm:first:pl-5";
+  const tdClass = "px-3 py-2.5 align-top first:pl-4 sm:px-4 sm:first:pl-5";
+
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full caption-bottom text-sm">
-        <thead>
-          <tr className="border-b border-border/80 hover:bg-transparent">
-            <th className="ts-table-header h-11 px-4 text-left first:pl-5">
-              {AFFILIATE_COPY.payouts.columns.payout}
-            </th>
-            <th className="ts-table-header h-11 px-4 text-left">
-              {AFFILIATE_COPY.payouts.columns.date}
-            </th>
-            <th className="ts-table-header h-11 px-4 text-left">
-              {AFFILIATE_COPY.payouts.columns.commissions}
-            </th>
-            <th className="ts-table-header h-11 px-4 text-right">
-              {AFFILIATE_COPY.payouts.columns.amount}
-            </th>
-            <th className="ts-table-header h-11 w-10 px-2 last:pr-5">
-              <span className="sr-only">View</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {batches.map((batch) => {
-            const href = `${detailHrefPrefix}/${batch.id}`;
-            return (
-              <tr
-                key={batch.id}
-                className="border-b border-border/60 transition-colors hover:bg-muted/50"
+    <Table
+      className="table-fixed"
+      containerClassName="min-w-0 overflow-x-hidden"
+    >
+      <TableHeader>
+        <TableRow className="border-border/60 hover:bg-transparent">
+          <TableHead className={cn(thClass, "w-[34%]")}>{cols.payout}</TableHead>
+          <TableHead className={cn(thClass, "w-[16%]")}>{cols.date}</TableHead>
+          <TableHead className={cn(thClass, "w-[22%]")}>{cols.commissions}</TableHead>
+          <TableHead
+            className={cn(
+              thClass,
+              "w-[28%] text-right last:pr-4 sm:last:pr-5",
+            )}
+          >
+            {cols.amount}
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {batches.map((batch) => {
+          const href = `${detailHrefPrefix}/${batch.id}`;
+          const rowLabel = `View payout: ${batch.label}`;
+
+          return (
+            <TableRow
+              key={batch.id}
+              tabIndex={0}
+              aria-label={rowLabel}
+              onClick={() => router.push(href)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  router.push(href);
+                }
+              }}
+              className="cursor-pointer border-border/60 align-top hover:bg-muted/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+            >
+              <TableCell className={tdClass}>
+                <p className="ts-row-title line-clamp-2 leading-snug">
+                  {batch.label}
+                </p>
+                <div className="mt-1">
+                  <PayoutSourceBadge source={batch.source} />
+                </div>
+              </TableCell>
+              <TableCell className={cn(tdClass, "ts-row-meta whitespace-nowrap")}>
+                {payoutDateLabel(batch, true)}
+              </TableCell>
+              <TableCell className={cn(tdClass, "ts-row-meta tabular-nums")}>
+                {entryCountLabel(batch.entryCount)}
+              </TableCell>
+              <TableCell
+                className={cn(
+                  tdClass,
+                  "text-right last:pr-4 sm:last:pr-5",
+                )}
               >
-                <td className="px-4 py-3.5 first:pl-5">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <Link
-                      href={href}
-                      className="font-semibold text-brand-dark transition-colors hover:text-primary hover:underline"
-                    >
-                      {batch.label}
-                    </Link>
-                    <PayoutSourceBadge source={batch.source} />
-                  </div>
-                </td>
-                <td className="ts-row-meta whitespace-nowrap px-4 py-3.5">
-                  {payoutDateLabel(batch)}
-                </td>
-                <td className="ts-row-meta px-4 py-3.5 tabular-nums">
-                  {entryCountLabel(batch.entryCount)}
-                </td>
-                <td className="px-4 py-3.5 text-right">
-                  <AffiliateAmountCell
-                    amount={formatCurrency(batch.totalAmount)}
-                    tone="success"
-                  />
-                </td>
-                <td className="px-2 py-3.5 text-right last:pr-5">
-                  <Link
-                    href={href}
-                    className="inline-flex text-muted-foreground transition-colors hover:text-primary"
-                    aria-label={`View ${batch.label}`}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Link>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+                <p className="ts-amount whitespace-nowrap tabular-nums text-emerald-700">
+                  {formatCurrency(batch.totalAmount)}
+                </p>
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
   );
 }

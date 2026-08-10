@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Check,
@@ -11,11 +10,13 @@ import {
   Lock,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth, type AuthUser } from "@/components/AuthProvider";
 import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
+import { queryKeys } from "@/lib/query-keys";
 import {
   canSubmitChangePassword,
   MIN_PASSWORD_LENGTH,
@@ -147,11 +148,15 @@ function RequirementRow({
 
 type ChangePasswordFormProps = {
   required?: boolean;
+  onSuccess?: () => void;
 };
 
-export function ChangePasswordForm({ required = false }: ChangePasswordFormProps) {
-  const router = useRouter();
+export function ChangePasswordForm({
+  required = false,
+  onSuccess,
+}: ChangePasswordFormProps) {
   const { refresh } = useAuth();
+  const queryClient = useQueryClient();
   const formErrorId = useId();
   const formErrorRef = useRef<HTMLParagraphElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -159,6 +164,8 @@ export function ChangePasswordForm({ required = false }: ChangePasswordFormProps
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const [formError, setFormError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<ChangePasswordFieldErrors>({});
   const [touched, setTouched] = useState<
@@ -222,6 +229,11 @@ export function ChangePasswordForm({ required = false }: ChangePasswordFormProps
     }));
   }
 
+  function goToDashboard() {
+    setRedirecting(true);
+    window.location.assign("/dashboard");
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -251,6 +263,7 @@ export function ChangePasswordForm({ required = false }: ChangePasswordFormProps
     try {
       const res = await fetch("/api/account/change-password", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
       });
@@ -260,10 +273,19 @@ export function ChangePasswordForm({ required = false }: ChangePasswordFormProps
         throw new Error(data.error ?? copy.errors.updateFailed);
       }
 
+      queryClient.setQueryData<AuthUser | null>(queryKeys.me, (current) =>
+        current ? { ...current, mustChangePassword: false } : current,
+      );
+
+      setSuccess(true);
+      onSuccess?.();
       toast.success(copy.success);
+
       await refresh();
-      router.push("/dashboard");
-      router.refresh();
+
+      window.setTimeout(() => {
+        goToDashboard();
+      }, 900);
     } catch (err) {
       setFormError(
         err instanceof Error ? err.message : copy.errors.updateFailed
@@ -271,6 +293,49 @@ export function ChangePasswordForm({ required = false }: ChangePasswordFormProps
     } finally {
       setLoading(false);
     }
+  }
+
+  if (success) {
+    return (
+      <div className="space-y-5" role="status" aria-live="polite">
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-success/25 bg-success/5 px-4 py-5 text-center sm:flex-row sm:items-start sm:text-left">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success/10 text-success">
+            <Check className="h-5 w-5" aria-hidden />
+          </div>
+          <div className="min-w-0">
+            <p className="font-semibold text-brand-dark">{copy.successTitle}</p>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              {copy.successDescription}
+            </p>
+            {redirecting ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {copy.successRedirecting}
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        <Button
+          type="button"
+          className="h-11 w-full rounded-lg border border-brand-dark py-2.5 text-sm font-semibold shadow-sm sm:h-9 sm:text-xs"
+          onClick={goToDashboard}
+          disabled={redirecting}
+          aria-busy={redirecting}
+        >
+          {redirecting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              {copy.successRedirecting}
+            </>
+          ) : (
+            <>
+              {copy.successAction}
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </>
+          )}
+        </Button>
+      </div>
+    );
   }
 
   return (

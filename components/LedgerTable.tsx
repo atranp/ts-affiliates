@@ -155,8 +155,15 @@ export function LedgerTable({
 
   const cols = affiliateView ? AFFILIATE_COPY.commissions.columns : null;
   const sortable = affiliateView && !!onSort && !!sortKey && !!sortDir;
-  const thClass =
-    "ts-table-header sticky top-0 z-10 h-11 bg-muted/95 px-4 backdrop-blur-sm";
+  const thClass = affiliateView
+    ? "ts-table-header sticky top-0 z-10 h-9 whitespace-nowrap bg-muted/30 px-3 text-[11px] backdrop-blur-sm first:pl-4 sm:px-4 sm:first:pl-5"
+    : "ts-table-header sticky top-0 z-10 h-11 bg-muted/95 px-4 backdrop-blur-sm";
+  const tdClass = affiliateView
+    ? "px-3 py-2.5 align-top first:pl-4 sm:px-4 sm:first:pl-5"
+    : "px-4";
+  const rowClass = affiliateView
+    ? "border-border/60 hover:bg-muted/25"
+    : undefined;
 
   const renderHead = (
     key: LedgerSortKey,
@@ -190,10 +197,10 @@ export function LedgerTable({
   };
 
   const cards = affiliateView ? (
-    <div
+    <ul
       className={cn(
-        "ts-table-body flex flex-col gap-2 md:hidden",
-        fillHeight && "min-h-0"
+        "ts-divider-list md:hidden",
+        fillHeight && "min-h-0",
       )}
     >
       {entries.map((entry) => {
@@ -205,19 +212,21 @@ export function LedgerTable({
           "—";
 
         return (
-          <CommissionRow
-            key={entry.id}
-            details={details}
-            occurredAt={entry.occurredAt}
-            orderRevenue={entry.orderRevenue}
-            amount={formatCurrency(entry.amount)}
-            status={status}
-            type={entry.type}
-            payoutWeek={entry.payoutWeek}
-          />
+          <li key={entry.id}>
+            <CommissionRow
+              layout="flat"
+              details={details}
+              occurredAt={entry.occurredAt}
+              orderRevenue={entry.orderRevenue}
+              amount={formatCurrency(entry.amount)}
+              status={status}
+              type={entry.type}
+              payoutWeek={entry.payoutWeek}
+            />
+          </li>
         );
       })}
-    </div>
+    </ul>
   ) : (
     <DataCardList className={fillHeight ? "p-3 md:hidden" : "md:hidden"}>
       {entries.map((entry) => {
@@ -256,45 +265,55 @@ export function LedgerTable({
 
   const table = (
     <Table
+      className={cn(affiliateView && "table-fixed")}
       containerClassName={cn(
-        affiliateView && fillHeight && "ts-table-body-scroll"
+        affiliateView && "min-w-0 overflow-x-hidden",
+        affiliateView && fillHeight && "ts-table-body-scroll",
       )}
     >
       <TableHeader>
-        <TableRow className="border-border/80 hover:bg-transparent">
-          {renderHead("date", cols?.date ?? "Date", "left", "first:pl-5")}
+        <TableRow
+          className={cn(
+            affiliateView
+              ? "border-border/60 hover:bg-transparent"
+              : "border-border/80 hover:bg-transparent",
+          )}
+        >
+          {renderHead("date", cols?.date ?? "Date", "left")}
           {renderHead("type", cols?.type ?? "Type")}
           {showDetails &&
             renderHead("details", cols?.details ?? "Details")}
           {!showDetails && <TableHead className={thClass}>Source</TableHead>}
           {!affiliateView && <TableHead className={thClass}>Order</TableHead>}
           {renderHead("sale", cols?.sale ?? "Sale", "right")}
-          {renderHead(
-            "amount",
-            cols?.amount ?? "Amount",
-            "right",
-            "last:pr-5"
-          )}
+          {renderHead("amount", cols?.amount ?? "Amount", "right")}
           {showDetails && !affiliateView && (
             <TableHead className={thClass}>
               {cols?.payout ?? "Payout week"}
             </TableHead>
           )}
-          {renderHead("status", cols?.status ?? "Status", "left", "last:pr-5")}
+          {renderHead(
+            "status",
+            cols?.status ?? "Status",
+            "left",
+            affiliateView ? "last:pr-4 sm:last:pr-5" : "last:pr-5",
+          )}
         </TableRow>
       </TableHeader>
       <TableBody>
         {entries.map((entry) => {
           const status = entry.status;
           return (
-            <TableRow
-              key={entry.id}
-              className={cn(affiliateView && "border-border/60 hover:bg-card")}
-            >
-              <TableCell className="ts-row-meta whitespace-nowrap px-4 first:pl-5">
+            <TableRow key={entry.id} className={rowClass}>
+              <TableCell
+                className={cn(
+                  tdClass,
+                  "ts-row-meta whitespace-nowrap",
+                )}
+              >
                 {formatSaleDate(entry.occurredAt)}
               </TableCell>
-              <TableCell className="px-4">
+              <TableCell className={tdClass}>
                 {affiliateView ? (
                   <CommissionTypeBadge type={entry.type} />
                 ) : (
@@ -306,7 +325,7 @@ export function LedgerTable({
                 )}
               </TableCell>
               {showDetails ? (
-                <TableCell className="max-w-sm px-4">
+                <TableCell className={cn(tdClass, "max-w-sm")}>
                   <p className="ts-row-title">
                     {entry.description ??
                       entry.sourceAffiliate?.displayName ??
@@ -322,36 +341,47 @@ export function LedgerTable({
                   )}
                 </TableCell>
               ) : (
-                <TableCell className="ts-row-title px-4">
+                <TableCell className={cn(tdClass, "ts-row-title")}>
                   {entry.sourceAffiliate?.displayName ??
                     entry.sourceAffiliate?.email ??
                     "—"}
                 </TableCell>
               )}
               {!affiliateView && (
-                <TableCell className="ts-row-meta px-4 font-mono">
+                <TableCell className={cn(tdClass, "ts-row-meta font-mono")}>
                   {entry.wooOrderId ? `#${entry.wooOrderId}` : "—"}
                 </TableCell>
               )}
-              <TableCell className="ts-row-meta whitespace-nowrap px-4 text-right tabular-nums">
+              <TableCell
+                className={cn(
+                  tdClass,
+                  "ts-row-meta whitespace-nowrap text-right tabular-nums",
+                )}
+              >
                 {entry.orderRevenue
                   ? formatCurrency(entry.orderRevenue)
                   : "—"}
               </TableCell>
               <TableCell
                 className={cn(
-                  "ts-amount whitespace-nowrap px-4 text-right last:pr-5",
-                  affiliateView ? amountClass(status) : "text-emerald-700"
+                  tdClass,
+                  "ts-amount whitespace-nowrap text-right",
+                  affiliateView ? amountClass(status) : "text-emerald-700",
                 )}
               >
                 {formatCurrency(entry.amount)}
               </TableCell>
               {showDetails && !affiliateView && (
-                <TableCell className="ts-row-meta px-4">
+                <TableCell className={cn(tdClass, "ts-row-meta")}>
                   {formatPayoutWeek(entry.payoutWeek)}
                 </TableCell>
               )}
-              <TableCell className="px-4 last:pr-5">
+              <TableCell
+                className={cn(
+                  tdClass,
+                  affiliateView && "last:pr-4 sm:last:pr-5",
+                )}
+              >
                 {affiliateView ? (
                   <span className="ts-row-meta inline-flex flex-wrap items-baseline gap-x-1.5 font-medium">
                     {formatCommissionStatus(status)}

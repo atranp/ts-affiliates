@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { AlertTriangle, ArrowLeft, ShieldCheck } from "lucide-react";
 import { ChangePasswordForm } from "@/components/account/ChangePasswordForm";
 import { useAuth } from "@/components/AuthProvider";
@@ -9,8 +10,9 @@ import { cn } from "@/lib/utils";
 
 export default function ChangePasswordPage() {
   const { user, loading } = useAuth();
+  const [completed, setCompleted] = useState(false);
   const copy = AFFILIATE_COPY.account.changePassword;
-  const required = !!user?.mustChangePassword;
+  const required = !!user?.mustChangePassword && !completed;
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col">
@@ -21,7 +23,7 @@ export default function ChangePasswordPage() {
             className="mb-4 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-            Back to dashboard
+            {completed ? copy.successAction : "Back to dashboard"}
           </Link>
         )}
 
@@ -31,10 +33,18 @@ export default function ChangePasswordPage() {
           </div>
           <div className="min-w-0 flex-1">
             <h1 id="change-password-heading" className="page-title text-xl sm:text-2xl">
-              {required ? copy.requiredTitle : copy.title}
+              {completed
+                ? copy.successTitle
+                : required
+                  ? copy.requiredTitle
+                  : copy.title}
             </h1>
             <p className="page-description mt-1">
-              {required ? copy.requiredDescription : copy.description}
+              {completed
+                ? copy.successDescription
+                : required
+                  ? copy.requiredDescription
+                  : copy.description}
             </p>
           </div>
         </div>
@@ -59,15 +69,20 @@ export default function ChangePasswordPage() {
       <div className="ts-panel">
         <div className="ts-panel-header">
           <p className="text-sm font-semibold text-foreground">
-            {copy.panelTitle}
+            {completed ? copy.successTitle : copy.panelTitle}
           </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {copy.panelDescription}
-          </p>
+          {!completed ? (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {copy.panelDescription}
+            </p>
+          ) : null}
         </div>
         <div className="ts-panel-body">
           {!loading ? (
-            <ChangePasswordForm required={required} />
+            <ChangePasswordForm
+              required={required}
+              onSuccess={() => setCompleted(true)}
+            />
           ) : (
             <div
               className="space-y-4 animate-pulse"
