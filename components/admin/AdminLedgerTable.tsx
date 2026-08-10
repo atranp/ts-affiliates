@@ -52,7 +52,7 @@ function entryDetails(entry: AdminLedgerEntry) {
 
 function EntryTypeBadge({ type }: { type: string }) {
   return (
-    <Badge variant={type === "OVERRIDE" ? "unpaid" : "secondary"}>
+    <Badge variant={type === "OVERRIDE" ? "team" : "direct"}>
       {type === "OVERRIDE" ? "Team bonus" : type}
     </Badge>
   );

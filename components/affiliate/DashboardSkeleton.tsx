@@ -1,17 +1,25 @@
+import { cn } from "@/lib/utils";
+
 function Block({ className }: { className?: string }) {
   return <div className={`rounded-md bg-muted ${className ?? ""}`} />;
 }
 
-function HomeCardSkeleton({ tall = false }: { tall?: boolean }) {
+function HomeCardSkeleton({
+  tall = false,
+  className,
+}: {
+  tall?: boolean;
+  className?: string;
+}) {
   return (
-    <div className="ts-home-card overflow-hidden">
-      <div className="border-b border-border/40 px-4 py-3.5 sm:px-5">
+    <div className={cn('ts-home-card overflow-hidden', className)}>
+      <div className="ts-home-card-header space-y-2">
         <Block className="h-4 w-36" />
-        <Block className="mt-2 h-3 w-52 max-w-full" />
+        <Block className="h-3 w-52 max-w-full" />
       </div>
-      <div className="space-y-3 px-4 py-4 sm:px-5">
+      <div className="ts-home-card-body space-y-3">
         <Block className="h-3 w-40" />
-        <Block className={tall ? "h-40 w-full rounded-lg" : "h-28 w-full rounded-lg"} />
+        <Block className={tall ? "h-40 w-full rounded-xl" : "h-28 w-full rounded-xl"} />
       </div>
     </div>
   );
@@ -27,15 +35,14 @@ export function DashboardSkeleton() {
 
       <div className="ts-home-stat-grid">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="ts-stat-card gap-2 p-3 sm:p-4">
+          <div key={i} className="ts-stat-card ts-stat-card-compact">
             <div className="flex items-start justify-between gap-2">
-              <div className="space-y-2">
-                <Block className="h-3 w-20" />
-                <Block className="h-7 w-28" />
+              <div className="space-y-2.5">
+                <Block className="h-3 w-24" />
+                <Block className="h-8 w-32" />
               </div>
-              <Block className="h-8 w-8 rounded-lg" />
+              <Block className="h-4 w-4 rounded-sm" />
             </div>
-            <Block className="h-3 w-full" />
           </div>
         ))}
       </div>
@@ -45,7 +52,7 @@ export function DashboardSkeleton() {
         <HomeCardSkeleton />
       </div>
 
-      <HomeCardSkeleton tall />
+      <HomeCardSkeleton tall className="ts-home-teams" />
     </div>
   );
 }
@@ -84,7 +91,7 @@ export function PayoutDetailSkeleton() {
 export function InlinePanelSkeleton({ className }: { className?: string }) {
   return (
     <div
-      className={`animate-pulse rounded-lg border border-border/60 bg-muted/20 ${className ?? "h-28"}`}
+      className={`animate-pulse rounded-xl border border-border/45 bg-muted/10 ${className ?? "h-28"}`}
     />
   );
 }

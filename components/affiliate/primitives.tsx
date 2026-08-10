@@ -35,14 +35,14 @@ export function AffiliateHomeCard({
         className
       )}
     >
-      <header className="ts-home-card-header flex shrink-0 flex-col gap-2 px-4 py-3.5 sm:px-5">
+      <header className="ts-home-card-header flex shrink-0 flex-col gap-1.5">
         <div className="flex items-start justify-between gap-3">
-          <h3 className="ts-home-card-title min-w-0">{title}</h3>
+          <h3 className="ts-home-card-title min-w-0 flex-1">{title}</h3>
           {actionLabel && onAction ? (
             <button
               type="button"
               onClick={onAction}
-              className="ts-text-link shrink-0 px-0.5 py-1"
+              className="ts-text-link shrink-0 whitespace-nowrap px-0.5 py-1"
             >
               {actionLabel}
               <ChevronRight className="h-3.5 w-3.5" aria-hidden />
@@ -55,7 +55,7 @@ export function AffiliateHomeCard({
       </header>
       <div
         className={cn(
-          'ts-home-card-body px-4 py-4 sm:px-5',
+          'ts-home-card-body px-4 py-4 sm:px-5 sm:py-5',
           scrollContent && 'min-h-0 flex-1 overflow-y-auto overscroll-contain',
           contentClassName
         )}

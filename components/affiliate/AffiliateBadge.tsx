@@ -55,7 +55,9 @@ export function AffiliateBadge({
 }: AffiliateBadgeProps) {
   return (
     <span className={affiliateBadgeClass(variant, className)}>
-      {Icon ? <Icon className="h-3 w-3 shrink-0 stroke-[2.5]" aria-hidden /> : null}
+      {Icon ? (
+        <Icon className="h-3 w-3 shrink-0 stroke-[2]" aria-hidden />
+      ) : null}
       {children}
     </span>
   );

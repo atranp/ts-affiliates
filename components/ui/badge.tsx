@@ -3,19 +3,25 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-md border px-2.5 py-1 text-[11px] font-bold transition-colors",
+  "inline-flex items-center rounded-full border-0 px-2.5 py-1 text-xs font-medium leading-none",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground",
+        default: "bg-primary text-primary-foreground",
         secondary:
-          "border-slate-300 bg-slate-100 text-slate-700",
+          "bg-[hsl(var(--badge-neutral-bg))] text-[hsl(var(--badge-neutral-fg))]",
         destructive:
-          "border-transparent bg-destructive text-destructive-foreground",
-        outline: "border-border text-foreground",
-        pending: "border-amber-300 bg-amber-50 text-amber-800",
-        paid: "border-emerald-300 bg-emerald-50 text-emerald-800",
-        unpaid: "border-primary/20 bg-primary/10 text-primary",
+          "bg-destructive/10 text-destructive",
+        outline:
+          "border border-border/60 bg-card text-muted-foreground",
+        pending:
+          "bg-[hsl(var(--badge-pending-bg))] text-[hsl(var(--badge-pending-fg))]",
+        paid: "bg-[hsl(var(--badge-paid-bg))] text-[hsl(var(--badge-paid-fg))]",
+        unpaid:
+          "bg-[hsl(var(--badge-unpaid-bg))] text-[hsl(var(--badge-unpaid-fg))]",
+        direct:
+          "bg-[hsl(var(--badge-direct-bg))] text-[hsl(var(--badge-direct-fg))]",
+        team: "bg-[hsl(var(--badge-team-bg))] text-[hsl(var(--badge-team-fg))]",
       },
     },
     defaultVariants: {

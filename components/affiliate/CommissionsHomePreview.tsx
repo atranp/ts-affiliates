@@ -1,15 +1,15 @@
 "use client";
 
-import { CommissionRow } from "@/components/affiliate/CommissionRow";
-import { InlinePanelSkeleton } from "@/components/affiliate/DashboardSkeleton";
+import {
+  CommissionsHomeTable,
+  CommissionsHomeTableSkeleton,
+} from "@/components/affiliate/CommissionsHomeTable";
 import {
   AffiliateEmptyState,
   AffiliateHomeCard,
-  AffiliateListPanel,
 } from "@/components/affiliate/primitives";
 import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
 import { useLedger } from "@/hooks/use-ledger";
-import { formatCurrency } from "@/lib/utils";
 
 const PREVIEW_LIMIT = 3;
 
@@ -35,8 +35,9 @@ export function CommissionsHomePreview({
         title={AFFILIATE_COPY.home.commissionsTitle}
         actionLabel={AFFILIATE_COPY.home.viewAllCommissions}
         onAction={onViewCommissions}
+        contentClassName="p-0"
       >
-        <InlinePanelSkeleton className="h-28" />
+        <CommissionsHomeTableSkeleton />
       </AffiliateHomeCard>
     );
   }
@@ -51,39 +52,19 @@ export function CommissionsHomePreview({
       title={AFFILIATE_COPY.home.commissionsTitle}
       actionLabel={AFFILIATE_COPY.home.viewAllCommissions}
       onAction={onViewCommissions}
-      contentClassName="py-3 sm:py-3"
+      contentClassName="p-0"
     >
       {entries.length > 0 ? (
-        <AffiliateListPanel scroll inset>
-          <ul className="flex flex-col gap-2">
-            {entries.map((entry) => {
-              const status = entry.status;
-              const details =
-                entry.description ??
-                entry.sourceAffiliate?.displayName ??
-                entry.sourceAffiliate?.email ??
-                "—";
-
-              return (
-                <li key={entry.id}>
-                  <CommissionRow
-                    details={details}
-                    occurredAt={entry.occurredAt}
-                    orderRevenue={entry.orderRevenue}
-                    amount={formatCurrency(entry.amount)}
-                    status={status}
-                    type={entry.type}
-                    onClick={onViewCommissions}
-                  />
-                </li>
-              );
-            })}
-          </ul>
-        </AffiliateListPanel>
+        <CommissionsHomeTable
+          entries={entries}
+          onRowClick={onViewCommissions}
+        />
       ) : (
-        <AffiliateEmptyState>
-          {AFFILIATE_COPY.commissions.empty}
-        </AffiliateEmptyState>
+        <div className="p-4 sm:p-5">
+          <AffiliateEmptyState>
+            {AFFILIATE_COPY.commissions.empty}
+          </AffiliateEmptyState>
+        </div>
       )}
     </AffiliateHomeCard>
   );

@@ -1,6 +1,6 @@
 import { CommissionStatus } from "@prisma/client";
 import { prisma } from "./prisma";
-import { toNumber } from "./utils";
+import { toNumber } from "./format";
 
 export type MilestoneProgress = {
   current: number;

@@ -299,9 +299,7 @@ export function LedgerTable({
                   <CommissionTypeBadge type={entry.type} />
                 ) : (
                   <Badge
-                    variant={
-                      entry.type === "OVERRIDE" ? "unpaid" : "secondary"
-                    }
+                    variant={entry.type === "OVERRIDE" ? "team" : "direct"}
                   >
                     {entry.type === "OVERRIDE" ? "Team bonus" : entry.type}
                   </Badge>

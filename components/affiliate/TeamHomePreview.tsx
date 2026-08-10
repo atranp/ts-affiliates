@@ -8,7 +8,6 @@ import { TeamMemberRow } from '@/components/affiliate/TeamMemberRow';
 import {
   AffiliateCompactStat,
   AffiliateHomeCard,
-  AffiliateListPanel,
   AffiliateMetaHighlight,
   AffiliateMetaLine,
 } from '@/components/affiliate/primitives';
@@ -130,47 +129,46 @@ function SingleTeamPreview({
       }
       actionLabel={AFFILIATE_COPY.home.teamsAction}
       onAction={onViewTeam}
-      contentClassName="py-3 sm:py-3"
+      contentClassName="p-0"
     >
-      <div className="w-full space-y-3">
       {isLoading ? (
-        <InlinePanelSkeleton className="h-40" />
+        <div className="px-4 py-4 sm:px-5">
+          <InlinePanelSkeleton className="h-40" />
+        </div>
       ) : topMembers.length > 0 ? (
-          <AffiliateListPanel inset>
-            <ul className="flex flex-col gap-2">
-              {topMembers.map((member) => {
-                const name = memberName(member);
-                const milestone = member.stats.milestone;
-                const canView = unlockedBonus(member) > 0;
+        <ul className="ts-divider-list">
+          {topMembers.map((member) => {
+            const name = memberName(member);
+            const milestone = member.stats.milestone;
+            const canView = unlockedBonus(member) > 0;
 
-                return (
-                  <li key={member.id}>
-                    <TeamMemberRow
-                      name={name}
-                      milestone={
-                        milestone?.threshold
-                          ? {
-                              current: milestone.current,
-                              threshold: milestone.threshold,
-                              met: milestone.met,
-                            }
-                          : null
-                      }
-                      unpaidAmount={member.stats.unpaidTeamBonus}
-                      pendingAmount={member.stats.pendingTeamBonus}
-                      segment={segmentOf(member)}
-                      onClick={
-                        canView ? () => onViewMember(member.id) : undefined
-                      }
-                      disabled={!canView}
-                    />
-                  </li>
-                );
-              })}
-            </ul>
-          </AffiliateListPanel>
+            return (
+              <li key={member.id}>
+                <TeamMemberRow
+                  layout="flat"
+                  name={name}
+                  milestone={
+                    milestone?.threshold
+                      ? {
+                          current: milestone.current,
+                          threshold: milestone.threshold,
+                          met: milestone.met,
+                        }
+                      : null
+                  }
+                  unpaidAmount={member.stats.unpaidTeamBonus}
+                  pendingAmount={member.stats.pendingTeamBonus}
+                  segment={segmentOf(member)}
+                  onClick={
+                    canView ? () => onViewMember(member.id) : undefined
+                  }
+                  disabled={!canView}
+                />
+              </li>
+            );
+          })}
+        </ul>
       ) : null}
-      </div>
     </AffiliateHomeCard>
   );
 }
@@ -207,16 +205,16 @@ function MultiTeamPreview({
       }
       actionLabel={AFFILIATE_COPY.home.teamsAction}
       onAction={onViewTeam}
-      contentClassName="py-3 sm:py-3"
+      contentClassName="p-4 sm:p-5"
     >
     <div className="space-y-3">
-      <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
+      <div className="grid gap-2.5 sm:grid-cols-1 sm:gap-2">
         {teams.map((team) => (
           <button
             key={team.id}
             type="button"
             onClick={() => onViewTeamLedger(team.id)}
-            className="rounded-xl border border-border/60 bg-card p-4 text-left shadow-xs transition-all hover:border-primary/25 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="rounded-xl border border-border/50 bg-muted/10 p-3.5 text-left transition-colors hover:border-primary/20 hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <p className="ts-row-title">{team.name}</p>
             <p className="ts-row-meta mt-1">{memberCountLabel(team.memberCount)}</p>

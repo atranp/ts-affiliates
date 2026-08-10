@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { jsonCached } from "@/lib/api-cache";
-import { getTeamDetail } from "@/lib/teams/queries";
 import { isAffiliateMockMode } from "@/lib/mock/config";
 import { mockTeamDetailResponse } from "@/lib/mock/affiliate-fixtures";
 import { requireAffiliateAuth } from "@/lib/mock/require-affiliate-auth";
@@ -32,6 +31,7 @@ export async function GET(
     );
   }
 
+  const { getTeamDetail } = await import("@/lib/teams/queries");
   const team = await getTeamDetail(id, sponsorFilter);
 
   if (!team) {

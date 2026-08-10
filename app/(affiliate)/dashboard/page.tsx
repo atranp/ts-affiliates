@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/components/AuthProvider';
+import { affiliateBadgeClass } from '@/components/affiliate/AffiliateBadge';
 import { AffiliateStatCard } from '@/components/affiliate/AffiliateStatCard';
 import { AffiliateHomeCard } from '@/components/affiliate/primitives';
 import {
@@ -12,6 +13,7 @@ import {
 } from '@/components/affiliate/DashboardSkeleton';
 import { MilestoneProgress } from '@/components/affiliate/MilestoneProgress';
 import { CommissionsHomePreview } from '@/components/affiliate/CommissionsHomePreview';
+import { PayoutsHomePreview } from '@/components/affiliate/PayoutsHomePreview';
 import { TeamHomePreview } from '@/components/affiliate/TeamHomePreview';
 import { CommissionsPanel } from '@/components/CommissionsPanel';
 import { TeamsPanel, useTeams } from '@/components/TeamsPanel';
@@ -336,31 +338,21 @@ function DashboardPageContent() {
                 onViewCommissions={() => setViewTab('ledger')}
               />
 
-              <AffiliateHomeCard
-                className="flex min-h-0 flex-col"
-                title={AFFILIATE_COPY.home.payoutsTitle}
-                actionLabel={AFFILIATE_COPY.home.payoutsAction}
-                onAction={() => setViewTab('payouts')}
-              >
-                <PayoutsList
-                  detailHrefPrefix="/dashboard/payouts"
-                  affiliateView
-                  embedded
-                  limit={3}
-                  onViewAll={() => setViewTab('payouts')}
-                />
-              </AffiliateHomeCard>
+              <PayoutsHomePreview
+                enabled={!!user}
+                onViewPayouts={() => setViewTab('payouts')}
+              />
             </div>
 
-            <div className={cn(desktopFill && 'min-h-0')}>
+            <div className={cn('ts-home-teams', desktopFill && 'min-h-0')}>
               {teamsLoading ? (
                 <AffiliateHomeCard title={AFFILIATE_COPY.home.teamsTitle}>
                   <div className="h-48 animate-pulse rounded-lg border border-border/60 bg-muted/15" />
                 </AffiliateHomeCard>
               ) : hasTeams ? (
                 <TeamHomePreview
-                  fill={desktopFill}
-                  scrollContent={desktopFill}
+                  fill={false}
+                  scrollContent={false}
                   className={cn(desktopFill && 'min-h-0')}
                   teams={teamsData!.teams}
                   onViewTeam={() => setViewTab('teams')}
@@ -416,14 +408,19 @@ function DashboardPageContent() {
                                         'unpaid',
                                       )
                                     }
-                                    className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/15"
+                                    className={cn(
+                                      affiliateBadgeClass('unpaid'),
+                                      'ts-affiliate-badge-interactive',
+                                    )}
                                   >
                                     {AFFILIATE_COPY.team.payout}{' '}
                                     {formatCurrency(bonus.unpaidTotal)}
                                   </button>
                                 )}
                                 {bonus.pendingTotal > 0 && (
-                                  <span className="rounded-full bg-warning/10 px-3 py-1 text-xs font-medium text-warning">
+                                  <span
+                                    className={affiliateBadgeClass('pending')}
+                                  >
                                     {AFFILIATE_COPY.team.awaitingMilestone}{' '}
                                     {formatCurrency(bonus.pendingTotal)}
                                   </span>
@@ -437,7 +434,10 @@ function DashboardPageContent() {
                                         'paid',
                                       )
                                     }
-                                    className="rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success hover:bg-success/15"
+                                    className={cn(
+                                      affiliateBadgeClass('paid'),
+                                      'ts-affiliate-badge-interactive',
+                                    )}
                                   >
                                     {AFFILIATE_COPY.team.paid}{' '}
                                     {formatCurrency(bonus.paidTotal)}

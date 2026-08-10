@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+import { affiliateBadgeClass } from "@/components/affiliate/AffiliateBadge";
 import { cn } from "@/lib/utils";
 import type { PayoutSource } from "@/lib/payouts/types";
 
@@ -15,15 +15,11 @@ export function PayoutSourceBadge({
   if (source !== "SLICEWP") return null;
 
   return (
-    <Badge
-      variant="outline"
-      className={cn(
-        "h-5 shrink-0 rounded px-1.5 py-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground",
-        className
-      )}
+    <span
+      className={cn(affiliateBadgeClass("neutral"), className)}
       title="Recorded in SliceWP"
     >
       SliceWP
-    </Badge>
+    </span>
   );
 }

@@ -1,4 +1,4 @@
-import type { LedgerData, LedgerEntry } from "@/hooks/use-ledger";
+import type { LedgerData, LedgerEntry } from "@/lib/ledger/types";
 import type { LedgerSortKey, SortDirection } from "@/lib/ledger/sort";
 import { defaultSortDirection, sortLedgerEntries } from "@/lib/ledger/sort";
 import type { PayoutBatchDetail, PayoutBatchListItem } from "@/lib/payouts/types";

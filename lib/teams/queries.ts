@@ -1,7 +1,7 @@
 import { CommissionStatus, LedgerEntryType, Prisma } from "@prisma/client";
 import { getMilestoneProgress } from "../milestone";
 import { prisma } from "../prisma";
-import { toNumber } from "../utils";
+import { toNumber } from "../format";
 import { ensureSponsorDownlineTeam, getTeamMembers } from "./members";
 
 export type TeamRuleSummary = {

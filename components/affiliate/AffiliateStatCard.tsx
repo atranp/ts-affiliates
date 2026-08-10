@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, ChevronRight } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 
 type AffiliateStatCardProps = {
@@ -77,16 +77,18 @@ export function AffiliateStatCard({
             ) : (
               <span className="ts-stat-label">{label}</span>
             )}
-            <p className={cn("ts-home-stat-value mt-0.5", config.value)}>
+            <p className={cn("ts-home-stat-value mt-1", config.value)}>
               {display}
             </p>
           </div>
           {actionArrow ? (
-            <ArrowUpRight
+            <ChevronRight
               className={cn(
-                "h-4 w-4 shrink-0 sm:h-[1.125rem] sm:w-[1.125rem]",
-                config.action,
-                interactive && "transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                "h-4 w-4 shrink-0 text-muted-foreground/50 sm:h-[1.125rem] sm:w-[1.125rem]",
+                interactive && [
+                  "transition-colors group-hover:text-primary",
+                  "transition-transform group-hover:translate-x-0.5",
+                ],
               )}
               aria-hidden
             />
@@ -143,11 +145,12 @@ export function AffiliateStatCard({
   // instead of leaving only the footer label hittable.
   const className = cn(
     "ts-stat-card group w-full min-w-0 text-left",
-    compact && "gap-2 p-3 sm:gap-2.5 sm:p-4",
+    compact && "ts-stat-card-compact",
     interactive && [
+      "hover:shadow-md",
       config.hover,
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-    ]
+    ],
   );
 
   if (actionHref) {
