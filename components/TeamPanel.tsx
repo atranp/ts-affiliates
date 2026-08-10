@@ -8,12 +8,6 @@ import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
 import type { TeamMember } from "@/lib/admin/team";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 export function useTeam(affiliateId?: string, enabled = true) {
   const url = affiliateId
@@ -39,25 +33,25 @@ export function TeamPanel({
 
   if (team.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{AFFILIATE_COPY.team.title}</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
+      <div className="ts-panel">
+        <div className="ts-panel-header">
+          <h2 className="ts-section-title">{AFFILIATE_COPY.team.title}</h2>
+        </div>
+        <div className="ts-panel-body text-sm text-muted-foreground">
           {AFFILIATE_COPY.team.empty}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
+    <div className="ts-panel">
+      <div className="ts-panel-header">
+        <h2 className="ts-section-title">
           {AFFILIATE_COPY.team.title} ({team.length})
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="grid gap-4 sm:grid-cols-2">
+        </h2>
+      </div>
+      <div className="ts-panel-body grid gap-3 sm:grid-cols-2">
         {team.map((member) => {
           const name = member.displayName ?? member.email;
           const milestone = member.stats.milestone;
@@ -65,7 +59,7 @@ export function TeamPanel({
           return (
             <div
               key={member.id}
-              className="rounded-lg border border-border bg-card p-4 space-y-3"
+              className="ts-list-row space-y-3 p-4"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -144,7 +138,7 @@ export function TeamPanel({
             </div>
           );
         })}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

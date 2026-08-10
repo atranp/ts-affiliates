@@ -14,8 +14,8 @@ export function ErrorState({
   onRetry,
 }: ErrorStateProps) {
   return (
-    <Card className="border-destructive/30">
-      <CardContent className="flex items-center gap-3 pt-6 text-sm">
+    <Card className="border-destructive/30 bg-destructive/5">
+      <CardContent className="flex items-center gap-3 py-4 text-sm">
         <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
         <span className="flex-1 text-muted-foreground">{message}</span>
         {onRetry && (

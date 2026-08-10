@@ -709,7 +709,7 @@ function RulesTable({
   return (
     <Table>
       <TableHeader>
-        <TableRow>
+        <TableRow className="ts-table-header hover:bg-muted">
           <TableHead>Rule</TableHead>
           <TableHead>{role === "sponsor" ? "Recruit" : "Sponsor"}</TableHead>
           <TableHead>Rate</TableHead>

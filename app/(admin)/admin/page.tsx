@@ -47,7 +47,7 @@ export default function AdminDashboardPage() {
           <>
             <Link
               href="/admin/affiliates"
-              className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              className="block rounded-2xl focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
               <StatCard
                 label="Total Affiliates"
@@ -62,7 +62,7 @@ export default function AdminDashboardPage() {
             </Link>
             <Link
               href="/admin/payouts"
-              className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              className="block rounded-2xl focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
               <StatCard
                 label="Unpaid Total"
@@ -77,7 +77,7 @@ export default function AdminDashboardPage() {
             </Link>
             <Link
               href="/admin/payouts"
-              className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              className="block rounded-2xl focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
               <StatCard
                 label="Paid Total"
@@ -92,7 +92,7 @@ export default function AdminDashboardPage() {
             </Link>
             <Link
               href="/admin/affiliates"
-              className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              className="block rounded-2xl focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
               <StatCard
                 label="Pending Review"
@@ -112,7 +112,7 @@ export default function AdminDashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="ts-card space-y-4 p-5">
           <div className="border-b border-border pb-3">
-            <h2 className="text-base font-bold text-brand-dark">
+            <h2 className="ts-section-title">
               Operations Quick Actions
             </h2>
             <p className="text-xs text-muted-foreground">
@@ -149,7 +149,7 @@ export default function AdminDashboardPage() {
                 <Link
                   key={action.href}
                   href={action.href}
-                  className="group flex items-center justify-between rounded-lg border border-border bg-muted/50 p-3 transition-all hover:border-primary hover:bg-card"
+                  className="ts-list-row group flex-row items-center justify-between p-3"
                 >
                   <div className="flex items-center gap-3">
                     <div
@@ -176,7 +176,7 @@ export default function AdminDashboardPage() {
         <div className="ts-card space-y-4 p-5">
           <div className="flex items-center justify-between border-b border-border pb-3">
             <div>
-              <h2 className="text-base font-bold text-brand-dark">
+              <h2 className="ts-section-title">
                 WooCommerce + SliceWP Engine
               </h2>
               <p className="text-xs text-muted-foreground">
@@ -196,31 +196,31 @@ export default function AdminDashboardPage() {
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : data ? (
             <div className="space-y-3">
-              <div className="flex items-center justify-between rounded-lg border border-border bg-muted p-3 text-xs">
+              <div className="ts-list-row flex-row items-center justify-between p-3 text-xs">
                 <div className="flex items-center gap-2">
                   <ShoppingBag className="h-4 w-4 text-primary" />
-                  <span className="font-semibold text-foreground">
+                  <span className="font-semibold text-brand-dark">
                     WooCommerce API Store Engine
                   </span>
                 </div>
-                <span className="rounded border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                <span className="ts-affiliate-badge ts-affiliate-badge-paid text-[10px] font-bold">
                   {data.sync.hasWooCommerce ? "Connected" : "Not configured"}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between rounded-lg border border-border bg-muted p-3 text-xs">
+              <div className="ts-list-row flex-row items-center justify-between p-3 text-xs">
                 <div className="flex items-center gap-2">
                   <Shield className="h-4 w-4 text-primary" />
-                  <span className="font-semibold text-foreground">
+                  <span className="font-semibold text-brand-dark">
                     SliceWP Affiliate Bridge
                   </span>
                 </div>
-                <span className="rounded border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                <span className="ts-affiliate-badge ts-affiliate-badge-paid text-[10px] font-bold">
                   {data.sync.hasSliceWP ? "Connected" : "Not configured"}
                 </span>
               </div>
 
-              <div className="space-y-1 rounded-lg border border-border bg-muted p-3 text-xs">
+              <div className="ts-figure space-y-1 text-xs">
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>Last Automated Sync:</span>
                   <span className="font-mono font-semibold text-brand-dark">

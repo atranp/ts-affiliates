@@ -439,14 +439,16 @@ function AdminDealRulesPageContent() {
         <ErrorState message={rulesError.message} onRetry={() => refetchRules()} />
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Active rules</CardTitle>
-          <CardDescription>
-            {rules ? `${rules.length} rule${rules.length === 1 ? "" : "s"}` : "—"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="ts-table-wrap">
+        <div className="ts-table-toolbar">
+          <div>
+            <h2 className="ts-section-title">Active rules</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {rules ? `${rules.length} rule${rules.length === 1 ? "" : "s"}` : "—"}
+            </p>
+          </div>
+        </div>
+        <div className="ts-table-body p-4 sm:p-5">
           {rulesLoading && <TableSkeleton columns={7} />}
           {!rulesLoading && rules?.length === 0 && (
             <EmptyState title="No deal rules yet" />
@@ -456,7 +458,7 @@ function AdminDealRulesPageContent() {
               table={
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="ts-table-header hover:bg-muted">
                       <TableHead>Name</TableHead>
                       <TableHead>Sponsor</TableHead>
                       <TableHead>Applies to</TableHead>
@@ -542,8 +544,8 @@ function AdminDealRulesPageContent() {
               }
             />
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {createOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">

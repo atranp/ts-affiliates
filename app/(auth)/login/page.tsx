@@ -24,7 +24,7 @@ function LoginSkeleton() {
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
       <div
-        className="w-full max-w-md animate-pulse space-y-6 rounded-xl border border-border bg-card p-6 shadow-xs sm:p-8"
+        className="w-full max-w-md animate-pulse space-y-6 ts-panel p-6 sm:p-8"
         aria-hidden
       >
         <div className="space-y-3 text-center">
@@ -157,19 +157,20 @@ function LoginForm() {
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
       <main className="w-full max-w-md">
-        <div className="space-y-6 rounded-xl border border-border bg-card p-6 shadow-xs sm:p-8">
-          <div className="space-y-2 text-center">
+        <div className="ts-panel">
+          <div className="ts-panel-header space-y-2 text-center">
             <p className="text-xs font-semibold uppercase tracking-widest text-brand">
               TRUE SCIENCES
             </p>
             <h1
               id="login-heading"
-              className="text-xl font-bold tracking-tight text-brand-dark sm:text-2xl"
+              className="page-title text-xl sm:text-2xl"
             >
               Ambassador Portal Sign In
             </h1>
           </div>
 
+          <div className="ts-panel-body space-y-4">
           {/*
             method="post" is a safety net: if this form is submitted before
             hydration, POST keeps credentials out of the URL and history.
@@ -182,7 +183,7 @@ function LoginForm() {
             noValidate={false}
           >
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-xs font-semibold sm:text-sm">
+              <Label htmlFor="email" className="ts-field-label">
                 Email Address
               </Label>
               <div className="relative">
@@ -209,10 +210,7 @@ function LoginForm() {
             </div>
 
             <div className="space-y-1.5">
-              <Label
-                htmlFor="password"
-                className="text-xs font-semibold sm:text-sm"
-              >
+              <Label htmlFor="password" className="ts-field-label">
                 Password
               </Label>
               <div className="relative">
@@ -280,11 +278,12 @@ function LoginForm() {
             </Button>
           </form>
 
-          <div className="border-t border-border pt-4 text-center text-xs leading-relaxed text-muted-foreground sm:text-[11px]">
+          <div className="border-t border-border/40 pt-4 text-center text-xs leading-relaxed text-muted-foreground sm:text-[11px]">
             <p>
               Trouble signing in? Contact your True Sciences administrator to
               reset your password.
             </p>
+          </div>
           </div>
         </div>
       </main>

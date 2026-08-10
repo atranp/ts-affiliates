@@ -108,30 +108,28 @@ export function PayoutBatchDetailView({
           batch.totals.otherTotal !== 0 ? "sm:grid-cols-4" : "sm:grid-cols-3"
         )}
       >
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Total</p>
-          <p className="mt-1 text-2xl font-semibold">
+        <div className="ts-figure">
+          <p className="ts-figure-label">Total</p>
+          <p className="mt-1 stat-value text-brand-dark">
             {formatCurrency(batch.totals.grandTotal)}
           </p>
         </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Direct commissions</p>
-          <p className="mt-1 text-2xl font-semibold">
+        <div className="ts-figure">
+          <p className="ts-figure-label">Direct commissions</p>
+          <p className="mt-1 stat-value text-brand-dark">
             {formatCurrency(batch.totals.directTotal)}
           </p>
         </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Team bonuses</p>
-          <p className="mt-1 text-2xl font-semibold text-primary">
+        <div className="ts-figure ts-figure-highlight">
+          <p className="ts-figure-label">Team bonuses</p>
+          <p className="mt-1 stat-value text-primary">
             {formatCurrency(batch.totals.overrideTotal)}
           </p>
         </div>
         {batch.totals.otherTotal !== 0 && (
-          <div className="rounded-lg border border-border bg-card p-4">
-            <p className="text-xs text-muted-foreground">
-              Bonuses &amp; adjustments
-            </p>
-            <p className="mt-1 text-2xl font-semibold">
+          <div className="ts-figure">
+            <p className="ts-figure-label">Bonuses &amp; adjustments</p>
+            <p className="mt-1 stat-value text-brand-dark">
               {formatCurrency(batch.totals.otherTotal)}
             </p>
           </div>
@@ -140,12 +138,12 @@ export function PayoutBatchDetailView({
 
       {batch.recruitBreakdown.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-sm font-medium">By recruit</h2>
+          <h2 className="ts-section-title">By recruit</h2>
           <div className="grid gap-2 sm:grid-cols-2">
             {batch.recruitBreakdown.map((recruit) => (
               <div
                 key={recruit.sourceAffiliateId}
-                className="flex items-center justify-between gap-3 rounded-lg border border-border px-4 py-3"
+                className="ts-list-row flex-row items-center justify-between gap-3 px-4 py-3"
               >
                 <div className="min-w-0">
                   <p className="font-medium truncate">
@@ -175,15 +173,15 @@ export function PayoutBatchDetailView({
       )}
 
       <section className="space-y-3">
-        <h2 className="text-sm font-medium">
+        <h2 className="ts-section-title">
           Line items ({batch.totals.entryCount})
         </h2>
         <ResponsiveTable
           table={
-            <div className="overflow-x-auto rounded-lg border border-border">
+            <div className="ts-table-wrap overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="ts-table-header hover:bg-muted">
                     <TableHead>Date</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Details</TableHead>
@@ -279,13 +277,13 @@ export function PayoutBatchDetailView({
 
       {adminView && batch.items.length > 1 && (
         <section className="space-y-3">
-          <h2 className="text-sm font-medium">Affiliates in batch</h2>
+          <h2 className="ts-section-title">Affiliates in batch</h2>
           <ResponsiveTable
             table={
-              <div className="overflow-hidden rounded-lg border border-border">
+              <div className="ts-table-wrap overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="ts-table-header hover:bg-muted">
                       <TableHead>Affiliate</TableHead>
                       <TableHead className="text-right">Direct</TableHead>
                       <TableHead className="text-right">Bonuses</TableHead>

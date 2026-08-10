@@ -42,8 +42,9 @@ type DataCardProps = {
 
 export function DataCard({ children, className, href, onClick }: DataCardProps) {
   const base = cn(
-    "block rounded-lg border border-border bg-card p-3 text-left",
-    (href || onClick) && "transition-colors hover:bg-muted/50 active:bg-muted",
+    "block rounded-xl border border-border/45 bg-card p-3.5 text-left shadow-xs",
+    (href || onClick) &&
+      "transition-all hover:border-border/80 hover:bg-muted/30 hover:shadow-xs active:bg-muted/40",
     className
   );
 
@@ -83,7 +84,9 @@ export function DataCardHeader({
       <div className="min-w-0 flex-1">
         {/* Wraps rather than truncates: these titles end in the order number,
             which is the part someone is usually looking for. */}
-        <div className="line-clamp-2 font-medium text-foreground">{title}</div>
+        <div className="line-clamp-2 text-sm font-medium text-brand-dark">
+          {title}
+        </div>
         {subtitle && (
           <div className="truncate text-xs text-muted-foreground">
             {subtitle}

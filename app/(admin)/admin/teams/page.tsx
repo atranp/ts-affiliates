@@ -224,11 +224,11 @@ function AdminTeamsPageContent() {
         <ErrorState message={error.message} onRetry={() => refetch()} />
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All teams</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="ts-table-wrap">
+        <div className="ts-table-toolbar">
+          <h2 className="ts-section-title">All teams</h2>
+        </div>
+        <div className="ts-table-body p-4 sm:p-5">
           {isLoading && <TableSkeleton columns={5} />}
           {!isLoading && data?.teams.length === 0 && (
             <EmptyState
@@ -246,7 +246,7 @@ function AdminTeamsPageContent() {
               table={
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="ts-table-header hover:bg-muted">
                       <TableHead>Team</TableHead>
                       <TableHead>Sponsor</TableHead>
                       <TableHead className="text-right">Rules</TableHead>
@@ -348,8 +348,8 @@ function AdminTeamsPageContent() {
               }
             />
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {createOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">

@@ -80,7 +80,7 @@ export default function AdminAffiliatesPage() {
         description="Manage partner profiles, portal access permissions, ledger adjustments, and team sponsors."
       />
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
+      <div className="ts-table-wrap">
         <div className="ts-table-toolbar">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="relative min-w-[240px] flex-1">
@@ -119,7 +119,7 @@ export default function AdminAffiliatesPage() {
           </div>
         </div>
 
-        <div className="space-y-3 p-2.5 sm:space-y-4 sm:p-4">
+        <div className="ts-table-body space-y-3 p-2.5 sm:space-y-4 sm:p-4">
 
           {error && (
             <ErrorState message={error.message} onRetry={() => refetch()} />
@@ -241,11 +241,11 @@ export default function AdminAffiliatesPage() {
                 }
               />
 
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <div className="ts-table-footer">
                 <p className="text-sm text-muted-foreground">
                   Page {data.page} of {data.totalPages}
                 </p>
-                <div className="flex gap-2">
+                <div className="ts-table-footer-actions flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"

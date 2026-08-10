@@ -184,7 +184,7 @@ export function AdminLedgerTable({
             </Button>
           </div>
         )}
-        <p className="text-sm text-muted-foreground">No entries yet.</p>
+        <p className="ts-empty-inline text-sm">No entries yet.</p>
       </div>
     );
   }
@@ -257,7 +257,7 @@ export function AdminLedgerTable({
       <div className="hidden md:block">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="ts-table-header hover:bg-muted">
               <TableHead className="w-10">
                 <input
                   type="checkbox"
@@ -352,7 +352,7 @@ export function AdminLedgerTable({
         {entries.map((entry) => (
           <div
             key={entry.id}
-            className="space-y-2.5 rounded-lg border border-border bg-card p-3"
+            className="ts-list-row space-y-2.5 p-3.5"
           >
             <div className="flex items-start gap-2.5">
               <input
@@ -426,21 +426,25 @@ export function AdminLedgerTable({
               setForm(null);
             }}
           />
-          <div className="relative z-10 w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-lg">
-            <h3 className="text-lg font-semibold">Edit ledger entry</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {editing.type} ·{" "}
-              {editing.wooOrderId ? `Order #${editing.wooOrderId}` : "No order"}
-            </p>
-            {editing.payoutBatchId && (
-              <p className="mt-2 rounded-md bg-warning/10 px-3 py-2 text-xs text-warning">
-                Linked to payout batch &quot;{editing.payoutBatch?.label ?? editing.payoutBatchId}&quot;.
-                Changing status will unlink this entry from the batch.
+          <div className="relative z-10 w-full max-w-md ts-panel shadow-lg">
+            <div className="ts-panel-header">
+              <h3 className="ts-section-title">Edit ledger entry</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {editing.type} ·{" "}
+                {editing.wooOrderId ? `Order #${editing.wooOrderId}` : "No order"}
               </p>
-            )}
-            <div className="mt-4 space-y-4">
+            </div>
+            <div className="ts-panel-body space-y-4">
+              {editing.payoutBatchId && (
+                <p className="rounded-md bg-warning/10 px-3 py-2 text-xs text-warning">
+                  Linked to payout batch &quot;{editing.payoutBatch?.label ?? editing.payoutBatchId}&quot;.
+                  Changing status will unlink this entry from the batch.
+                </p>
+              )}
               <div className="space-y-2">
-                <Label htmlFor="edit-status">Status</Label>
+                <Label htmlFor="edit-status" className="ts-field-label">
+                  Status
+                </Label>
                 <select
                   id="edit-status"
                   className="select-field w-full"
@@ -457,7 +461,9 @@ export function AdminLedgerTable({
                 </select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-amount">Amount</Label>
+                <Label htmlFor="edit-amount" className="ts-field-label">
+                  Amount
+                </Label>
                 <Input
                   id="edit-amount"
                   type="number"
@@ -470,7 +476,9 @@ export function AdminLedgerTable({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-description">Description / notes</Label>
+                <Label htmlFor="edit-description" className="ts-field-label">
+                  Description / notes
+                </Label>
                 <Input
                   id="edit-description"
                   value={form.description}
@@ -480,21 +488,21 @@ export function AdminLedgerTable({
                   placeholder="Optional note for this entry"
                 />
               </div>
-            </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setEditing(null);
-                  setForm(null);
-                }}
-                disabled={saving}
-              >
-                Cancel
-              </Button>
-              <Button onClick={saveEdit} disabled={saving}>
-                {saving ? "Saving..." : "Save changes"}
-              </Button>
+              <div className="flex justify-end gap-2 border-t border-border/40 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditing(null);
+                    setForm(null);
+                  }}
+                  disabled={saving}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={saveEdit} disabled={saving}>
+                  {saving ? "Saving..." : "Save changes"}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

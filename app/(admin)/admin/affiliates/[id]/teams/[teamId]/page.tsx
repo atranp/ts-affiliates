@@ -125,7 +125,7 @@ function AdminTeamDetailContent() {
           {team.members.map((member) => (
             <div
               key={member.id}
-              className="rounded-md border border-border p-3 space-y-2"
+              className="ts-list-row space-y-2 p-4"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
