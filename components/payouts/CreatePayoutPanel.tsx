@@ -392,12 +392,12 @@ function WizardStepCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="ts-payout-step-card">
+    <section className="ts-payout-step-card overflow-visible">
       <header className="ts-payout-step-head flex items-center gap-3">
         <div className="ts-step-num">{step}</div>
-        <h2 className="text-base font-semibold tracking-tight text-brand-dark">{title}</h2>
+        <h2 className="ts-section-title text-base">{title}</h2>
       </header>
-      <div className="ts-payout-step-body">{children}</div>
+      <div className="ts-payout-step-body overflow-visible">{children}</div>
     </section>
   );
 }

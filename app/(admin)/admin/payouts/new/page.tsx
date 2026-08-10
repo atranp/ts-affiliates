@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 
 export default function NewPayoutPage() {
   return (
-    <div className="ts-workspace gap-4">
+    <div className="space-y-5">
       <div className="ts-page-header shrink-0 max-sm:px-0.5">
         <PageHeader
           title="New payout"

@@ -569,19 +569,15 @@
   }
 
   .ts-payout-step-body {
-    @apply min-w-0 overflow-x-hidden bg-muted/10 px-4 py-4 sm:px-6 sm:py-6;
+    @apply min-w-0 bg-muted/10 px-4 py-4 sm:px-6 sm:py-6;
   }
 
   .ts-payout-field-well {
-    @apply relative z-10 rounded-xl border border-border/80 bg-muted/10 p-4 shadow-xs;
+    @apply relative rounded-xl border border-border/80 bg-muted/10 p-4 shadow-xs;
   }
 
   .ts-payout-field-well .ts-input {
     @apply border-border/80 bg-card shadow-sm;
-  }
-
-  .ts-payout-field-well [role="listbox"] {
-    @apply rounded-lg border-border shadow-lg ring-1 ring-border/40;
   }
 
   .ts-payout-direct-group {
