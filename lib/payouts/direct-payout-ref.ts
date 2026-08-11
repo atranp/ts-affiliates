@@ -1,4 +1,4 @@
-import { CommissionStatus, LedgerEntryType } from "@prisma/client";
+import { LedgerEntryType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { PAID_STATUS } from "@/lib/payouts/status";
 import { formatAppDate } from "@/lib/timezone";
