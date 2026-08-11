@@ -35,6 +35,7 @@ import {
 /** Shared IDs — keep in sync with lib/mock/affiliate-fixtures.ts */
 export const MOCK_TEAM_ID = "mock-team-downline";
 export const MOCK_BLAIR_ID = "mock-member-blair";
+export const MOCK_BLAIR_SLICEWP_PAYMENT_ID = "mock-slicewp-payment-blair";
 export const MOCK_PEDRO_ID = "mock-member-pedro";
 export const MOCK_JORDAN_ID = "mock-affiliate-jordan";
 export const MOCK_CASEY_ID = "mock-affiliate-casey";
@@ -357,7 +358,15 @@ const session: MockSession = (globalForMock.tsMockAdminSession ??= {
 });
 
 function memberTarget(memberId: string): PayoutTarget {
-  return { scope: "member", teamId: MOCK_TEAM_ID, memberId };
+  return {
+    scope: "member",
+    teamId: MOCK_TEAM_ID,
+    memberId,
+    directPayout: {
+      source: "slicewp",
+      paymentId: MOCK_BLAIR_SLICEWP_PAYMENT_ID,
+    },
+  };
 }
 
 function isTargetPaid(target: PayoutTarget): boolean {
@@ -641,6 +650,7 @@ export function mockAdminPayoutOptions(affiliateId: string): PayoutOptions {
       direct: null,
       teams: [],
       unattributed: { amount: 0, entryCount: 0 },
+      awaitingDirectPayout: { amount: 0, entryCount: 0 },
     };
   }
 
@@ -654,7 +664,7 @@ export function mockAdminPayoutOptions(affiliateId: string): PayoutOptions {
         key: payoutTargetKey(memberTarget(MOCK_BLAIR_ID)),
         target: memberTarget(MOCK_BLAIR_ID),
         label: "Blair Rodgers",
-        sublabel: `${PRICING.blair.entryCount.toLocaleString("en-US")} sales`,
+        sublabel: `Direct payout $7,270.93 · Mar 5, 2026 · ${PRICING.blair.entryCount.toLocaleString("en-US")} sales`,
         math: PRICING.blair.math,
         amount: PRICING.blair.amount,
         entryCount: PRICING.blair.entryCount,
@@ -686,7 +696,7 @@ export function mockAdminPayoutOptions(affiliateId: string): PayoutOptions {
             {
               teamId: MOCK_TEAM_ID,
               label: "My downline",
-              sublabel: `${teamMembers.length.toLocaleString("en-US")} member to pay`,
+              sublabel: `${teamMembers.length.toLocaleString("en-US")} payout${teamMembers.length === 1 ? "" : "s"} to record`,
               amount: teamMembers.reduce((sum, member) => sum + member.amount, 0),
               entryCount: teamMembers.reduce(
                 (sum, member) => sum + member.entryCount,
@@ -704,6 +714,7 @@ export function mockAdminPayoutOptions(affiliateId: string): PayoutOptions {
       affiliateId === MOCK_AFFILIATE_ID
         ? PRICING.unattributed
         : { amount: 0, entryCount: 0 },
+    awaitingDirectPayout: { amount: 0, entryCount: 0 },
   };
 }
 

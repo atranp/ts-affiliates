@@ -1,6 +1,10 @@
 import { CommissionStatus, DealBasis, LedgerEntryType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, toNumber } from "@/lib/utils";
+import {
+  listDirectPayoutAnchorsForMember,
+  coveredSourceCommissionIds,
+} from "@/lib/payouts/direct-payout-ref";
 import { payoutTargetKey, type PayoutTarget } from "./create";
 
 /**
@@ -49,6 +53,11 @@ export type PayoutOptions = {
    * screen, so it is reported rather than silently omitted from the totals.
    */
   unattributed: { amount: number; entryCount: number };
+  /**
+   * Team earnings on sales not yet included in any paid direct payout for the
+   * recruit — wait for their direct receipt before paying the sponsor.
+   */
+  awaitingDirectPayout: { amount: number; entryCount: number };
 };
 
 function plural(n: number, one: string, many = `${one}s`) {
@@ -63,11 +72,8 @@ type Totals = {
   amount: number;
   entryCount: number;
   revenue: number;
-  /** `${ratePercent}|${basis}` per contributing deal rule, to spot mixed terms. */
   terms: Set<string>;
 };
-
-type Bucket = Totals & { name: string };
 
 function emptyTotals(): Totals {
   return { amount: 0, entryCount: 0, revenue: 0, terms: new Set<string>() };
@@ -115,6 +121,68 @@ function describeMath(totals: Totals): string | null {
   return `${formatCurrency(totals.revenue)} in sales × ~${trimRate((totals.amount / totals.revenue) * 100)} avg`;
 }
 
+type OverrideRow = {
+  amount: number;
+  revenue: number;
+  term: string | null;
+  sourceCommissionId: string | null;
+  teamId: string;
+  teamName: string;
+  memberId: string;
+  memberName: string;
+};
+
+async function buildMemberPayoutOptions(
+  rows: OverrideRow[]
+): Promise<PayoutOption[]> {
+  if (rows.length === 0) return [];
+
+  const memberId = rows[0].memberId;
+  const teamId = rows[0].teamId;
+  const memberName = rows[0].memberName;
+  const anchors = await listDirectPayoutAnchorsForMember(memberId);
+  const options: PayoutOption[] = [];
+
+  for (const anchor of anchors) {
+    const commissionIdSet = new Set(anchor.commissionIds);
+    const bucket = emptyTotals();
+
+    for (const row of rows) {
+      if (!row.sourceCommissionId || !commissionIdSet.has(row.sourceCommissionId)) {
+        continue;
+      }
+      addTo(bucket, row.amount, row.revenue, row.term);
+    }
+
+    if (bucket.entryCount === 0) continue;
+
+    const directPayout =
+      anchor.source === "slicewp"
+        ? ({ source: "slicewp", paymentId: anchor.paymentId } as const)
+        : ({ source: "platform", batchId: anchor.batchId } as const);
+
+    const target: PayoutTarget = {
+      scope: "member",
+      teamId,
+      memberId,
+      directPayout,
+    };
+
+    options.push({
+      key: payoutTargetKey(target),
+      target,
+      label: memberName,
+      sublabel: `${anchor.label} · ${plural(bucket.entryCount, "sale")}`,
+      math: describeMath(bucket),
+      amount: bucket.amount,
+      entryCount: bucket.entryCount,
+      revenue: bucket.revenue,
+    });
+  }
+
+  return options;
+}
+
 export async function getPayoutOptions(input: {
   affiliateId: string;
   cutoff: Date;
@@ -137,6 +205,7 @@ export async function getPayoutOptions(input: {
       type: true,
       amount: true,
       orderRevenue: true,
+      sourceCommissionId: true,
       sourceAffiliate: { select: { id: true, displayName: true, email: true } },
       dealRule: {
         select: {
@@ -149,12 +218,9 @@ export async function getPayoutOptions(input: {
   });
 
   const direct = emptyTotals();
-  const teamNames = new Map<string, string>();
-  const members = new Map<
-    string,
-    Bucket & { teamId: string; memberId: string }
-  >();
+  const overrideRows: OverrideRow[] = [];
   const unattributed = emptyTotals();
+  const awaitingDirectPayout = emptyTotals();
 
   for (const entry of entries) {
     const amount = toNumber(entry.amount);
@@ -172,24 +238,52 @@ export async function getPayoutOptions(input: {
       entry.type === LedgerEntryType.OVERRIDE ? entry.dealRule?.team : null;
     const member = entry.sourceAffiliate;
 
-    // Overrides missing a team or a member cannot be paid individually, and
-    // neither can bonuses or adjustments. They fall to the catch-all.
     if (!team || !member) {
       addTo(unattributed, amount, revenue, term);
       continue;
     }
 
-    teamNames.set(team.id, team.name);
-
-    const memberKey = `${team.id}:${member.id}`;
-    const bucket = members.get(memberKey) ?? {
-      ...emptyTotals(),
-      name: member.displayName ?? member.email,
+    overrideRows.push({
+      amount,
+      revenue,
+      term,
+      sourceCommissionId: entry.sourceCommissionId,
       teamId: team.id,
+      teamName: team.name,
       memberId: member.id,
-    };
-    addTo(bucket, amount, revenue, term);
-    members.set(memberKey, bucket);
+      memberName: member.displayName ?? member.email,
+    });
+  }
+
+  const coveredByMember = new Map<string, Set<string>>();
+  const memberIds = Array.from(new Set(overrideRows.map((row) => row.memberId)));
+  await Promise.all(
+    memberIds.map(async (memberId) => {
+      coveredByMember.set(memberId, await coveredSourceCommissionIds(memberId));
+    })
+  );
+
+  const payableRows: OverrideRow[] = [];
+  for (const row of overrideRows) {
+    const covered = coveredByMember.get(row.memberId) ?? new Set<string>();
+    if (!row.sourceCommissionId || !covered.has(row.sourceCommissionId)) {
+      addTo(awaitingDirectPayout, row.amount, row.revenue, row.term);
+      continue;
+    }
+    payableRows.push(row);
+  }
+
+  const rowsByMemberTeam = new Map<string, OverrideRow[]>();
+  for (const row of payableRows) {
+    const key = `${row.teamId}:${row.memberId}`;
+    const list = rowsByMemberTeam.get(key) ?? [];
+    list.push(row);
+    rowsByMemberTeam.set(key, list);
+  }
+
+  const teamNames = new Map<string, string>();
+  for (const row of payableRows) {
+    teamNames.set(row.teamId, row.teamName);
   }
 
   const directOption: PayoutOption | null =
@@ -206,50 +300,51 @@ export async function getPayoutOptions(input: {
         }
       : null;
 
-  const teams: PayoutTeamGroup[] = Array.from(teamNames.entries())
-    .sort((a, b) => a[1].localeCompare(b[1]))
-    .map(([teamId, name]) => {
-      const teamMembers = Array.from(members.values())
-        .filter((member) => member.teamId === teamId)
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((member): PayoutOption => {
-          const target: PayoutTarget = {
-            scope: "member",
-            teamId,
-            memberId: member.memberId,
-          };
-          return {
-            key: payoutTargetKey(target),
-            target,
-            label: member.name,
-            sublabel: plural(member.entryCount, "sale"),
-            math: describeMath(member),
-            amount: member.amount,
-            entryCount: member.entryCount,
-            revenue: member.revenue,
-          };
-        });
+  const teams: PayoutTeamGroup[] = await Promise.all(
+    Array.from(teamNames.entries())
+      .sort((a, b) => a[1].localeCompare(b[1]))
+      .map(async ([teamId, name]) => {
+        const memberKeys = Array.from(rowsByMemberTeam.keys()).filter((key) =>
+          key.startsWith(`${teamId}:`)
+        );
 
-      return {
-        teamId,
-        label: name,
-        sublabel: `${plural(teamMembers.length, "member")} to pay`,
-        amount: teamMembers.reduce((sum, member) => sum + member.amount, 0),
-        entryCount: teamMembers.reduce(
-          (sum, member) => sum + member.entryCount,
-          0
-        ),
-        revenue: teamMembers.reduce((sum, member) => sum + member.revenue, 0),
-        members: teamMembers,
-      };
-    });
+        const teamMemberOptions = (
+          await Promise.all(
+            memberKeys.map((key) =>
+              buildMemberPayoutOptions(rowsByMemberTeam.get(key)!)
+            )
+          )
+        ).flat();
+
+        teamMemberOptions.sort((a, b) => a.label.localeCompare(b.label));
+
+        return {
+          teamId,
+          label: name,
+          sublabel: `${plural(teamMemberOptions.length, "payout")} to record`,
+          amount: teamMemberOptions.reduce((sum, member) => sum + member.amount, 0),
+          entryCount: teamMemberOptions.reduce(
+            (sum, member) => sum + member.entryCount,
+            0
+          ),
+          revenue: teamMemberOptions.reduce(
+            (sum, member) => sum + member.revenue,
+            0
+          ),
+          members: teamMemberOptions,
+        };
+      })
+  );
+
+  const teamsWithOptions = teams.filter((team) => team.members.length > 0);
 
   return {
     affiliateId: input.affiliateId,
     affiliateName: affiliate.displayName ?? affiliate.email,
     cutoff: input.cutoff.toISOString(),
     direct: directOption,
-    teams,
+    teams: teamsWithOptions,
     unattributed,
+    awaitingDirectPayout,
   };
 }

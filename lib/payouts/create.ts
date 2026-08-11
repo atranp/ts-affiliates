@@ -1,8 +1,18 @@
 import { CommissionStatus, LedgerEntryType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import {
+  loadDirectPayoutAnchor,
+  parseDirectPayoutRef,
+  directPayoutRefKey,
+  resolveCommissionIdsForDirectPayout,
+  type DirectPayoutRef,
+} from "@/lib/payouts/direct-payout-ref";
 import { PAID_STATUS } from "@/lib/payouts/status";
 import { formatAppDateTime } from "@/lib/timezone";
 import { toNumber } from "@/lib/utils";
+
+export type { DirectPayoutRef };
+export { parseDirectPayoutRef, directPayoutRefKey };
 
 /**
  * Creating a payout is a two-call flow: preview what would be paid, then pay
@@ -17,7 +27,13 @@ import { toNumber } from "@/lib/utils";
  */
 export type PayoutTarget =
   | { scope: "direct" }
-  | { scope: "member"; teamId: string; memberId: string };
+  | {
+      scope: "member";
+      teamId: string;
+      memberId: string;
+      /** Team earnings settle against one recruit direct payout receipt. */
+      directPayout: DirectPayoutRef;
+    };
 
 export type PayoutSelection = {
   affiliateId: string;
@@ -97,16 +113,26 @@ export function parsePayoutTarget(input: {
   scope: unknown;
   teamId?: unknown;
   memberId?: unknown;
+  directPayoutSource?: unknown;
+  directPayoutId?: unknown;
 }): PayoutTarget {
   switch (input.scope) {
     case "direct":
       return { scope: "direct" };
-    case "member":
+    case "member": {
+      const directPayout = parseDirectPayoutRef(input);
+      if (!directPayout) {
+        throw new PayoutInputError(
+          "directPayoutSource and directPayoutId are required for team earnings payouts."
+        );
+      }
       return {
         scope: "member",
         teamId: requireId(input.teamId, "teamId"),
         memberId: requireId(input.memberId, "memberId"),
+        directPayout,
       };
+    }
     default:
       throw new PayoutInputError(
         `Unknown payout scope "${String(input.scope)}". Expected direct or member.`
@@ -120,9 +146,10 @@ export function parsePayoutTarget(input: {
  * teams and would otherwise collide.
  */
 export function payoutTargetKey(target: PayoutTarget): string {
-  return target.scope === "member"
-    ? `member:${target.teamId}:${target.memberId}`
-    : target.scope;
+  if (target.scope === "member") {
+    return `member:${target.teamId}:${target.memberId}:${directPayoutRefKey(target.directPayout)}`;
+  }
+  return target.scope;
 }
 
 /**
@@ -147,14 +174,12 @@ export function parsePayoutCutoff(value: unknown, now = new Date()): Date {
  * "everything still owed" is the question being asked, and an entry that was
  * synced late would otherwise fall through the gap between two payouts.
  */
-export function buildUnpaidWhere(
+export async function buildUnpaidWhere(
   selection: PayoutSelection
-): Prisma.LedgerEntryWhereInput {
+): Promise<Prisma.LedgerEntryWhereInput> {
   const base: Prisma.LedgerEntryWhereInput = {
     affiliateId: selection.affiliateId,
     status: CommissionStatus.UNPAID,
-    // Matched against the moment the payout is recorded rather than the end of
-    // the calendar day, so a sale landing later today stays open for next time.
     occurredAt: { lte: selection.cutoff },
   };
 
@@ -164,16 +189,22 @@ export function buildUnpaidWhere(
     case "direct":
       return { ...base, type: LedgerEntryType.DIRECT };
 
-    // The sponsor's override bonuses on one member's sales. Scoped by team as
-    // well as member, since the same person can sit under two of a sponsor's
-    // teams through different deal rules.
-    case "member":
+    case "member": {
+      const commissionIds = await resolveCommissionIdsForDirectPayout(
+        target.directPayout,
+        target.memberId
+      );
+      if (commissionIds.length === 0) {
+        return { ...base, id: "__none__" };
+      }
       return {
         ...base,
         type: LedgerEntryType.OVERRIDE,
         sourceAffiliateId: target.memberId,
         dealRule: { teamId: target.teamId },
+        sourceCommissionId: { in: commissionIds },
       };
+    }
   }
 }
 
@@ -224,9 +255,19 @@ async function loadTargetContext(
     throw new PayoutInputError("Team member not found.");
   }
 
+  const anchor = await loadDirectPayoutAnchor(
+    target.directPayout,
+    target.memberId
+  );
+  if (!anchor) {
+    throw new PayoutInputError(
+      "That direct payout receipt could not be found for this recruit."
+    );
+  }
+
   return {
     affiliateName,
-    targetLabel: `${member.displayName ?? member.email} · ${team.name}`,
+    targetLabel: `${member.displayName ?? member.email} · ${team.name} · ${anchor.label}`,
     teamId: target.teamId,
   };
 }
@@ -238,7 +279,7 @@ export function buildPayoutLabel(context: TargetContext, cutoff: Date): string {
 export async function previewPayout(
   selection: PayoutSelection
 ): Promise<PayoutDraft> {
-  const where = buildUnpaidWhere(selection);
+  const where = await buildUnpaidWhere(selection);
 
   const [context, totals, entries] = await Promise.all([
     loadTargetContext(selection),
@@ -322,7 +363,7 @@ export async function buildPayoutCsv(
   const [context, entries] = await Promise.all([
     loadTargetContext(selection),
     prisma.ledgerEntry.findMany({
-      where: buildUnpaidWhere(selection),
+      where: await buildUnpaidWhere(selection),
       orderBy: { occurredAt: "asc" },
       select: {
         occurredAt: true,
@@ -384,7 +425,7 @@ export async function createPayout(
   input: CreatePayoutInput
 ): Promise<CreatedPayout> {
   const context = await loadTargetContext(input);
-  const where = buildUnpaidWhere(input);
+  const where = await buildUnpaidWhere(input);
   const recordedAt = new Date();
 
   return prisma.$transaction(async (tx) => {

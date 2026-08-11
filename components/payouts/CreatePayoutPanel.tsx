@@ -46,9 +46,25 @@ import { APP_TIMEZONE_LABEL, formatAppDateTime } from "@/lib/timezone";
 import { cn, formatCurrency, formatSaleDate } from "@/lib/utils";
 
 function targetParams(target: PayoutTarget): Record<string, string> {
-  return target.scope === "member"
-    ? { scope: "member", teamId: target.teamId, memberId: target.memberId }
-    : { scope: target.scope };
+  if (target.scope === "member") {
+    const ref =
+      target.directPayout.source === "slicewp"
+        ? {
+            directPayoutSource: "slicewp",
+            directPayoutId: target.directPayout.paymentId,
+          }
+        : {
+            directPayoutSource: "platform",
+            directPayoutId: target.directPayout.batchId,
+          };
+    return {
+      scope: "member",
+      teamId: target.teamId,
+      memberId: target.memberId,
+      ...ref,
+    };
+  }
+  return { scope: target.scope };
 }
 
 type CreatePayoutPanelProps = {
@@ -505,6 +521,18 @@ function OptionTree({
             {data.unattributed.entryCount === 1 ? "entry" : "entries"} is not
             listed above — bonuses, adjustments, and overrides with no team or
             member attached. Nothing on this screen can pay those yet.
+          </p>
+        </div>
+      )}
+
+      {data.awaitingDirectPayout.entryCount > 0 && (
+        <div className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2.5">
+          <p className="ts-row-meta leading-relaxed text-muted-foreground">
+            <span className="font-semibold text-brand-dark">
+              {formatCurrency(data.awaitingDirectPayout.amount)}
+            </span>{" "}
+            in team earnings is waiting on a recruit direct payout first — those
+            sales are not in any paid direct receipt yet.
           </p>
         </div>
       )}

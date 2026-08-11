@@ -34,6 +34,8 @@ export async function GET(request: Request) {
         scope: params.get("scope"),
         teamId: params.get("teamId") ?? undefined,
         memberId: params.get("memberId") ?? undefined,
+        directPayoutSource: params.get("directPayoutSource") ?? undefined,
+        directPayoutId: params.get("directPayoutId") ?? undefined,
       }),
       cutoff: parsePayoutCutoff(params.get("cutoff")),
     };

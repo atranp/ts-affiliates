@@ -55,6 +55,8 @@ export async function GET(request: Request) {
         scope: params.get("scope"),
         teamId: params.get("teamId") ?? undefined,
         memberId: params.get("memberId") ?? undefined,
+        directPayoutSource: params.get("directPayoutSource") ?? undefined,
+        directPayoutId: params.get("directPayoutId") ?? undefined,
       }),
       cutoff: parsePayoutCutoff(params.get("cutoff")),
     };
@@ -76,7 +78,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { affiliateId, scope, teamId, memberId, cutoff, expected } =
+  const { affiliateId, scope, teamId, memberId, cutoff, expected, directPayoutSource, directPayoutId } =
     body as Record<string, unknown>;
 
   if (typeof affiliateId !== "string" || !affiliateId) {
@@ -89,7 +91,7 @@ export async function POST(request: Request) {
   try {
     const selection = {
       affiliateId,
-      target: parsePayoutTarget({ scope, teamId, memberId }),
+      target: parsePayoutTarget({ scope, teamId, memberId, directPayoutSource, directPayoutId }),
       cutoff: parsePayoutCutoff(cutoff),
       expected: parseExpected(expected),
     };
