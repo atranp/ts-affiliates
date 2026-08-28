@@ -47,6 +47,8 @@ import type {
   AdminAffiliateDetail,
 } from "@/lib/admin/types";
 import { AffiliatePortalPanel } from "@/components/admin/AffiliatePortalPanel";
+import { AffiliateSliceWPPanel } from "@/components/admin/AffiliateSliceWPPanel";
+import { AffiliateReachPanel } from "@/components/admin/AffiliateReachPanel";
 import { CreatePayoutPanel } from "@/components/payouts/CreatePayoutPanel";
 import {
   PayoutHistoryPanel,
@@ -406,12 +408,6 @@ function AdminAffiliateDetailPageContent() {
                     <span className="text-muted-foreground">Email</span>
                     <span className="font-medium break-all">{affiliate.email}</span>
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-muted-foreground">Payment email</span>
-                    <span className="font-medium break-all">
-                      {affiliate.paymentEmail ?? "—"}
-                    </span>
-                  </div>
                   <div className="flex justify-between gap-4 border-t pt-3">
                     <span className="text-muted-foreground">Last synced</span>
                     <span className="text-right font-medium">
@@ -424,6 +420,18 @@ function AdminAffiliateDetailPageContent() {
                   />
                 </CardContent>
               </Card>
+
+              <AffiliateSliceWPPanel
+                affiliateId={affiliate.id}
+                slicewpId={affiliate.slicewpId}
+                status={affiliate.status}
+                paymentEmail={affiliate.paymentEmail}
+                commissionRate={affiliate.commissionRate}
+                parentSlicewpId={affiliate.parentSlicewpId}
+                onUpdated={refreshAffiliate}
+              />
+
+              <AffiliateReachPanel reach={affiliate.reach} />
 
               <AffiliatePortalPanel
                 affiliateId={affiliate.id}

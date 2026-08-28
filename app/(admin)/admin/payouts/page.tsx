@@ -10,7 +10,12 @@ import {
   PayoutHistoryPanel,
   type PayoutBatchRow,
 } from "@/components/payouts/PayoutHistoryPanel";
+import {
+  WriteBackBanner,
+  type WriteBackHealthResponse,
+} from "@/components/payouts/WriteBackBanner";
 import { useAdminQuery } from "@/hooks/use-admin-query";
+import { queryKeys } from "@/lib/query-keys";
 
 export default function AdminPayoutsPage() {
   return (
@@ -41,6 +46,12 @@ function AdminPayoutsPageContent() {
     "/api/admin/payouts/batches"
   );
 
+  const { data: writeBack, refetch: refetchWriteBack } =
+    useAdminQuery<WriteBackHealthResponse>(
+      queryKeys.admin.payoutWriteBack,
+      "/api/admin/payouts/write-back"
+    );
+
   return (
     <div className="ts-workspace gap-4">
       <div className="shrink-0">
@@ -57,6 +68,14 @@ function AdminPayoutsPageContent() {
           }
         />
       </div>
+
+      <WriteBackBanner
+        health={writeBack}
+        onRetried={() => {
+          void refetchWriteBack();
+          void refetch();
+        }}
+      />
 
       <PayoutHistoryPanel
         className="min-h-0 flex-1"

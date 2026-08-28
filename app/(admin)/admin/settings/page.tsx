@@ -88,6 +88,24 @@ export default function AdminSettingsPage() {
         <ErrorState message={error.message} onRetry={() => refetch()} />
       )}
 
+      {settings?.envCredentialsActive && (
+        <Card className="border-warning/40 bg-warning/5">
+          <CardContent className="pt-6 text-sm">
+            <p className="font-medium text-foreground">
+              Using credentials from <code className="text-xs">.env.local</code>
+            </p>
+            <p className="mt-1 text-muted-foreground">
+              <code className="text-xs">USE_ENV_CREDENTIALS=true</code> — sync
+              and API calls use your local env, not the Supabase Settings row
+              (production/Vercel config is untouched). Store:{" "}
+              <span className="font-medium text-foreground">
+                {settings.wcStoreUrl ?? "not set"}
+              </span>
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2">
           <StatCardSkeleton />
@@ -117,6 +135,22 @@ export default function AdminSettingsPage() {
                 {settings?.hasSliceWP ? "Configured" : "Not configured"}
               </span>
             </div>
+            <div className="flex justify-between gap-4">
+              <span>Credential source</span>
+              <span className="font-medium text-foreground">
+                {settings?.envCredentialsActive
+                  ? ".env.local (dev override)"
+                  : "Supabase Settings"}
+              </span>
+            </div>
+            {settings?.wcStoreUrl && (
+              <div className="flex justify-between gap-4">
+                <span>Store URL</span>
+                <span className="max-w-[60%] truncate font-medium text-foreground">
+                  {settings.wcStoreUrl}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between gap-4 border-t pt-3">
               <span>Last affiliate sync</span>
               <span className="font-medium text-foreground">
@@ -229,8 +263,15 @@ export default function AdminSettingsPage() {
           </CardContent>
         </Card>
 
-        <Button type="submit" disabled={saving || isLoading}>
-          {saving ? "Saving..." : "Save Settings"}
+        <Button
+          type="submit"
+          disabled={saving || isLoading || settings?.envCredentialsActive}
+        >
+          {settings?.envCredentialsActive
+            ? "Save disabled (using .env.local)"
+            : saving
+              ? "Saving..."
+              : "Save Settings"}
         </Button>
       </form>
     </div>

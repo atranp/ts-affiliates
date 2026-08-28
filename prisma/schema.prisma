@@ -63,6 +63,25 @@ enum PayoutSource {
   SLICEWP
 }
 
+/// Whether a payout batch has been reflected back into SliceWP.
+///
+/// The batch commits locally before the settle call is made, because an HTTP
+/// call cannot be held inside the database transaction and unwinding a
+/// committed payout is worse than recording that the write-back is outstanding.
+/// So the two systems are briefly, knowably out of step, and this is the field
+/// that says so.
+enum PayoutWriteBackStatus {
+  /// Nothing to settle. Either the batch is overrides only — those are
+  /// platform-computed and have no SliceWP commission behind them — or it
+  /// predates write-back and was settled by hand in SliceWP.
+  NOT_REQUIRED
+  /// Committed locally, not yet accepted by SliceWP.
+  PENDING
+  SETTLED
+  /// The settle call failed. Safe to retry: the batch id is the idempotency key.
+  FAILED
+}
+
 model Profile {
   id                 String     @id @db.Uuid
   email              String     @unique
@@ -90,33 +109,124 @@ model AdminAuditLog {
 }
 
 model Affiliate {
-  id                String          @id @default(cuid())
-  slicewpId         Int             @unique
-  email             String
-  paymentEmail      String?
-  displayName       String?
-  status            AffiliateStatus @default(PENDING)
-  commissionRate    Decimal?        @db.Decimal(5, 2)
-  parentSlicewpId   Int?
-  parentAffiliateId String?
-  parentAffiliate   Affiliate?      @relation("AffiliateTree", fields: [parentAffiliateId], references: [id], onDelete: SetNull)
-  childAffiliates   Affiliate[]     @relation("AffiliateTree")
-  syncedAt          DateTime?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  id                 String          @id @default(cuid())
+  slicewpId          Int             @unique
+  email              String
+  paymentEmail       String?
+  displayName        String?
+  status             AffiliateStatus @default(PENDING)
+  commissionRate     Decimal?        @db.Decimal(5, 2)
+  /// Vanity referral slug, e.g. "PGFit" in /aff/PGFit/. Lives in SliceWP's
+  /// affiliate meta rather than its REST payload, so it arrives via the bridge.
+  customSlug         String?
+  /// The affiliate's actual referral link, built by WordPress. Stored rather
+  /// than assembled here because the format depends on SliceWP settings
+  /// (`affiliate_keyword`, `friendly_affiliate_url`) that this app does not own.
+  referralUrl        String?
+  storeCreditBalance Decimal?        @db.Decimal(12, 2)
+  /// Also affiliate meta, and also invisible to SliceWP's REST payload. Mirrored
+  /// only so the portal's Settings tab can show what is currently set.
+  website            String?
+  parentSlicewpId    Int?
+  parentAffiliateId  String?
+  parentAffiliate    Affiliate?      @relation("AffiliateTree", fields: [parentAffiliateId], references: [id], onDelete: SetNull)
+  childAffiliates    Affiliate[]     @relation("AffiliateTree")
+  syncedAt           DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 
-  profile              Profile?
-  commissions          Commission[]
-  ledgerEntries        LedgerEntry[]        @relation("AffiliateLedger")
-  sourceLedgerEntries  LedgerEntry[]        @relation("SourceAffiliateLedger")
-  sponsorRules         DealRule[]           @relation("SponsorRules")
-  sourceRules          DealRule[]           @relation("SourceRules")
-  payoutBatchItems     PayoutBatchItem[]
-  slicewpPayments      SlicewpPayment[]
-  managedTeams         Team[]               @relation("SponsorTeams")
+  profile             Profile?
+  commissions         Commission[]
+  ledgerEntries       LedgerEntry[]     @relation("AffiliateLedger")
+  sourceLedgerEntries LedgerEntry[]     @relation("SourceAffiliateLedger")
+  sponsorRules        DealRule[]        @relation("SponsorRules")
+  sourceRules         DealRule[]        @relation("SourceRules")
+  payoutBatchItems    PayoutBatchItem[]
+  slicewpPayments     SlicewpPayment[]
+  managedTeams        Team[]            @relation("SponsorTeams")
+  visits              Visit[]
+  coupons             AffiliateCoupon[]
 
   @@index([parentAffiliateId])
   @@index([email])
+}
+
+/// A referral link click, mirrored from SliceWP.
+///
+/// By far the largest table here — roughly thirty clicks per commission, and
+/// unlike commissions it grows whether or not anyone buys anything. Synced
+/// incrementally against a date watermark rather than refetched, and indexed on
+/// (affiliateId, occurredAt) because every question asked of it is "this
+/// affiliate, this period".
+///
+/// Deliberately omits the visitor IP address that SliceWP stores. The affiliate
+/// portal never displays it, so mirroring it would copy personal data into a
+/// second system for no feature. SliceWP still has it if that ever changes.
+model Visit {
+  id                  String    @id @default(cuid())
+  slicewpId           Int       @unique
+  affiliateId         String
+  affiliate           Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  landingUrl          String?
+  referrerUrl         String?
+  /// Set when the click went on to earn a commission. SliceWP writes this back
+  /// onto an existing visit, so conversions are re-synced separately from new
+  /// visits — a date watermark alone would never revisit the older row.
+  slicewpCommissionId Int?
+  occurredAt          DateTime
+  syncedAt            DateTime  @default(now())
+
+  @@index([affiliateId, occurredAt])
+  @@index([occurredAt])
+}
+
+/// A marketing asset affiliates can use. Store-wide, not per-affiliate: the
+/// tracking link is built per affiliate at display time from `landingUrl`.
+model Creative {
+  id          String   @id @default(cuid())
+  slicewpId   Int      @unique
+  name        String
+  description String?
+  /// image | text | long_text
+  type        String
+  imageUrl    String?
+  altText     String?
+  text        String?
+  landingUrl  String?
+  /// active | inactive. Only active ones are shown to affiliates, but inactive
+  /// ones are mirrored too so an admin can see the full set.
+  status      String
+  dateCreated DateTime
+  syncedAt    DateTime @default(now())
+
+  @@index([status])
+}
+
+/// A discount code attached to an affiliate, so purchases using it are
+/// credited to them without a referral link.
+///
+/// Coupons live in the commerce plugin (WooCommerce posts here), not in
+/// SliceWP, and each integration reports its own shape through a filter. Only
+/// the fields common to all of them are given columns.
+model AffiliateCoupon {
+  id          String    @id @default(cuid())
+  affiliateId String
+  affiliate   Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  /// Which commerce integration owns it — "woo", "edd", …
+  origin      String
+  /// The coupon's id within that integration; only unique alongside `origin`.
+  externalId  Int
+  code        String
+  /// Preformatted by SliceWP ("10%", "$5.00"). The underlying discount type and
+  /// raw amount are not exposed separately, so this is a display string, not a
+  /// number to calculate with.
+  amount      String?
+  /// Use counts keyed by commission status: paid / unpaid / pending / rejected.
+  uses        Json?
+  syncedAt    DateTime  @default(now())
+
+  @@unique([origin, externalId])
+  @@index([affiliateId])
 }
 
 model Commission {
@@ -138,16 +248,18 @@ model Commission {
 }
 
 model Team {
-  id                 String         @id @default(cuid())
+  id                 String    @id @default(cuid())
   name               String
   description        String?
   sponsorAffiliateId String
-  sponsorAffiliate   Affiliate      @relation("SponsorTeams", fields: [sponsorAffiliateId], references: [id], onDelete: Cascade)
-  active             Boolean        @default(true)
-  /** Set to "downline" for teams auto-created from SliceWP parent_id tree */
+  sponsorAffiliate   Affiliate @relation("SponsorTeams", fields: [sponsorAffiliateId], references: [id], onDelete: Cascade)
+  active             Boolean   @default(true)
+  /**
+   * Set to "downline" for teams auto-created from SliceWP parent_id tree
+   */
   slicewpKey         String?
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   dealRules     DealRule[]
   payoutBatches PayoutBatch[]
@@ -227,8 +339,25 @@ model PayoutBatch {
   items              PayoutBatchItem[]
   ledgerEntries      LedgerEntry[]
 
+  /// Defaults to NOT_REQUIRED so the batches that already exist — all settled
+  /// by hand before write-back — do not read as a backlog the moment this
+  /// column appears. Batches that need settling set PENDING explicitly.
+  writeBackStatus      PayoutWriteBackStatus @default(NOT_REQUIRED)
+  /// The SliceWP payment this batch produced. Unique because the batch id is
+  /// the idempotency key, so two batches sharing a payment is a bug.
+  slicewpPaymentId     Int?                  @unique
+  /// What SliceWP was actually told to pay. Smaller than the batch total
+  /// whenever overrides are included, since only DIRECT entries map to a
+  /// SliceWP commission. Reconciliation compares against this, not the total.
+  settledAmount        Decimal?              @db.Decimal(12, 2)
+  settledAt            DateTime?
+  writeBackError       String?
+  writeBackAttempts    Int                   @default(0)
+  writeBackAttemptedAt DateTime?
+
   @@index([teamId])
   @@index([sponsorAffiliateId])
+  @@index([writeBackStatus])
 }
 
 model PayoutBatchItem {
@@ -268,7 +397,7 @@ model SlicewpPayment {
 }
 
 model Settings {
-  id                             String   @id @default("default")
+  id                             String    @id @default("default")
   wcStoreUrlEncrypted            String?
   wcConsumerKeyEncrypted         String?
   wcConsumerSecretEncrypted      String?
@@ -276,12 +405,16 @@ model Settings {
   slicewpConsumerSecretEncrypted String?
   lastAffiliateSyncAt            DateTime?
   lastCommissionSyncAt           DateTime?
-  syncRunning                    Boolean  @default(false)
+  /// Watermark for incremental visit sync: the `date_created` of the newest
+  /// visit already mirrored. Kept as the store's own timestamp rather than
+  /// "when we last synced", so a slow or failed run cannot skip a window.
+  lastVisitSyncedThrough         DateTime?
+  syncRunning                    Boolean   @default(false)
   syncStep                       String?
   syncStartedAt                  DateTime?
   lastSyncError                  String?
   lastSyncResult                 Json?
-  updatedAt                      DateTime @updatedAt
+  updatedAt                      DateTime  @updatedAt
 }
 
 model SyncLog {

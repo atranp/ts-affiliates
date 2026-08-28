@@ -1,7 +1,13 @@
 import { prisma } from "./prisma";
 import type { SyncResult } from "./sync";
 
-export type SyncStep = "affiliates" | "profiles" | "commissions" | "payouts";
+export type SyncStep =
+  | "affiliates"
+  | "profiles"
+  | "commissions"
+  | "payouts"
+  /** Visits, creatives, coupons and referral links. */
+  | "parity";
 
 export type SyncStatus = {
   running: boolean;

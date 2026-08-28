@@ -16,6 +16,11 @@ export type SidebarNavItem = {
   exact?: boolean;
   /** Partner tabs — used when href alone is not enough for active state */
   tabId?: string;
+  /**
+   * Optional heading this item sits under. Consecutive items sharing a group
+   * render beneath one heading; items without a group sit flush at the top.
+   */
+  group?: string;
 };
 
 export type SidebarShellVariant = "partner" | "admin";
@@ -136,14 +141,20 @@ function SidebarPanel({
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5">
-        {navItems.map((item) => (
-          <SidebarNavLink
-            key={item.href}
-            item={item}
-            active={navActive(item)}
-            onNavigate={onNavigate}
-            variant={variant}
-          />
+        {navItems.map((item, index) => (
+          <div key={item.href}>
+            {item.group && item.group !== navItems[index - 1]?.group ? (
+              <p className="px-3 pb-1.5 pt-4 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                {item.group}
+              </p>
+            ) : null}
+            <SidebarNavLink
+              item={item}
+              active={navActive(item)}
+              onNavigate={onNavigate}
+              variant={variant}
+            />
+          </div>
         ))}
       </nav>
 

@@ -33,6 +33,8 @@ export type SettingsResponse = {
   wcStoreUrl: string | null;
   hasWooCommerce: boolean;
   hasSliceWP: boolean;
+  credentialSource: "database" | "env";
+  envCredentialsActive: boolean;
   lastAffiliateSyncAt: string | null;
   lastCommissionSyncAt: string | null;
 };

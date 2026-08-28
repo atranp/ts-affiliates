@@ -182,7 +182,27 @@ export async function loadDirectPayoutAnchor(
   };
 }
 
-/** Paid direct receipts for a recruit, newest first. */
+/** Order-independent identity for the set of commissions an anchor covers. */
+function commissionSetKey(anchor: DirectPayoutAnchor): string {
+  return [...anchor.commissionIds].sort().join(",");
+}
+
+/**
+ * Paid direct receipts for a recruit, newest first, with each settlement
+ * appearing once.
+ *
+ * A payout recorded here now settles in SliceWP too, and that payment mirrors
+ * back on the next sync — so one settlement yields both a `PayoutBatch` and a
+ * `SlicewpPayment` describing the same money. Offering both would show the
+ * admin two identical-looking options for the same receipt.
+ *
+ * The platform batch wins: it is the record the payout UI created, and it
+ * carries item-level amounts the mirrored payment does not.
+ *
+ * Not a double-pay risk either way — `getPayoutOptions` only reads `UNPAID`
+ * rows, so whichever anchor is picked second finds nothing. This is about the
+ * admin being able to tell what they are looking at.
+ */
 export async function listDirectPayoutAnchorsForMember(
   memberAffiliateId: string,
   limit = 24
@@ -194,6 +214,7 @@ export async function listDirectPayoutAnchorsForMember(
       take: limit,
       select: {
         id: true,
+        slicewpPaymentId: true,
         amount: true,
         commissionIds: true,
         dateCreated: true,
@@ -214,6 +235,7 @@ export async function listDirectPayoutAnchorsForMember(
       take: limit,
       select: {
         id: true,
+        slicewpPaymentId: true,
         processedAt: true,
         createdAt: true,
         items: {
@@ -224,29 +246,50 @@ export async function listDirectPayoutAnchorsForMember(
     }),
   ]);
 
-  const slicewpAnchors = await Promise.all(
-    slicewpPayments.map(async (payment) => {
-      const ref: DirectPayoutRef = {
-        source: "slicewp",
-        paymentId: payment.id,
-      };
-      return loadDirectPayoutAnchor(ref, memberAffiliateId);
-    })
+  // Exact, because write-back records which payment each batch produced.
+  const claimedPaymentIds = new Set(
+    platformBatches
+      .map((batch) => batch.slicewpPaymentId)
+      .filter((id): id is number => id != null)
   );
 
-  const platformAnchors = await Promise.all(
-    platformBatches.map(async (batch) => {
-      const ref: DirectPayoutRef = {
-        source: "platform",
-        batchId: batch.id,
-      };
-      return loadDirectPayoutAnchor(ref, memberAffiliateId);
-    })
+  const platformAnchors = (
+    await Promise.all(
+      platformBatches.map((batch) =>
+        loadDirectPayoutAnchor(
+          { source: "platform", batchId: batch.id },
+          memberAffiliateId
+        )
+      )
+    )
+  ).filter((anchor): anchor is DirectPayoutAnchor => anchor != null);
+
+  const platformSets = new Set(platformAnchors.map(commissionSetKey));
+
+  const slicewpAnchors = (
+    await Promise.all(
+      slicewpPayments
+        .filter((payment) => !claimedPaymentIds.has(payment.slicewpPaymentId))
+        .map((payment) =>
+          loadDirectPayoutAnchor(
+            { source: "slicewp", paymentId: payment.id },
+            memberAffiliateId
+          )
+        )
+    )
+  ).filter((anchor): anchor is DirectPayoutAnchor => anchor != null);
+
+  // Backstop for settlements the explicit link cannot describe: a batch that
+  // settled before `slicewpPaymentId` existed, or a payment an admin recorded
+  // by hand over the same commissions. Only exact set equality counts —
+  // a partial overlap is two different receipts and both must stay visible.
+  const deduped = slicewpAnchors.filter(
+    (anchor) => !platformSets.has(commissionSetKey(anchor))
   );
 
-  return [...slicewpAnchors, ...platformAnchors]
-    .filter((anchor): anchor is DirectPayoutAnchor => anchor != null)
-    .sort((a, b) => b.paidAt.getTime() - a.paidAt.getTime());
+  return [...deduped, ...platformAnchors].sort(
+    (a, b) => b.paidAt.getTime() - a.paidAt.getTime()
+  );
 }
 
 /** Commission ids already covered by any paid direct receipt for this recruit. */

@@ -45,5 +45,9 @@ export function encryptOptional(value: string | null | undefined): string | null
 
 export function decryptOptional(value: string | null | undefined): string | null {
   if (!value) return null;
-  return decrypt(value);
+  try {
+    return decrypt(value);
+  } catch {
+    return null;
+  }
 }

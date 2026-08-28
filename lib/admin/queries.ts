@@ -272,6 +272,35 @@ export async function getAffiliateDetail(
       _count: { _all: true },
     }),
   ]);
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  const [visitTotal, visitRecent, visitConverted, lastVisit, coupons] =
+    await Promise.all([
+      prisma.visit.count({ where: { affiliateId: id } }),
+      prisma.visit.count({
+        where: { affiliateId: id, occurredAt: { gte: thirtyDaysAgo } },
+      }),
+      prisma.visit.count({
+        where: { affiliateId: id, slicewpCommissionId: { not: null } },
+      }),
+      prisma.visit.findFirst({
+        where: { affiliateId: id },
+        orderBy: { occurredAt: "desc" },
+        select: { occurredAt: true },
+      }),
+      prisma.affiliateCoupon.findMany({
+        where: { affiliateId: id },
+        orderBy: { code: "asc" },
+        select: {
+          id: true,
+          origin: true,
+          code: true,
+          amount: true,
+          uses: true,
+        },
+      }),
+    ]);
+
   const sponsorRules = await prisma.dealRule.findMany({
     where: { sponsorAffiliateId: id },
     select: dealRuleSelect,
@@ -291,6 +320,7 @@ export async function getAffiliateDetail(
     displayName: affiliate.displayName,
     status: affiliate.status,
     commissionRate: affiliate.commissionRate?.toString() ?? null,
+    parentSlicewpId: affiliate.parentSlicewpId,
     syncedAt: affiliate.syncedAt?.toISOString() ?? null,
     profile: affiliate.profile
       ? {
@@ -343,6 +373,27 @@ export async function getAffiliateDetail(
         milestoneRevenueThreshold:
           rule.milestoneRevenueThreshold?.toString() ?? null,
         counterparty: rule.sponsorAffiliate,
+      })),
+    },
+    reach: {
+      referralUrl: affiliate.referralUrl,
+      customSlug: affiliate.customSlug,
+      storeCreditBalance:
+        affiliate.storeCreditBalance === null
+          ? null
+          : toNumber(affiliate.storeCreditBalance),
+      visits: {
+        total: visitTotal,
+        last30Days: visitRecent,
+        converted: visitConverted,
+        lastVisitAt: lastVisit?.occurredAt.toISOString() ?? null,
+      },
+      coupons: coupons.map((coupon) => ({
+        id: coupon.id,
+        origin: coupon.origin,
+        code: coupon.code,
+        amount: coupon.amount,
+        uses: (coupon.uses as Record<string, number> | null) ?? null,
       })),
     },
   };

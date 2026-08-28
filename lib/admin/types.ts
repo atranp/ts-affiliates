@@ -106,6 +106,7 @@ export type AdminAffiliateDetail = {
   displayName: string | null;
   status: string;
   commissionRate: string | null;
+  parentSlicewpId: number | null;
   syncedAt: string | null;
   profile: AdminAffiliateProfile;
   portal: AdminAffiliatePortal;
@@ -127,4 +128,33 @@ export type AdminAffiliateDetail = {
     asSponsor: AdminAffiliateDealRule[];
     asRecruit: AdminAffiliateDealRule[];
   };
+  /** Mirrored from SliceWP for reference; none of it is editable here. */
+  reach: AdminAffiliateReach;
+};
+
+export type AdminAffiliateCoupon = {
+  id: string;
+  origin: string;
+  code: string;
+  /** Preformatted by SliceWP, e.g. "10%". */
+  amount: string | null;
+  uses: Record<string, number> | null;
+};
+
+/**
+ * What the affiliate has been given to promote with, and how it is performing:
+ * their link, their coupons, and the clicks those produced.
+ */
+export type AdminAffiliateReach = {
+  referralUrl: string | null;
+  customSlug: string | null;
+  storeCreditBalance: number | null;
+  visits: {
+    total: number;
+    last30Days: number;
+    /** Clicks that went on to earn a commission. */
+    converted: number;
+    lastVisitAt: string | null;
+  };
+  coupons: AdminAffiliateCoupon[];
 };

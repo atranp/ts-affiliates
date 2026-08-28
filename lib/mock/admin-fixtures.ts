@@ -1,3 +1,4 @@
+import { PayoutWriteBackStatus } from "@prisma/client";
 import type {
   AdminAffiliateDetail,
   AdminAffiliatePortal,
@@ -586,6 +587,7 @@ export function mockAdminAffiliateDetail(
     displayName: affiliate.displayName,
     status: affiliate.status,
     commissionRate: affiliateId === MOCK_AFFILIATE_ID ? "30" : "25",
+    parentSlicewpId: null,
     syncedAt: daysAgo(0),
     profile: null,
     portal: mockPortalState(affiliate),
@@ -613,6 +615,40 @@ export function mockAdminAffiliateDetail(
         : PRICING.blair.entryCount,
     },
     dealRules: { asSponsor: [], asRecruit: [] },
+    reach:
+      affiliateId === MOCK_AFFILIATE_ID
+        ? {
+            referralUrl: "https://true-sciences.com/aff/Trin/",
+            customSlug: "Trin",
+            storeCreditBalance: 0,
+            visits: {
+              total: 13_309,
+              last30Days: 1_842,
+              converted: 214,
+              lastVisitAt: daysAgo(0),
+            },
+            coupons: [
+              {
+                id: "mock-coupon-trin",
+                origin: "woo",
+                code: "TRIN10",
+                amount: "10%",
+                uses: { paid: 96, unpaid: 12, pending: 3, rejected: 1 },
+              },
+            ],
+          }
+        : {
+            referralUrl: "https://true-sciences.com/aff/42/",
+            customSlug: null,
+            storeCreditBalance: 0,
+            visits: {
+              total: 367,
+              last30Days: 41,
+              converted: 12,
+              lastVisitAt: daysAgo(2),
+            },
+            coupons: [],
+          },
   };
 }
 
@@ -909,6 +945,17 @@ export function mockAdminCreatePayout(
     entryCount: draft.entryCount,
     totalAmount: draft.totalAmount,
     processedAt,
+    // Mock mode never reaches SliceWP, so the honest answer is that there was
+    // nothing to write back rather than a fabricated payment id.
+    writeBack: {
+      batchId,
+      status: PayoutWriteBackStatus.NOT_REQUIRED,
+      slicewpPaymentId: null,
+      settledAmount: null,
+      commissionCount: 0,
+      replayed: false,
+      error: null,
+    },
   };
 }
 
@@ -958,6 +1005,32 @@ export function mockAdminPayoutBatches(sponsorAffiliateId?: string | null) {
       (b.processedAt ?? b.createdAt).localeCompare(a.processedAt ?? a.createdAt)
     );
   return { batches };
+}
+
+/**
+ * One stuck write-back, because the healthy state is an empty banner and there
+ * is otherwise no way to look at this without a real payout failing.
+ */
+export function mockWriteBackHealth() {
+  const stuck = session.batches.find((batch) => batch.sponsorAffiliateId);
+
+  return {
+    failed: 1,
+    pending: 0,
+    drifted: 0,
+    batches: [
+      {
+        id: stuck?.id ?? "mock-batch-write-back",
+        label: stuck?.label ?? "Direct sales · March",
+        status: "FAILED" as const,
+        error: "Commission 1176 is already attached to payment 38.",
+        attempts: 2,
+        processedAt: stuck?.processedAt ?? new Date().toISOString(),
+        totalAmount: 112.5,
+        sponsorName: stuck?.sponsorName ?? "Robin Recruit",
+      },
+    ],
+  };
 }
 
 export function mockAdminPayoutBatchDetail(

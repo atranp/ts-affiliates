@@ -11,6 +11,12 @@ export const queryKeys = {
     sortBy?: string;
     sortDir?: string;
   } = {}) => ["ledger", params] as const,
+  payouts: ["payouts"] as const,
+  links: ["links"] as const,
+  visits: (page: number) => ["visits", page] as const,
+  creatives: ["creatives"] as const,
+  coupons: ["coupons"] as const,
+  accountSettings: ["account", "settings"] as const,
   admin: {
     stats: ["admin", "stats"] as const,
     affiliates: (params: {
@@ -23,5 +29,6 @@ export const queryKeys = {
     dealRules: ["admin", "deal-rules"] as const,
     settings: ["admin", "settings"] as const,
     syncStatus: ["admin", "sync-status"] as const,
+    payoutWriteBack: ["admin", "payout-write-back"] as const,
   },
 };

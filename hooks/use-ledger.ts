@@ -7,7 +7,7 @@ import {
   type LedgerSortKey,
   type SortDirection,
 } from "@/lib/ledger/sort";
-import type { LedgerData, LedgerEntry } from "@/lib/ledger/types";
+import type { LedgerData } from "@/lib/ledger/types";
 import { queryKeys } from "@/lib/query-keys";
 
 export type { LedgerData, LedgerEntry } from "@/lib/ledger/types";

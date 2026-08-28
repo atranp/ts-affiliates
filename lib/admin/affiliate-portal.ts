@@ -1,5 +1,6 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { assertWritableAuth } from "@/lib/env-guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { linkProfileToAffiliateByEmail } from "@/lib/sync";
 import {
@@ -88,6 +89,8 @@ export async function inviteAffiliateToPortal(
   affiliateId: string,
   adminId?: string
 ): Promise<InviteAffiliateResult> {
+  assertWritableAuth();
+
   const affiliate = await getAffiliateWithProfile(affiliateId);
   const email = affiliate.email.toLowerCase();
   const displayName =
@@ -217,6 +220,8 @@ export async function resetAffiliatePortalPassword(
   affiliateId: string,
   adminId: string
 ): Promise<PortalActionResult> {
+  assertWritableAuth();
+
   const affiliate = await getAffiliateWithProfile(affiliateId);
 
   if (!affiliate.profile) {
@@ -271,6 +276,8 @@ export async function disableAffiliatePortalAccess(
     throw new Error("Affiliate does not have portal access");
   }
 
+  assertWritableAuth();
+
   const supabase = createAdminClient();
   const { error } = await supabase.auth.admin.updateUserById(
     affiliate.profile.id,
@@ -308,6 +315,8 @@ export async function enableAffiliatePortalAccess(
     throw new Error("Affiliate does not have portal access");
   }
 
+  assertWritableAuth();
+
   const supabase = createAdminClient();
   const { error } = await supabase.auth.admin.updateUserById(
     affiliate.profile.id,
@@ -342,6 +351,8 @@ export async function forceAffiliateSignOut(
   if (!affiliate.profile) {
     throw new Error("Affiliate does not have portal access");
   }
+
+  assertWritableAuth();
 
   const supabase = createAdminClient();
   const { error } = await supabase.auth.admin.signOut(

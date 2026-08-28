@@ -87,6 +87,8 @@ export interface SliceWPAffiliate {
   last_name?: string;
   status?: string;
   commission_rate?: string;
+  /** A column on SliceWP's affiliates table, editable by the affiliate. */
+  website?: string;
   date_created?: string;
   /** SliceWP Multi-level Affiliates add-on */
   parent_id?: number | string;
@@ -104,6 +106,8 @@ export interface SliceWPCommission {
   origin?: string;
   status?: string;
   parent_id?: number | string;
+  /** The payment that settled this commission, or 0 while still outstanding. */
+  payment_id?: number | string;
   date_created?: string;
 }
 
@@ -140,7 +144,8 @@ async function fetchAllSliceWPPages<T>(
   consumerSecret: string,
   path: string,
   params: Record<string, string> = {},
-  pageConcurrency = SLICEWP_PAGE_CONCURRENCY
+  pageConcurrency = SLICEWP_PAGE_CONCURRENCY,
+  pageSize = SLICEWP_PAGE_SIZE
 ): Promise<T[]> {
   const all: T[] = [];
   let waveStart = 0;
@@ -148,7 +153,7 @@ async function fetchAllSliceWPPages<T>(
   while (true) {
     const offsets = Array.from(
       { length: pageConcurrency },
-      (_, index) => waveStart + index * SLICEWP_PAGE_SIZE
+      (_, index) => waveStart + index * pageSize
     );
 
     const pages = await mapWithConcurrency(
@@ -164,19 +169,19 @@ async function fetchAllSliceWPPages<T>(
             {
               ...params,
               offset: String(offset),
-              number: String(SLICEWP_PAGE_SIZE),
+              number: String(pageSize),
             }
           )
         )
     );
 
     // A short page means the end of the result set — ignore anything after it.
-    const lastPage = pages.findIndex((page) => page.length < SLICEWP_PAGE_SIZE);
+    const lastPage = pages.findIndex((page) => page.length < pageSize);
     const usable = lastPage === -1 ? pages : pages.slice(0, lastPage + 1);
     for (const page of usable) all.push(...page);
 
     if (lastPage !== -1) break;
-    waveStart += pageConcurrency * SLICEWP_PAGE_SIZE;
+    waveStart += pageConcurrency * pageSize;
   }
 
   return dedupeById(all);
@@ -354,6 +359,63 @@ export async function fetchSliceWPPaymentsForAffiliates(
   );
 
   return pages.flat();
+}
+
+/** A referral link click. */
+export interface SliceWPVisit {
+  id: number | string;
+  affiliate_id?: number | string;
+  date_created?: string;
+  date_modified?: string;
+  /** Mirrored deliberately not at all — see the `Visit` model. */
+  ip_address?: string;
+  landing_url?: string;
+  referrer_url?: string;
+  /** The commission this click earned, or 0 if it never converted. */
+  commission_id?: number | string;
+}
+
+/**
+ * Visits outnumber every other record type by roughly thirty to one, so they
+ * are paged in far larger chunks than the rest — 100 at a time would be several
+ * hundred round trips on a store of any age.
+ */
+const SLICEWP_VISIT_PAGE_SIZE = 1000;
+
+/**
+ * Visit query params, verified against the database rather than assumed:
+ * `date_min` is inclusive (`>=`), and `affiliate_id`, `converted` and the
+ * offset paging all filter server-side.
+ *
+ * The "SliceWP date filters are unreliable" caveat that applies to commissions
+ * was checked here and does not hold — counts matched MySQL exactly.
+ */
+export async function fetchSliceWPVisits(
+  storeUrl: string,
+  consumerKey: string,
+  consumerSecret: string,
+  params: {
+    /** Inclusive lower bound on `date_created`, as `YYYY-MM-DD HH:MM:SS` GMT. */
+    date_min?: string;
+    /** "true" to return only visits that earned a commission. */
+    converted?: string;
+    affiliate_id?: string;
+  } = {}
+): Promise<SliceWPVisit[]> {
+  const query: Record<string, string> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (value) query[key] = value;
+  }
+
+  return fetchAllSliceWPPages<SliceWPVisit>(
+    storeUrl,
+    consumerKey,
+    consumerSecret,
+    "/visits/",
+    query,
+    SLICEWP_PAGE_CONCURRENCY,
+    SLICEWP_VISIT_PAGE_SIZE
+  );
 }
 
 export function parseSliceWPCommissionIds(raw?: string): number[] {

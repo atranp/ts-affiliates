@@ -5,6 +5,7 @@ import {
   CreditCard,
   GitBranch,
   LayoutDashboard,
+  ScrollText,
   Settings,
   Users,
   UsersRound,
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/admin/teams", label: "Teams", icon: UsersRound },
   { href: "/admin/deal-rules", label: "Deal Rules", icon: GitBranch },
   { href: "/admin/payouts", label: "Payouts", icon: CreditCard },
+  { href: "/admin/audit-log", label: "Audit Log", icon: ScrollText },
   { href: "/admin/settings", label: "Integrations", icon: Settings },
 ];
 

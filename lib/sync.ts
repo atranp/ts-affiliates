@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import {
   completeSync,
   failSync,
@@ -16,6 +17,7 @@ import {
   type SliceWPCommission,
 } from "./slicewp";
 import { prisma } from "./prisma";
+import { assertSyncTargetsAgree } from "./env-guard";
 import { fetchWooCustomersByIds, type WooCustomer } from "./woocommerce";
 import { getRecruitRevenueMap } from "./admin/team";
 import { ensureSponsorDownlineTeam } from "./teams/members";
@@ -33,6 +35,11 @@ import {
   syncDirectLedgerEntries,
   type CommissionUpsertRow,
 } from "./sync-write";
+import {
+  syncAffiliateExtras,
+  syncCreatives,
+  syncVisits,
+} from "./sync-parity";
 import { toNumber } from "./utils";
 
 export type SyncResult = {
@@ -42,6 +49,9 @@ export type SyncResult = {
   overridesCreated: number;
   teamsSynced: number;
   slicewpPayoutsSynced: number;
+  visitsUpserted: number;
+  creativesUpserted: number;
+  couponsUpserted: number;
 };
 
 /** Rows per bulk statement. Larger chunks mean fewer round-trips. */
@@ -122,6 +132,7 @@ function upsertAffiliate(
   const fields = {
     email,
     paymentEmail,
+    website: firstNonEmpty(remote.website) || null,
     status: mapSliceWPStatus(remote.status),
     commissionRate: remote.commission_rate
       ? toNumber(remote.commission_rate)
@@ -420,6 +431,8 @@ export async function syncAffiliate(
     throw new Error("SliceWP credentials are not configured");
   }
 
+  assertSyncTargetsAgree(settings.wcStoreUrl);
+
   const existing = await prisma.affiliate.findUnique({
     where: { id: affiliateId },
     select: { id: true, slicewpId: true },
@@ -522,6 +535,8 @@ async function relinkAffiliateParent(
 }
 
 export async function runFullSync(): Promise<SyncResult> {
+  assertSyncTargetsAgree((await getSettings()).wcStoreUrl);
+
   await setSyncStep("affiliates");
   const affiliatesUpserted = await syncAffiliatesFromSliceWP();
 
@@ -547,6 +562,9 @@ export async function runFullSync(): Promise<SyncResult> {
   await setSyncStep("payouts");
   const slicewpPayoutsSynced = await syncSlicewpPayoutsSafely();
 
+  await setSyncStep("parity");
+  const parity = await syncParitySafely();
+
   const overridesCreated = await prisma.ledgerEntry.count({
     where: { type: "OVERRIDE" },
   });
@@ -558,6 +576,61 @@ export async function runFullSync(): Promise<SyncResult> {
     overridesCreated,
     teamsSynced,
     slicewpPayoutsSynced,
+    ...parity,
+  };
+}
+
+/**
+ * Visits, creatives, coupons and referral links.
+ *
+ * Each is isolated: none of it affects what anyone is owed, so a store without
+ * the bridge plugin, or one where a single step fails, should still finish the
+ * sync with its money data intact. Failures land in the sync log instead.
+ */
+async function syncParitySafely(): Promise<{
+  visitsUpserted: number;
+  creativesUpserted: number;
+  couponsUpserted: number;
+}> {
+  const step = async <T>(
+    type: string,
+    run: () => Promise<T>,
+    describe: (result: T) => { message: string; metadata: Prisma.InputJsonValue }
+  ): Promise<T | null> => {
+    try {
+      const result = await run();
+      const { message, metadata } = describe(result);
+      await prisma.syncLog.create({
+        data: { type, status: "success", message, metadata },
+      });
+      return result;
+    } catch (error) {
+      await prisma.syncLog.create({
+        data: { type, status: "error", message: formatSyncError(error) },
+      });
+      return null;
+    }
+  };
+
+  const visits = await step("visits", syncVisits, (result) => ({
+    message: `${result.incremental ? "Synced" : "Backfilled"} ${result.upserted} visits`,
+    metadata: { ...result },
+  }));
+
+  const creatives = await step("creatives", syncCreatives, (result) => ({
+    message: `Synced ${result.upserted} creatives`,
+    metadata: { ...result },
+  }));
+
+  const extras = await step("affiliate-extras", syncAffiliateExtras, (result) => ({
+    message: `Synced ${result.couponsUpserted} coupons and ${result.slugsFound} custom slugs`,
+    metadata: { ...result },
+  }));
+
+  return {
+    visitsUpserted: visits?.upserted ?? 0,
+    creativesUpserted: creatives?.upserted ?? 0,
+    couponsUpserted: extras?.couponsUpserted ?? 0,
   };
 }
 
@@ -597,10 +670,11 @@ async function syncSlicewpPayoutsSafely(
   }
 }
 
-export async function runFullSyncJob() {
+export async function runFullSyncJob(): Promise<SyncResult> {
   try {
     const result = await runFullSync();
     await completeSync(result);
+    return result;
   } catch (error) {
     await failSync(error);
     throw error;

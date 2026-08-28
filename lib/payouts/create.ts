@@ -7,6 +7,11 @@ import {
   resolveCommissionIdsForDirectPayout,
   type DirectPayoutRef,
 } from "@/lib/payouts/direct-payout-ref";
+import {
+  batchWriteBackStatusFor,
+  settlePayoutBatch,
+  type SettleResult,
+} from "@/lib/payouts/settle";
 import { PAID_STATUS } from "@/lib/payouts/status";
 import { formatAppDateTime } from "@/lib/timezone";
 import { toNumber } from "@/lib/utils";
@@ -77,6 +82,12 @@ export type CreatedPayout = PayoutDraftTotals & {
   batchId: string;
   label: string;
   processedAt: string;
+  /**
+   * Outcome of reflecting the batch into SliceWP. The payout itself has already
+   * succeeded by the time this is populated, so a failure here is something to
+   * surface and retry, not to treat as a failed payout.
+   */
+  writeBack: SettleResult;
 };
 
 export const PREVIEW_ENTRY_LIMIT = 50;
@@ -428,7 +439,7 @@ export async function createPayout(
   const where = await buildUnpaidWhere(input);
   const recordedAt = new Date();
 
-  return prisma.$transaction(async (tx) => {
+  const created = await prisma.$transaction(async (tx) => {
     const totals = await tx.ledgerEntry.aggregate({
       where,
       _count: { _all: true },
@@ -495,6 +506,13 @@ export async function createPayout(
       },
     });
 
+    // Decided here, while the entries are known to be attached, so a batch is
+    // never briefly visible as settle-able when it has nothing to settle.
+    await tx.payoutBatch.update({
+      where: { id: batch.id },
+      data: { writeBackStatus: await batchWriteBackStatusFor(tx, batch.id) },
+    });
+
     return {
       batchId: batch.id,
       label: batch.label,
@@ -503,4 +521,11 @@ export async function createPayout(
       processedAt: recordedAt.toISOString(),
     };
   });
+
+  // Deliberately outside the transaction. The money has moved locally; if
+  // SliceWP cannot be told right now the batch records that and stays
+  // retryable, rather than the payout being unwound by a network blip.
+  const writeBack = await settlePayoutBatch(created.batchId);
+
+  return { ...created, writeBack };
 }

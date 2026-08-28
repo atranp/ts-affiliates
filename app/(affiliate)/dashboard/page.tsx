@@ -43,19 +43,46 @@ import {
 } from '@/hooks/use-ledger';
 import type { SortDirection } from '@/lib/ledger/sort';
 import { PayoutsList } from '@/components/payouts/PayoutsList';
+import { LinksPanel } from '@/components/affiliate/LinksPanel';
+import { StatsPanel } from '@/components/affiliate/StatsPanel';
+import { CreativesPanel } from '@/components/affiliate/CreativesPanel';
+import { CouponsPanel } from '@/components/affiliate/CouponsPanel';
+import { SettingsPanel } from '@/components/affiliate/SettingsPanel';
+import {
+  useAffiliateCoupons,
+  useAffiliateCreatives,
+  useAffiliateLink,
+  useAffiliateSettings,
+  useAffiliateVisits,
+} from '@/hooks/use-affiliate-reach';
 import { apiFetch } from '@/lib/api-client';
+import { queryKeys } from '@/lib/query-keys';
 import { AFFILIATE_COPY } from '@/lib/affiliate/copy';
 import type { PayoutBatchListItem } from '@/lib/payouts/types';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useMinLg } from '@/hooks/use-media-query';
 
-type DashboardTab = 'overview' | 'ledger' | 'teams' | 'payouts';
+type DashboardTab =
+  | 'overview'
+  | 'links'
+  | 'creatives'
+  | 'coupons'
+  | 'visits'
+  | 'ledger'
+  | 'teams'
+  | 'payouts'
+  | 'settings';
 
 const DASHBOARD_TABS: DashboardTab[] = [
   'overview',
+  'links',
+  'creatives',
+  'coupons',
+  'visits',
   'ledger',
   'teams',
   'payouts',
+  'settings',
 ];
 
 function resolveTab(value: string | null): DashboardTab {
@@ -68,6 +95,16 @@ export default function DashboardPage() {
     <Suspense fallback={<DashboardSkeleton />}>
       <DashboardPageContent />
     </Suspense>
+  );
+}
+
+/** Placeholder while a promotional tab's first fetch is in flight. */
+function PanelSkeleton() {
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <div className="h-48 animate-pulse rounded-xl border border-border/60 bg-muted/15" />
+      <div className="h-48 animate-pulse rounded-xl border border-border/60 bg-muted/15" />
+    </div>
   );
 }
 
@@ -156,13 +193,32 @@ function DashboardPageContent() {
   );
   const { data: legacyTeamData } = useTeam(undefined, !!user);
   const { data: payoutsData } = useQuery({
-    queryKey: ['payouts'],
+    queryKey: queryKeys.payouts,
     queryFn: () => apiFetch<{ batches: PayoutBatchListItem[] }>('/api/payouts'),
     enabled: !!user,
     staleTime: 60 * 1000,
   });
 
   const payoutsCount = payoutsData?.batches.length ?? 0;
+
+  // The promotional tabs fetch only once their tab is open — visits in
+  // particular is the heaviest query here, and most sessions never open it.
+  const visitsPage = Math.max(1, Number(searchParams.get('vp') ?? '1') || 1);
+
+  const { data: linkData } = useAffiliateLink(!!user && viewTab === 'links');
+  const { data: visitsData, isFetching: visitsFetching } = useAffiliateVisits(
+    visitsPage,
+    !!user && viewTab === 'visits',
+  );
+  const { data: creativesData } = useAffiliateCreatives(
+    !!user && viewTab === 'creatives',
+  );
+  const { data: couponsData } = useAffiliateCoupons(
+    !!user && viewTab === 'coupons',
+  );
+  const { data: settingsData } = useAffiliateSettings(
+    !!user && viewTab === 'settings',
+  );
 
   function setViewTab(tab: string) {
     setParams({ tab: tab === 'overview' ? null : tab }, { history: true });
@@ -463,6 +519,101 @@ function DashboardPageContent() {
                 </Card>
               ) : null}
             </div>
+          </TabsContent>
+
+          <TabsContent
+            value="links"
+            className="ts-affiliate-tab-scroll flex min-h-0 min-w-0 max-w-full flex-col gap-4 lg:ts-affiliate-tab-fill lg:gap-5"
+          >
+            <div className="ts-page-header shrink-0">
+              <h1 className="page-title">{AFFILIATE_COPY.links.title}</h1>
+              <p className="page-description">
+                {AFFILIATE_COPY.links.description}
+              </p>
+            </div>
+            {linkData ? (
+              <LinksPanel link={linkData} />
+            ) : (
+              <PanelSkeleton />
+            )}
+          </TabsContent>
+
+          <TabsContent
+            value="creatives"
+            className="ts-affiliate-tab-scroll flex min-h-0 min-w-0 max-w-full flex-col gap-4 lg:ts-affiliate-tab-fill lg:gap-5"
+          >
+            <div className="ts-page-header shrink-0">
+              <h1 className="page-title">{AFFILIATE_COPY.creatives.title}</h1>
+              <p className="page-description">
+                {AFFILIATE_COPY.creatives.description}
+              </p>
+            </div>
+            {creativesData ? (
+              <CreativesPanel
+                creatives={creativesData.creatives}
+                referralUrl={creativesData.referralUrl}
+              />
+            ) : (
+              <PanelSkeleton />
+            )}
+          </TabsContent>
+
+          <TabsContent
+            value="coupons"
+            className="ts-affiliate-tab-scroll flex min-h-0 min-w-0 max-w-full flex-col gap-4 lg:ts-affiliate-tab-fill lg:gap-5"
+          >
+            <div className="ts-page-header shrink-0">
+              <h1 className="page-title">{AFFILIATE_COPY.coupons.title}</h1>
+              <p className="page-description">
+                {AFFILIATE_COPY.coupons.description}
+              </p>
+            </div>
+            {couponsData ? (
+              <CouponsPanel coupons={couponsData.coupons} />
+            ) : (
+              <PanelSkeleton />
+            )}
+          </TabsContent>
+
+          <TabsContent
+            value="visits"
+            className="ts-affiliate-tab-scroll flex min-h-0 min-w-0 max-w-full flex-col gap-4 lg:ts-affiliate-tab-fill lg:gap-5"
+          >
+            <div className="ts-page-header shrink-0">
+              <h1 className="page-title">{AFFILIATE_COPY.visits.title}</h1>
+              <p className="page-description">
+                {AFFILIATE_COPY.visits.description}
+              </p>
+            </div>
+            {visitsData ? (
+              <StatsPanel
+                data={visitsData}
+                page={visitsPage}
+                isFetching={visitsFetching}
+                onPageChange={(next) =>
+                  setParams({ vp: next <= 1 ? null : String(next) })
+                }
+              />
+            ) : (
+              <PanelSkeleton />
+            )}
+          </TabsContent>
+
+          <TabsContent
+            value="settings"
+            className="ts-affiliate-tab-scroll flex min-h-0 min-w-0 max-w-full flex-col gap-4 lg:ts-affiliate-tab-fill lg:gap-5"
+          >
+            <div className="ts-page-header shrink-0">
+              <h1 className="page-title">{AFFILIATE_COPY.settings.title}</h1>
+              <p className="page-description">
+                {AFFILIATE_COPY.settings.description}
+              </p>
+            </div>
+            {settingsData ? (
+              <SettingsPanel settings={settingsData} />
+            ) : (
+              <PanelSkeleton />
+            )}
           </TabsContent>
 
           <TabsContent

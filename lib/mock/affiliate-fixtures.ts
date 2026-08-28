@@ -555,3 +555,204 @@ export function mockLegacyTeamResponse() {
     })),
   };
 }
+
+/**
+ * M5 promotional data: link, visits, creatives, coupons, settings.
+ *
+ * Settings are held in a module-level object so an edit in mock mode behaves
+ * like a real save for the rest of the session, the same way the payout
+ * fixtures track what has been paid.
+ */
+
+const MOCK_SITE = "https://true-sciences.com";
+
+const mockSettingsState = {
+  paymentEmail: "trindalyn.mackenzie11@gmail.com",
+  website: "https://trindalyn.example.com",
+  customSlug: "Trin",
+};
+
+function mockReferralUrl(): string {
+  return mockSettingsState.customSlug
+    ? `${MOCK_SITE}/aff/${mockSettingsState.customSlug}/`
+    : `${MOCK_SITE}/aff/104/`;
+}
+
+export function mockAffiliateLink() {
+  return {
+    referralUrl: mockReferralUrl(),
+    customSlug: mockSettingsState.customSlug || null,
+    storeCreditBalance: 0,
+  };
+}
+
+/** Mirrors what WordPress would build: the slug appended to the given page. */
+export function mockGeneratedLink(url: string): string {
+  const trimmed = url.replace(/\/+$/, "");
+  const slug = mockSettingsState.customSlug || "104";
+  return `${trimmed}/aff/${slug}/`;
+}
+
+const MOCK_LANDING_PAGES = [
+  "/",
+  "/shop/",
+  "/products/creatine-monohydrate/",
+  "/products/whey-isolate/",
+  "/blog/how-to-cycle-creatine/",
+];
+
+const MOCK_REFERRERS = [
+  "https://www.instagram.com/",
+  "https://www.google.com/",
+  "https://t.co/",
+  null,
+];
+
+export function mockAffiliateVisits(page = 1) {
+  const pageSize = 50;
+  const total = 13_309;
+  const converted = 214;
+
+  const recent = Array.from({ length: pageSize }, (_, index) => {
+    const absolute = (page - 1) * pageSize + index;
+    return {
+      id: `mock-visit-${absolute}`,
+      landingUrl: `${MOCK_SITE}${MOCK_LANDING_PAGES[absolute % MOCK_LANDING_PAGES.length]}`,
+      referrerUrl: MOCK_REFERRERS[absolute % MOCK_REFERRERS.length],
+      converted: absolute % 17 === 0,
+      occurredAt: daysAgo(Math.floor(absolute / 6)),
+    };
+  });
+
+  // A gentle wave rather than a flat line, so the chart is legibly a chart.
+  const daily = Array.from({ length: 30 }, (_, index) => {
+    const day = new Date(now.getTime() - (29 - index) * 86_400_000);
+    const visits = 40 + Math.round(25 * Math.sin(index / 3.2)) + (index % 5) * 3;
+    return {
+      date: day.toISOString().slice(0, 10),
+      visits,
+      converted: Math.round(visits * 0.023),
+    };
+  });
+
+  return {
+    stats: {
+      total,
+      last7Days: 412,
+      last30Days: 1_842,
+      converted,
+      conversionRate: (converted / total) * 100,
+      lastVisitAt: daysAgo(0),
+    },
+    recent,
+    daily,
+    total,
+    page,
+    pageSize,
+  };
+}
+
+export function mockAffiliateCoupons() {
+  return [
+    {
+      id: "mock-coupon-trin10",
+      origin: "woo",
+      code: "TRIN10",
+      amount: "10%",
+      uses: { paid: 96, unpaid: 12, pending: 3, rejected: 1 },
+      totalUses: 112,
+    },
+    {
+      id: "mock-coupon-trinship",
+      origin: "woo",
+      code: "TRINSHIP",
+      amount: "$5.00",
+      uses: { paid: 0, unpaid: 0, pending: 0, rejected: 0 },
+      totalUses: 0,
+    },
+  ];
+}
+
+export function mockAffiliateCreatives() {
+  return {
+    referralUrl: mockReferralUrl(),
+    creatives: [
+      {
+        id: "mock-creative-banner",
+        name: "Spring campaign banner",
+        description: "728x90 leaderboard for blog sidebars.",
+        type: "image",
+        imageUrl: `${MOCK_SITE}/wp-content/uploads/mock-banner.png`,
+        altText: "True Sciences spring campaign",
+        text: null,
+        landingUrl: `${MOCK_SITE}/shop/`,
+      },
+      {
+        id: "mock-creative-text",
+        name: "Creatine text link",
+        description: "Short copy for newsletters.",
+        type: "text",
+        imageUrl: null,
+        altText: null,
+        text: "Clinically dosed creatine, third-party tested. Save 10% today.",
+        landingUrl: `${MOCK_SITE}/products/creatine-monohydrate/`,
+      },
+    ],
+  };
+}
+
+export function mockAffiliateSettings() {
+  return {
+    paymentEmail: mockSettingsState.paymentEmail,
+    accountEmail: "trindalyn.mackenzie11@gmail.com",
+    website: mockSettingsState.website,
+    customSlug: mockSettingsState.customSlug || null,
+    referralUrl: mockReferralUrl(),
+  };
+}
+
+/**
+ * Returns a rejection rather than throwing so the route can map it to the same
+ * status a real SliceWP refusal produces.
+ */
+export function mockSaveAffiliateSettings(edit: {
+  paymentEmail?: string;
+  website?: string;
+  customSlug?: string;
+}):
+  | { ok: true; result: ReturnType<typeof mockAffiliateSettings> & { mirrored: boolean } }
+  | { ok: false; error: string; code: string; status: number } {
+  // Lets the collision path be exercised in mock mode: this slug is "taken".
+  if (edit.customSlug && edit.customSlug.toLowerCase() === "taken") {
+    return {
+      ok: false,
+      error: "That custom slug is already in use.",
+      code: "slug_taken",
+      status: 409,
+    };
+  }
+
+  if (edit.customSlug && /^\d+$/.test(edit.customSlug)) {
+    return {
+      ok: false,
+      error: "The custom slug cannot be a number.",
+      code: "slug_numeric",
+      status: 400,
+    };
+  }
+
+  if (edit.paymentEmail !== undefined) {
+    mockSettingsState.paymentEmail = edit.paymentEmail;
+  }
+  if (edit.website !== undefined) {
+    mockSettingsState.website = edit.website;
+  }
+  if (edit.customSlug !== undefined) {
+    mockSettingsState.customSlug = edit.customSlug;
+  }
+
+  return {
+    ok: true,
+    result: { ...mockAffiliateSettings(), mirrored: true },
+  };
+}

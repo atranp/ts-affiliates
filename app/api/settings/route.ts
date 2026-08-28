@@ -3,7 +3,13 @@ import { requireAdmin } from "@/lib/api-auth";
 import { jsonCached } from "@/lib/api-cache";
 import { prisma } from "@/lib/prisma";
 import { encryptOptional } from "@/lib/encryption";
-import { getSettings } from "@/lib/settings";
+import {
+  getCredentialSource,
+  getSettings,
+  hasResolvedSliceWP,
+  hasResolvedWooCommerce,
+  isEnvCredentialsOverride,
+} from "@/lib/settings";
 
 export async function GET() {
   const auth = await requireAdmin();
@@ -16,11 +22,10 @@ export async function GET() {
 
   return jsonCached({
     wcStoreUrl: resolved.wcStoreUrl || null,
-    hasWooCommerce:
-      !!settings?.wcStoreUrlEncrypted && !!settings?.wcConsumerKeyEncrypted,
-    hasSliceWP:
-      !!settings?.slicewpConsumerKeyEncrypted &&
-      !!settings?.slicewpConsumerSecretEncrypted,
+    hasWooCommerce: hasResolvedWooCommerce(resolved),
+    hasSliceWP: hasResolvedSliceWP(resolved),
+    credentialSource: getCredentialSource(),
+    envCredentialsActive: isEnvCredentialsOverride(),
     lastAffiliateSyncAt: settings?.lastAffiliateSyncAt,
     lastCommissionSyncAt: settings?.lastCommissionSyncAt,
   });
@@ -29,6 +34,16 @@ export async function GET() {
 export async function PUT(request: Request) {
   const auth = await requireAdmin();
   if ("error" in auth) return auth.error;
+
+  if (isEnvCredentialsOverride()) {
+    return NextResponse.json(
+      {
+        error:
+          "USE_ENV_CREDENTIALS=true — credentials are read from .env.local on this dev server. Edit .env.local instead. Saving here would overwrite production config in Supabase without changing what this server uses.",
+      },
+      { status: 409 }
+    );
+  }
 
   const body = await request.json();
   const {

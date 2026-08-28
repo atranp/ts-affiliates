@@ -184,6 +184,18 @@ const DIRECT_DESCRIPTION = Prisma.sql`
 const EXCLUDE_INHERITED = Prisma.sql`AND lower(coalesce(c."type", '')) <> 'inherit'`;
 
 /**
+ * Once an entry sits in a payout batch, its status belongs to that payout.
+ * SliceWP only learns the commission was settled when write-back lands, so
+ * mirroring its status unconditionally would walk a paid entry back to unpaid
+ * in the window before that happens — or permanently, if write-back failed.
+ * Every other column keeps mirroring, so a later refund or amount change on a
+ * settled commission still surfaces as a discrepancy.
+ */
+const SYNCED_STATUS = Prisma.sql`
+  CASE WHEN le."payoutBatchId" IS NULL THEN c."status" ELSE le."status" END
+`;
+
+/**
  * DIRECT ledger lines mirror their commission exactly, so they can be derived
  * in SQL rather than diffed row by row in application code.
  */
@@ -197,7 +209,7 @@ export async function syncDirectLedgerEntries(
   const updated = await prisma.$executeRaw`
     UPDATE "LedgerEntry" AS le
     SET "amount"       = c."amount",
-        "status"       = c."status",
+        "status"       = ${SYNCED_STATUS},
         "orderRevenue" = c."orderRevenue",
         "wooOrderId"   = c."wooOrderId",
         "occurredAt"   = c."dateCreated",
@@ -210,7 +222,7 @@ export async function syncDirectLedgerEntries(
       ${scope}
       AND (
         le."amount"       IS DISTINCT FROM c."amount"
-        OR le."status"       IS DISTINCT FROM c."status"
+        OR le."status"       IS DISTINCT FROM ${SYNCED_STATUS}
         OR le."orderRevenue" IS DISTINCT FROM c."orderRevenue"
         OR le."wooOrderId"   IS DISTINCT FROM c."wooOrderId"
         OR le."occurredAt"   IS DISTINCT FROM c."dateCreated"
