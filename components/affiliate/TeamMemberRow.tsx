@@ -41,7 +41,8 @@ export function TeamMilestoneProgress({
           </div>
           <span
             className={cn(
-              "ts-micro w-8 shrink-0 text-right tabular-nums",
+              // Wide enough for "100%", which overflows a w-8 cell.
+              "ts-micro w-9 shrink-0 text-right tabular-nums",
               met ? "text-emerald-600" : "text-muted-foreground",
             )}
           >
@@ -78,7 +79,7 @@ export function TeamMilestoneProgress({
         </div>
         <span
           className={cn(
-            "ts-micro w-8 shrink-0 text-right",
+            "ts-micro w-9 shrink-0 text-right tabular-nums",
             met && "text-emerald-600",
           )}
         >

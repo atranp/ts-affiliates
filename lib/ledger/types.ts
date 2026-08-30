@@ -19,6 +19,11 @@ export type LedgerEntry = {
     email: string;
   } | null;
   dealRule?: { id: string; name: string } | null;
+  /**
+   * Whether a click of this affiliate's is on file for the sale. Null on team
+   * earnings, where the traffic belonged to someone else.
+   */
+  trackedByClick?: boolean | null;
 };
 
 export type LedgerData = {

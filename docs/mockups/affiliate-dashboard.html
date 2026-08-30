@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ambassador Portal — proposed screens</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        bg:        '#f2f4f7',
+        card:      '#ffffff',
+        ink:       '#151a23',
+        muted:     '#6b7280',
+        line:      '#e3e7ec',
+        primary:   '#20406a',
+        primarySoft:'#f4f7fa',
+        brand:     '#002c50',
+        brandDark: '#001830',
+        brandLite: '#4888b8',
+        success:   '#2ca06d',
+        successSoft:'#e8f6ef',
+        warning:   '#f0a021',
+        warningSoft:'#fdf3e3',
+        danger:    '#c2410c',
+      },
+      fontFamily: {
+        sans: ['Inter','system-ui','sans-serif'],
+        mono: ['JetBrains Mono','ui-monospace','monospace'],
+      },
+      boxShadow: {
+        card: '0 1px 3px 0 rgb(0 44 80 / 0.06), 0 1px 2px -1px rgb(0 44 80 / 0.04)',
+        pop:  '0 8px 24px -6px rgb(0 44 80 / 0.16)',
+      },
+    }
+  }
+}
+</script>
+<style>
+  body { background:#e8ebf0; }
+  .tabnum { font-variant-numeric: tabular-nums; }
+  .scrollbar-thin::-webkit-scrollbar { width:6px; height:6px }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background:#cbd2da; border-radius:99px }
+</style>
+</head>
+<body class="font-sans text-ink antialiased">
+
+<div class="sticky top-0 z-50 border-b border-line bg-white/95 backdrop-blur">
+  <div class="mx-auto flex max-w-[1600px] flex-wrap items-center gap-4 px-6 py-3">
+    <div class="mr-2">
+      <p class="text-sm font-semibold">Ambassador Portal — proposed screens</p>
+      <p class="text-xs text-muted">Every number here comes from data already synced. Nothing new is tracked.</p>
+    </div>
+
+    <div class="ml-auto flex items-center gap-2">
+      <span class="text-xs font-medium text-muted">Screen</span>
+      <div class="flex rounded-lg border border-line bg-bg p-0.5" id="screenTabs">
+        <button data-screen="home"       class="screen-tab rounded-md px-3 py-1.5 text-xs font-medium">Home</button>
+        <button data-screen="commissions"class="screen-tab rounded-md px-3 py-1.5 text-xs font-medium">Commissions</button>
+        <button data-screen="traffic"    class="screen-tab rounded-md px-3 py-1.5 text-xs font-medium">Traffic</button>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <span class="text-xs font-medium text-muted">View</span>
+      <div class="flex rounded-lg border border-line bg-bg p-0.5" id="viewTabs">
+        <button data-view="both"    class="view-tab rounded-md px-3 py-1.5 text-xs font-medium">Both</button>
+        <button data-view="desktop" class="view-tab rounded-md px-3 py-1.5 text-xs font-medium">Desktop</button>
+        <button data-view="mobile"  class="view-tab rounded-md px-3 py-1.5 text-xs font-medium">Mobile</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mx-auto max-w-[1600px] px-6 py-8">
+  <div id="stage" class="flex flex-wrap items-start justify-center gap-10"></div>
+</div>
+
+<script>
+const money = n => '$' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+const NAV = [
+  ['Home','home',   'M3 10.5 12 3l9 7.5M5.5 9.5V20h13V9.5'],
+  ['Promote','',    'M13 7 4 16v4h4l9-9M14.5 5.5l4 4'],
+  ['Traffic','traffic','M4 19V9m5 10V5m5 14v-7m5 7V8'],
+  ['Commissions','commissions','M4 6h16v12H4zM4 10h16'],
+  ['Team','',       'M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 20a6 6 0 0 1 12 0M17 11a3 3 0 1 0 0-6M16 20h6a5 5 0 0 0-4-4.9'],
+  ['Payouts','',    'M3 7h18v10H3zM3 11h18M7 15h3'],
+  ['Settings','',   'M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z'],
+];
+
+function icon(d, cls='h-4 w-4'){
+  return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+}
+
+function sidebar(active){
+  return `
+  <aside class="hidden w-[212px] shrink-0 flex-col border-r border-line bg-white lg:flex">
+    <div class="flex items-center gap-2.5 px-4 py-4">
+      <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand text-[11px] font-bold text-white">TS</div>
+      <div class="leading-tight">
+        <p class="text-[13px] font-semibold">Ambassador</p>
+        <p class="text-[11px] text-muted">Portal</p>
+      </div>
+    </div>
+    <nav class="flex-1 space-y-0.5 px-2 pb-4">
+      ${NAV.map(([label,key,d])=>{
+        const on = key && key===active;
+        return `<a class="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium ${on?'bg-primarySoft text-brand':'text-muted hover:bg-bg hover:text-ink'}">
+          ${icon(d)}<span>${label}</span></a>`}).join('')}
+    </nav>
+    <div class="border-t border-line p-3">
+      <div class="flex items-center gap-2.5">
+        <div class="flex h-7 w-7 items-center justify-center rounded-full bg-brandLite/20 text-[11px] font-semibold text-brand">B</div>
+        <div class="min-w-0 leading-tight">
+          <p class="truncate text-[12px] font-medium">Blair</p>
+          <p class="truncate text-[10px] text-muted">Ambassador</p>
+        </div>
+      </div>
+    </div>
+  </aside>`;
+}
+
+function periodBar(extra=''){
+  return `
+  <div class="flex flex-wrap items-center gap-2">
+    <div class="flex rounded-lg border border-line bg-white p-0.5 shadow-xs">
+      ${['This week','Last week','This month','Since last payout','Custom']
+        .map((l,i)=>`<button class="rounded-md px-2.5 py-1.5 text-[12px] font-medium ${i===0?'bg-brand text-white':'text-muted hover:text-ink'}">${l}</button>`).join('')}
+    </div>
+    <span class="text-[11px] text-muted">Mar 24 – Mar 30 · compared to Mar 17 – Mar 23</span>
+    ${extra}
+  </div>`;
+}
+
+function delta(pct, good=true){
+  const up = pct >= 0;
+  const tone = (up===good) ? 'text-success' : 'text-danger';
+  const arrow = up ? 'M12 19V5M5 12l7-7 7 7' : 'M12 5v14M5 12l7 7 7-7';
+  return `<span class="inline-flex items-center gap-0.5 text-[11px] font-semibold ${tone}">
+    ${icon(arrow,'h-3 w-3')}${Math.abs(pct)}%</span>`;
+}
+
+function stat({label, value, sub, d, good=true, tone='', hint=''}){
+  return `
+  <div class="rounded-xl border border-line bg-card p-3.5 shadow-card">
+    <p class="text-[11px] font-medium uppercase tracking-wide text-muted">${label}</p>
+    <div class="mt-1.5 flex items-baseline gap-2">
+      <span class="tabnum text-[22px] font-semibold leading-none ${tone}">${value}</span>
+      ${d!==undefined?delta(d,good):''}
+    </div>
+    <p class="mt-1.5 text-[11px] text-muted">${sub||''}</p>
+    ${hint?`<p class="mt-1 text-[10px] text-muted/80">${hint}</p>`:''}
+  </div>`;
+}
+
+const EARN = [42,0,88,120,64,0,156,210,98,45,0,132,175,240,190,88,0,60,142,205,168,95,40,0,118,186,232,144,76,0];
+function chart(h=140){
+  const peak = Math.max(...EARN);
+  return `
+  <div class="rounded-xl border border-line bg-card p-4 shadow-card">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-[13px] font-semibold">Earnings</p>
+        <p class="text-[11px] text-muted">Daily, this period</p>
+      </div>
+      <div class="flex items-center gap-3 text-[11px]">
+        <span class="flex items-center gap-1.5"><i class="h-2 w-2 rounded-sm bg-brand"></i>Your sales</span>
+        <span class="flex items-center gap-1.5"><i class="h-2 w-2 rounded-sm bg-brandLite"></i>Team</span>
+      </div>
+    </div>
+    <div class="mt-4 flex items-end gap-[3px]" style="height:${h}px">
+      ${EARN.map((v,i)=>{
+        const teamPart = i%4===0 ? 0.35 : 0;
+        const total = Math.max((v/peak)*100, v?3:1.5);
+        return `<div class="group relative flex-1">
+          <div class="w-full rounded-t-[3px] bg-brandLite" style="height:${total*teamPart}px"></div>
+          <div class="w-full rounded-t-[3px] bg-brand/85 transition-colors group-hover:bg-brand" style="height:${(total*(1-teamPart))*(h/100)}px"></div>
+        </div>`}).join('')}
+    </div>
+    <div class="mt-2 flex justify-between text-[10px] text-muted"><span>Mar 1</span><span>Mar 30</span></div>
+  </div>`;
+}
+
+const badge = (txt,kind)=>{
+  const map={paid:'bg-successSoft text-success',unpaid:'bg-primarySoft text-primary',pending:'bg-warningSoft text-warning'};
+  return `<span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${map[kind]}">${txt}</span>`;
+};
+
+// Two values only, because that is all the data supports. A commission either
+// carries a visit_id or it does not.
+const via = v => v === 'Link'
+  ? `<span class="inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium bg-brandLite/15 text-brand">Link click</span>`
+  : `<span class="inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium bg-bg text-muted">No click</span>`;
+
+const ROWS = [
+  ['Mar 30','#48210','Direct sale','Link',   184.00, 27.60,'unpaid','Unpaid'],
+  ['Mar 29','#48187','Direct sale','None',   96.50,  14.48,'unpaid','Unpaid'],
+  ['Mar 28','—',     'Team',       'None',   240.00, 12.00,'pending','Awaiting milestone'],
+  ['Mar 27','#48090','Direct sale','Link',   312.75, 46.91,'paid','Paid'],
+  ['Mar 26','#48044','Direct sale','None',   128.00, 19.20,'paid','Paid'],
+  ['Mar 24','#47990','Direct sale','Link',   205.00, 30.75,'paid','Paid'],
+];
+
+// ───────────────────────── desktop ─────────────────────────
+const D = {};
+
+D.home = `
+${sidebar('home')}
+<main class="min-w-0 flex-1 overflow-y-auto scrollbar-thin bg-bg p-6">
+  <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h1 class="text-[22px] font-semibold tracking-tight">Welcome back, Blair</h1>
+      <p class="text-[13px] text-muted">How you're doing this week, and what changed.</p>
+    </div>
+    <button class="flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-[12px] font-medium text-white shadow-xs hover:bg-brandDark">
+      ${icon('M8 5h9a2 2 0 0 1 2 2v9M6 9h9a2 2 0 0 1 2 2v9H6a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2Z')} Copy referral link
+    </button>
+  </div>
+
+  ${periodBar()}
+
+  <div class="mt-4 grid grid-cols-5 gap-3">
+    ${stat({label:'Earnings',value:money(1284.40),d:18,sub:'vs '+money(1088.20)+' last week'})}
+    ${stat({label:'Ready for payout',value:money(486.15),d:12,sub:'Next run Apr 4',tone:'text-brand'})}
+    ${stat({label:'Clicks',value:'1,204',d:31,sub:'vs 919 last week'})}
+    ${stat({label:'Sales',value:'23',d:-9,good:false,sub:'vs 26 last week'})}
+    ${stat({label:'Conversion',value:'1.9%',d:-30,good:false,sub:'vs 2.7% last week',hint:'Of tracked clicks'})}
+  </div>
+
+  <div class="mt-3 grid grid-cols-[1.55fr_1fr] gap-3">
+    ${chart(150)}
+    <div class="rounded-xl border border-line bg-card p-4 shadow-card">
+      <p class="text-[13px] font-semibold">How your sales reached us</p>
+      <p class="text-[11px] text-muted">This period</p>
+
+      <div class="mt-4 space-y-3.5">
+        <div>
+          <div class="flex items-baseline justify-between text-[12px]">
+            <span class="font-medium">Traced to a link click</span>
+            <span class="tabnum text-muted">16 sales · 70%</span>
+          </div>
+          <div class="mt-1.5 h-2 overflow-hidden rounded-full bg-bg">
+            <div class="h-full rounded-full bg-brand" style="width:70%"></div>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-baseline justify-between text-[12px]">
+            <span class="font-medium">No click recorded</span>
+            <span class="tabnum text-muted">7 sales · 30%</span>
+          </div>
+          <div class="mt-1.5 h-2 overflow-hidden rounded-full bg-bg">
+            <div class="h-full rounded-full bg-slate-300" style="width:30%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 rounded-lg border border-line bg-bg/70 p-2.5">
+        <p class="text-[11px] leading-relaxed text-muted">
+          <span class="font-semibold text-ink">You're paid the same either way.</span>
+          Sales with no click usually came from a discount code, or from a browser
+          that dropped the link before checkout.
+        </p>
+      </div>
+
+      <div class="mt-3 rounded-lg border border-line bg-primarySoft/60 p-2.5">
+        <p class="text-[11px] leading-relaxed text-brand">
+          <span class="font-semibold">Clicks up 31%, sales down 9%.</span>
+          Traffic is landing but converting less than last week.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-3 rounded-xl border border-line bg-card shadow-card">
+    <div class="flex items-center justify-between border-b border-line px-4 py-3">
+      <p class="text-[13px] font-semibold">Recent commissions</p>
+      <button class="text-[12px] font-medium text-brand hover:underline">View all →</button>
+    </div>
+    <table class="w-full text-[12px]">
+      <thead class="bg-bg/60 text-[11px] uppercase tracking-wide text-muted">
+        <tr><th class="px-4 py-2 text-left font-medium">Date</th><th class="px-4 py-2 text-left font-medium">Order</th>
+        <th class="px-4 py-2 text-left font-medium">Type</th><th class="px-4 py-2 text-left font-medium">Tracked by</th>
+        <th class="px-4 py-2 text-right font-medium">Sale</th><th class="px-4 py-2 text-right font-medium">You earned</th>
+        <th class="px-4 py-2 text-left font-medium">Status</th></tr>
+      </thead>
+      <tbody class="divide-y divide-line">
+        ${ROWS.slice(0,4).map(r=>`<tr class="hover:bg-bg/50">
+          <td class="px-4 py-2.5 text-muted">${r[0]}</td>
+          <td class="px-4 py-2.5 font-mono text-[11px]">${r[1]}</td>
+          <td class="px-4 py-2.5">${r[2]}</td>
+          <td class="px-4 py-2.5">${via(r[3])}</td>
+          <td class="tabnum px-4 py-2.5 text-right text-muted">${money(r[4])}</td>
+          <td class="tabnum px-4 py-2.5 text-right font-semibold">${money(r[5])}</td>
+          <td class="px-4 py-2.5">${badge(r[7],r[6])}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</main>`;
+
+D.commissions = `
+${sidebar('commissions')}
+<main class="min-w-0 flex-1 overflow-y-auto scrollbar-thin bg-bg p-6">
+  <div class="mb-4">
+    <h1 class="text-[22px] font-semibold tracking-tight">Commissions</h1>
+    <p class="text-[13px] text-muted">Every sale and team earning tied to your account.</p>
+  </div>
+
+  ${periodBar(`<button class="ml-auto flex items-center gap-1.5 rounded-lg border border-line bg-white px-3 py-1.5 text-[12px] font-medium shadow-xs hover:bg-bg">
+    ${icon('M12 3v12M7 10l5 5 5-5M5 21h14','h-3.5 w-3.5')} Export CSV</button>`)}
+
+  <div class="mt-4 grid grid-cols-4 gap-3">
+    ${stat({label:'Ready for payout',value:money(486.15),sub:'12 entries',tone:'text-brand'})}
+    ${stat({label:'Paid out',value:money(3921.80),sub:'This period',tone:'text-success'})}
+    ${stat({label:'Awaiting milestone',value:money(96.00),sub:'2 team members',tone:'text-warning'})}
+    ${stat({label:'Team earnings',value:money(212.40),sub:'From 5 members'})}
+  </div>
+
+  <div class="mt-3 rounded-xl border border-line bg-card shadow-card">
+    <div class="space-y-3 border-b border-line p-3.5">
+      <div class="flex flex-wrap items-center gap-2">
+        ${['All statuses · 68','Unpaid · 12','Paid · 54','Awaiting · 2'].map((l,i)=>
+          `<button class="rounded-lg border px-2.5 py-1.5 text-[12px] font-medium ${i===0?'border-brand bg-brand text-white':'border-line bg-white text-muted hover:text-ink'}">${l}</button>`).join('')}
+        <span class="mx-1 h-5 w-px bg-line"></span>
+        <select class="rounded-lg border border-line bg-white px-2.5 py-1.5 text-[12px]"><option>All types</option><option>Direct sale</option><option>Team earnings</option></select>
+        <select class="rounded-lg border border-line bg-white px-2.5 py-1.5 text-[12px]"><option>Newest first</option><option>Highest earning</option><option>Largest sale</option></select>
+        <div class="relative ml-auto">
+          <input placeholder="Search order or description…" class="w-56 rounded-lg border border-line bg-white py-1.5 pl-8 pr-3 text-[12px] outline-none placeholder:text-muted/70 focus:border-brandLite" />
+          <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted">${icon('M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM21 21l-4.3-4.3','h-3.5 w-3.5')}</span>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-1.5">
+        <span class="text-[11px] text-muted">Filters:</span>
+        ${['Mar 24 – Mar 30','Unpaid'].map(l=>`<button class="inline-flex items-center gap-1 rounded-full bg-bg px-2.5 py-1 text-[11px] font-medium">${l}<span class="opacity-50">✕</span></button>`).join('')}
+        <button class="text-[11px] font-medium text-brand hover:underline">Clear all</button>
+      </div>
+    </div>
+
+    <table class="w-full text-[12px]">
+      <thead class="bg-bg/60 text-[11px] uppercase tracking-wide text-muted">
+        <tr><th class="px-4 py-2.5 text-left font-medium">Date ↓</th><th class="px-4 py-2.5 text-left font-medium">Order</th>
+        <th class="px-4 py-2.5 text-left font-medium">Type</th><th class="px-4 py-2.5 text-left font-medium">Tracked by</th>
+        <th class="px-4 py-2.5 text-right font-medium">Sale amount</th><th class="px-4 py-2.5 text-right font-medium">You earned</th>
+        <th class="px-4 py-2.5 text-left font-medium">Status</th><th class="w-8"></th></tr>
+      </thead>
+      <tbody class="divide-y divide-line">
+        ${ROWS.map(r=>`<tr class="cursor-pointer hover:bg-bg/50">
+          <td class="px-4 py-2.5 text-muted">${r[0]}</td>
+          <td class="px-4 py-2.5 font-mono text-[11px]">${r[1]}</td>
+          <td class="px-4 py-2.5">${r[2]}</td>
+          <td class="px-4 py-2.5">${via(r[3])}</td>
+          <td class="tabnum px-4 py-2.5 text-right text-muted">${money(r[4])}</td>
+          <td class="tabnum px-4 py-2.5 text-right font-semibold">${money(r[5])}</td>
+          <td class="px-4 py-2.5">${badge(r[7],r[6])}</td>
+          <td class="px-2 text-muted">${icon('m9 6 6 6-6 6','h-3.5 w-3.5')}</td></tr>`).join('')}
+      </tbody>
+      <tfoot class="border-t-2 border-line bg-bg/70 font-semibold">
+        <tr><td colspan="4" class="px-4 py-2.5 text-[11px] uppercase tracking-wide text-muted">6 of 68 entries shown</td>
+        <td class="tabnum px-4 py-2.5 text-right">${money(1166.25)}</td>
+        <td class="tabnum px-4 py-2.5 text-right text-brand">${money(150.94)}</td>
+        <td colspan="2"></td></tr>
+      </tfoot>
+    </table>
+  </div>
+</main>`;
+
+const DOW = [['Mon',118,2],['Tue',142,3],['Wed',96,1],['Thu',171,4],['Fri',204,5],['Sat',248,6],['Sun',225,2]];
+const dowPeak = Math.max(...DOW.map(d=>d[1]));
+
+D.traffic = `
+${sidebar('traffic')}
+<main class="min-w-0 flex-1 overflow-y-auto scrollbar-thin bg-bg p-6">
+  <div class="mb-4">
+    <h1 class="text-[22px] font-semibold tracking-tight">Traffic</h1>
+    <p class="text-[13px] text-muted">Clicks on your links, and what they turned into.</p>
+  </div>
+
+  ${periodBar()}
+
+  <div class="mt-4 grid grid-cols-4 gap-3">
+    ${stat({label:'Clicks',value:'1,204',d:31,sub:'vs 919 last week'})}
+    ${stat({label:'Sales from clicks',value:'16',d:-6,good:false,sub:'Traced to a click'})}
+    ${stat({label:'Conversion',value:'1.3%',d:-28,good:false,sub:'Of tracked clicks',hint:'Sales with no click are excluded'})}
+    ${stat({label:'Sales with no click',value:'7',sub:'Still paid to you',tone:'text-muted'})}
+  </div>
+
+  <div class="mt-3 grid grid-cols-[1.55fr_1fr] gap-3">
+    <div class="rounded-xl border border-line bg-card p-4 shadow-card">
+      <div class="flex items-start justify-between">
+        <div><p class="text-[13px] font-semibold">Clicks and sales</p><p class="text-[11px] text-muted">Daily, this period</p></div>
+        <div class="flex items-center gap-3 text-[11px]">
+          <span class="flex items-center gap-1.5"><i class="h-2 w-2 rounded-sm bg-brandLite"></i>Clicks</span>
+          <span class="flex items-center gap-1.5"><i class="h-2 w-2 rounded-sm bg-success"></i>Sales</span>
+        </div>
+      </div>
+      <div class="relative mt-4 flex items-end gap-[3px]" style="height:150px">
+        ${EARN.map((v,i)=>{
+          const clicks=Math.max((v/240)*100,4);
+          const sales = i%5===0 ? clicks*0.22 : (i%3===0?clicks*0.1:0);
+          return `<div class="relative flex-1">
+            <div class="w-full rounded-t-[3px] bg-brandLite/45" style="height:${clicks*1.4}px"></div>
+            ${sales?`<div class="absolute bottom-0 w-full rounded-t-[3px] bg-success" style="height:${sales*1.4}px"></div>`:''}
+          </div>`}).join('')}
+      </div>
+      <div class="mt-2 flex justify-between text-[10px] text-muted"><span>Mar 1</span><span>Mar 30</span></div>
+    </div>
+
+    <div class="rounded-xl border border-line bg-card p-4 shadow-card">
+      <p class="text-[13px] font-semibold">Your week at a glance</p>
+      <p class="text-[11px] text-muted">Clicks and sales by day</p>
+      <div class="mt-4 space-y-2">
+        ${DOW.map(([day,clicks,sales])=>`
+          <div class="flex items-center gap-2.5">
+            <span class="w-8 shrink-0 text-[11px] font-medium text-muted">${day}</span>
+            <div class="relative h-4 flex-1 overflow-hidden rounded bg-bg">
+              <div class="h-full rounded bg-brandLite/45" style="width:${(clicks/dowPeak)*100}%"></div>
+              <div class="absolute inset-y-0 left-0 rounded bg-success" style="width:${(sales/6)*22}%"></div>
+            </div>
+            <span class="tabnum w-8 shrink-0 text-right text-[11px] text-muted">${clicks}</span>
+          </div>`).join('')}
+      </div>
+      <div class="mt-3.5 rounded-lg border border-line bg-primarySoft/60 p-2.5">
+        <p class="text-[11px] leading-relaxed text-brand">
+          <span class="font-semibold">Saturday is your strongest day</span> — 248 clicks and 6 sales.
+          Wednesday is your quietest.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-3 rounded-xl border border-line bg-card shadow-card">
+    <div class="flex items-center justify-between border-b border-line px-4 py-3">
+      <p class="text-[13px] font-semibold">Recent clicks</p>
+      <div class="flex rounded-lg border border-line p-0.5">
+        ${['All','Converted','No sale'].map((l,i)=>`<button class="rounded-md px-2.5 py-1 text-[11px] font-medium ${i===0?'bg-brand text-white':'text-muted'}">${l}</button>`).join('')}
+      </div>
+    </div>
+    <table class="w-full text-[12px]">
+      <thead class="bg-bg/60 text-[11px] uppercase tracking-wide text-muted">
+        <tr><th class="px-4 py-2.5 text-left font-medium">When</th>
+        <th class="px-4 py-2.5 text-left font-medium">Landed on</th>
+        <th class="px-4 py-2.5 text-right font-medium">Result</th></tr>
+      </thead>
+      <tbody class="divide-y divide-line">
+        ${[
+          ['Mar 30, 2:14 PM','/products/daily-greens','sale'],
+          ['Mar 30, 1:52 PM','/',''],
+          ['Mar 30, 11:08 AM','/',''],
+          ['Mar 29, 8:40 PM','/products/sleep-support','sale'],
+          ['Mar 29, 6:15 PM','/',''],
+        ].map(([when,page,res])=>`<tr class="hover:bg-bg/50">
+          <td class="px-4 py-2.5 text-muted">${when}</td>
+          <td class="px-4 py-2.5 font-mono text-[11px]">${page}</td>
+          <td class="px-4 py-2.5 text-right">${res?badge('Sale','paid'):'<span class="text-[11px] text-muted">—</span>'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</main>`;
+
+// ───────────────────────── mobile ─────────────────────────
+const M = {};
+const mHeader = t => `
+  <div class="sticky top-0 z-10 border-b border-line bg-white/95 px-4 pb-3 pt-3 backdrop-blur">
+    <div class="flex items-center justify-between">
+      <button class="text-muted">${icon('M4 6h16M4 12h16M4 18h16','h-5 w-5')}</button>
+      <p class="text-[14px] font-semibold">${t}</p>
+      <div class="flex h-7 w-7 items-center justify-center rounded-full bg-brandLite/20 text-[10px] font-semibold text-brand">B</div>
+    </div>
+  </div>`;
+
+const mPeriod = `
+  <div class="-mx-4 overflow-x-auto px-4 pb-1 scrollbar-thin">
+    <div class="flex w-max gap-1.5">
+      ${['This week','Last week','This month','Since payout','Custom'].map((l,i)=>
+        `<button class="whitespace-nowrap rounded-full px-3 py-1.5 text-[12px] font-medium ${i===0?'bg-brand text-white':'border border-line bg-white text-muted'}">${l}</button>`).join('')}
+    </div>
+  </div>
+  <p class="mt-2 text-[11px] text-muted">Mar 24 – Mar 30 · vs Mar 17 – 23</p>`;
+
+const mTabbar = active => `
+  <div class="sticky bottom-0 border-t border-line bg-white/95 backdrop-blur">
+    <div class="grid grid-cols-5">
+      ${[['Home','home','M3 10.5 12 3l9 7.5M5.5 9.5V20h13V9.5'],
+         ['Promote','','M13 7 4 16v4h4l9-9M14.5 5.5l4 4'],
+         ['Traffic','traffic','M4 19V9m5 10V5m5 14v-7m5 7V8'],
+         ['Earnings','commissions','M4 6h16v12H4zM4 10h16'],
+         ['More','','M6 12h.01M12 12h.01M18 12h.01']]
+        .map(([l,k,d])=>`<button class="flex flex-col items-center gap-1 py-2.5 ${k===active?'text-brand':'text-muted'}">
+          ${icon(d,'h-[18px] w-[18px]')}<span class="text-[10px] font-medium">${l}</span></button>`).join('')}
+    </div>
+  </div>`;
+
+M.home = `
+${mHeader('Home')}
+<div class="flex-1 overflow-y-auto scrollbar-thin bg-bg px-4 py-3">
+  ${mPeriod}
+  <button class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3 text-[13px] font-semibold text-white shadow-xs">
+    ${icon('M8 5h9a2 2 0 0 1 2 2v9M6 9h9a2 2 0 0 1 2 2v9H6a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2Z')} Copy referral link
+  </button>
+
+  <div class="mt-3 rounded-xl border border-line bg-card p-4 shadow-card">
+    <p class="text-[11px] font-medium uppercase tracking-wide text-muted">Earnings this week</p>
+    <div class="mt-1 flex items-baseline gap-2">
+      <span class="tabnum text-[30px] font-semibold leading-none">${money(1284.40)}</span>
+      ${delta(18)}
+    </div>
+    <p class="mt-1 text-[11px] text-muted">vs ${money(1088.20)} last week</p>
+    <div class="mt-3 flex items-end gap-[2px]" style="height:56px">
+      ${EARN.slice(-14).map(v=>`<div class="flex-1 rounded-t-[2px] bg-brand/80" style="height:${Math.max((v/240)*100,4)}%"></div>`).join('')}
+    </div>
+  </div>
+
+  <div class="mt-3 grid grid-cols-2 gap-2.5">
+    ${stat({label:'Ready for payout',value:money(486.15),sub:'Next run Apr 4',tone:'text-brand'})}
+    ${stat({label:'Clicks',value:'1,204',d:31,sub:'vs 919'})}
+    ${stat({label:'Sales',value:'23',d:-9,good:false,sub:'vs 26'})}
+    ${stat({label:'Conversion',value:'1.9%',d:-30,good:false,sub:'Of tracked clicks'})}
+  </div>
+
+  <div class="mt-3 rounded-xl border border-line bg-primarySoft p-3">
+    <p class="text-[12px] leading-relaxed text-brand">
+      <span class="font-semibold">Clicks up 31%, sales down 9%.</span> Traffic is landing but converting less.
+    </p>
+  </div>
+
+  <div class="mt-3 rounded-xl border border-line bg-card p-4 shadow-card">
+    <p class="text-[12px] font-semibold">How your sales reached us</p>
+    <div class="mt-3 space-y-3">
+      <div>
+        <div class="flex items-baseline justify-between text-[12px]">
+          <span class="font-medium">Traced to a link click</span><span class="tabnum text-muted">16</span>
+        </div>
+        <div class="mt-1.5 h-2 overflow-hidden rounded-full bg-bg"><div class="h-full rounded-full bg-brand" style="width:70%"></div></div>
+      </div>
+      <div>
+        <div class="flex items-baseline justify-between text-[12px]">
+          <span class="font-medium">No click recorded</span><span class="tabnum text-muted">7</span>
+        </div>
+        <div class="mt-1.5 h-2 overflow-hidden rounded-full bg-bg"><div class="h-full rounded-full bg-slate-300" style="width:30%"></div></div>
+      </div>
+    </div>
+    <p class="mt-3 text-[11px] leading-relaxed text-muted">
+      <span class="font-semibold text-ink">You're paid the same either way.</span>
+      Sales with no click usually came from a discount code.
+    </p>
+  </div>
+
+  <div class="mt-3 rounded-xl border border-line bg-card shadow-card">
+    <div class="flex items-center justify-between border-b border-line px-3.5 py-2.5">
+      <p class="text-[12px] font-semibold">Recent commissions</p>
+      <button class="text-[11px] font-medium text-brand">View all</button>
+    </div>
+    <div class="divide-y divide-line">
+      ${ROWS.slice(0,4).map(r=>`
+        <div class="flex items-center justify-between gap-3 px-3.5 py-2.5">
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="text-[12px] font-medium">${r[2]}</span>${via(r[3])}
+            </div>
+            <p class="mt-0.5 text-[11px] text-muted">${r[0]} · <span class="font-mono">${r[1]}</span></p>
+          </div>
+          <div class="shrink-0 text-right">
+            <p class="tabnum text-[13px] font-semibold">${money(r[5])}</p>
+            <div class="mt-0.5">${badge(r[7],r[6])}</div>
+          </div>
+        </div>`).join('')}
+    </div>
+  </div>
+</div>
+${mTabbar('home')}`;
+
+M.commissions = `
+${mHeader('Commissions')}
+<div class="flex-1 overflow-y-auto scrollbar-thin bg-bg px-4 py-3">
+  ${mPeriod}
+  <div class="-mx-4 mt-3 overflow-x-auto px-4 scrollbar-thin">
+    <div class="flex w-max gap-1.5">
+      ${['All · 68','Unpaid · 12','Paid · 54','Awaiting · 2'].map((l,i)=>
+        `<button class="whitespace-nowrap rounded-full px-3 py-1.5 text-[12px] font-medium ${i===1?'bg-brand text-white':'border border-line bg-white text-muted'}">${l}</button>`).join('')}
+    </div>
+  </div>
+
+  <div class="mt-3 flex gap-2">
+    <select class="flex-1 rounded-lg border border-line bg-white px-2.5 py-2 text-[12px]"><option>All types</option></select>
+    <select class="flex-1 rounded-lg border border-line bg-white px-2.5 py-2 text-[12px]"><option>Newest first</option></select>
+  </div>
+
+  <div class="mt-3 rounded-xl border border-line bg-card p-3.5 shadow-card">
+    <div class="flex items-center justify-between">
+      <span class="text-[11px] font-medium uppercase tracking-wide text-muted">12 entries shown</span>
+      <button class="flex items-center gap-1 text-[11px] font-semibold text-brand">${icon('M12 3v12M7 10l5 5 5-5M5 21h14','h-3 w-3')} CSV</button>
+    </div>
+    <div class="mt-2 flex items-baseline justify-between">
+      <span class="text-[12px] text-muted">Total earned</span>
+      <span class="tabnum text-[20px] font-semibold text-brand">${money(486.15)}</span>
+    </div>
+  </div>
+
+  <div class="mt-3 space-y-2">
+    ${ROWS.map(r=>`
+      <div class="rounded-xl border border-line bg-card p-3.5 shadow-card">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="text-[13px] font-medium">${r[2]}</span>${via(r[3])}
+            </div>
+            <p class="mt-1 text-[11px] text-muted">${r[0]} · <span class="font-mono">${r[1]}</span></p>
+          </div>
+          <div class="shrink-0 text-right">
+            <p class="tabnum text-[15px] font-semibold">${money(r[5])}</p>
+            <p class="tabnum text-[11px] text-muted">of ${money(r[4])}</p>
+          </div>
+        </div>
+        <div class="mt-2.5 flex items-center justify-between border-t border-line pt-2.5">
+          ${badge(r[7],r[6])}
+          <button class="text-[11px] font-medium text-brand">Details →</button>
+        </div>
+      </div>`).join('')}
+  </div>
+</div>
+${mTabbar('commissions')}`;
+
+M.traffic = `
+${mHeader('Traffic')}
+<div class="flex-1 overflow-y-auto scrollbar-thin bg-bg px-4 py-3">
+  ${mPeriod}
+
+  <div class="mt-3 grid grid-cols-2 gap-2.5">
+    ${stat({label:'Clicks',value:'1,204',d:31,sub:'vs 919'})}
+    ${stat({label:'Sales from clicks',value:'16',d:-6,good:false,sub:'Traced'})}
+    ${stat({label:'Conversion',value:'1.3%',d:-28,good:false,sub:'Of tracked clicks'})}
+    ${stat({label:'Sales, no click',value:'7',sub:'Still paid to you',tone:'text-muted'})}
+  </div>
+
+  <div class="mt-3 rounded-xl border border-line bg-card p-4 shadow-card">
+    <p class="text-[12px] font-semibold">Clicks and sales</p>
+    <div class="relative mt-3 flex items-end gap-[2px]" style="height:90px">
+      ${EARN.slice(-18).map((v,i)=>{
+        const clicks=Math.max((v/240)*100,5);
+        const sales = i%5===0 ? clicks*0.25 : 0;
+        return `<div class="relative flex-1">
+          <div class="w-full rounded-t-[2px] bg-brandLite/45" style="height:${clicks*0.9}px"></div>
+          ${sales?`<div class="absolute bottom-0 w-full rounded-t-[2px] bg-success" style="height:${sales*0.9}px"></div>`:''}
+        </div>`}).join('')}
+    </div>
+    <div class="mt-2 flex gap-3 text-[10px] text-muted">
+      <span class="flex items-center gap-1"><i class="h-2 w-2 rounded-sm bg-brandLite"></i>Clicks</span>
+      <span class="flex items-center gap-1"><i class="h-2 w-2 rounded-sm bg-success"></i>Sales</span>
+    </div>
+  </div>
+
+  <div class="mt-3 rounded-xl border border-line bg-card p-4 shadow-card">
+    <p class="text-[12px] font-semibold">Your week at a glance</p>
+    <div class="mt-3 space-y-2">
+      ${DOW.map(([day,clicks,sales])=>`
+        <div class="flex items-center gap-2.5">
+          <span class="w-7 shrink-0 text-[11px] font-medium text-muted">${day}</span>
+          <div class="relative h-4 flex-1 overflow-hidden rounded bg-bg">
+            <div class="h-full rounded bg-brandLite/45" style="width:${(clicks/dowPeak)*100}%"></div>
+            <div class="absolute inset-y-0 left-0 rounded bg-success" style="width:${(sales/6)*22}%"></div>
+          </div>
+          <span class="tabnum w-7 shrink-0 text-right text-[11px] text-muted">${clicks}</span>
+        </div>`).join('')}
+    </div>
+    <div class="mt-3 rounded-lg border border-line bg-primarySoft/60 p-2.5">
+      <p class="text-[11px] leading-relaxed text-brand">
+        <span class="font-semibold">Saturday is your strongest day</span> — 248 clicks, 6 sales.
+      </p>
+    </div>
+  </div>
+</div>
+${mTabbar('traffic')}`;
+
+// ───────────────────────── render ─────────────────────────
+let screen='home', view='both';
+
+function render(){
+  const desktop = `
+    <figure class="m-0">
+      <figcaption class="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-slate-500">
+        <span class="rounded bg-white px-2 py-0.5 shadow-xs">Desktop</span><span class="font-normal normal-case">1440 × 900</span>
+      </figcaption>
+      <div class="w-[1180px] overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-pop">
+        <div class="flex h-[760px]">${D[screen]}</div>
+      </div>
+    </figure>`;
+
+  const mobile = `
+    <figure class="m-0">
+      <figcaption class="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-slate-500">
+        <span class="rounded bg-white px-2 py-0.5 shadow-xs">Mobile</span><span class="font-normal normal-case">390 × 844</span>
+      </figcaption>
+      <div class="w-[390px] overflow-hidden rounded-[2rem] border-[10px] border-slate-800 bg-white shadow-pop">
+        <div class="flex h-[800px] flex-col">${M[screen]}</div>
+      </div>
+    </figure>`;
+
+  document.getElementById('stage').innerHTML =
+    view==='desktop' ? desktop : view==='mobile' ? mobile : desktop + mobile;
+
+  document.querySelectorAll('.screen-tab').forEach(b=>{
+    const on = b.dataset.screen===screen;
+    b.className = `screen-tab rounded-md px-3 py-1.5 text-xs font-medium ${on?'bg-brand text-white shadow-xs':'text-slate-500 hover:text-slate-900'}`;
+  });
+  document.querySelectorAll('.view-tab').forEach(b=>{
+    const on = b.dataset.view===view;
+    b.className = `view-tab rounded-md px-3 py-1.5 text-xs font-medium ${on?'bg-brand text-white shadow-xs':'text-slate-500 hover:text-slate-900'}`;
+  });
+}
+
+document.getElementById('screenTabs').addEventListener('click',e=>{
+  const b=e.target.closest('[data-screen]'); if(!b) return; screen=b.dataset.screen; render();
+});
+document.getElementById('viewTabs').addEventListener('click',e=>{
+  const b=e.target.closest('[data-view]'); if(!b) return; view=b.dataset.view; render();
+});
+
+render();
+</script>
+</body>
+</html>

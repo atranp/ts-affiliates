@@ -26,10 +26,21 @@ export function useAffiliateLink(enabled: boolean) {
   });
 }
 
-export function useAffiliateVisits(page: number, enabled: boolean) {
+export type VisitOutcomeFilter = "all" | "converted" | "none";
+
+export function useAffiliateVisits(
+  page: number,
+  enabled: boolean,
+  outcome: VisitOutcomeFilter = "all"
+) {
+  const params = new URLSearchParams({ page: String(page) });
+  if (outcome === "converted") params.set("converted", "1");
+  if (outcome === "none") params.set("converted", "0");
+
   return useQuery({
-    queryKey: queryKeys.visits(page),
-    queryFn: () => apiFetch<AffiliateVisits>(`/api/visits?page=${page}`),
+    queryKey: queryKeys.visits(page, outcome),
+    queryFn: () =>
+      apiFetch<AffiliateVisits>(`/api/visits?${params.toString()}`),
     enabled,
     staleTime: REACH_STALE_TIME,
     // Paging through history should not blank the table between pages.

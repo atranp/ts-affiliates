@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { ArrowUpRight, ChevronRight } from "lucide-react";
+import { ArrowUpRight, ChevronRight, TrendingDown, TrendingUp } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 
 type AffiliateStatCardProps = {
@@ -16,7 +16,44 @@ type AffiliateStatCardProps = {
   actionArrow?: boolean;
   /** Tighter layout for home dashboard stat row */
   compact?: boolean;
+  /**
+   * Percent change against the previous period. Null when there is nothing to
+   * compare against — a first week, or a baseline of zero where a percentage
+   * would be arithmetic rather than information.
+   */
+  delta?: number | null;
+  /** Set false where a rise is bad news. Defaults to "up is good". */
+  deltaGood?: boolean;
 };
+
+/**
+ * Movement against the previous period. Direction is coloured by whether it is
+ * good news, not by its sign, so a falling refund rate reads as green.
+ */
+function DeltaBadge({
+  value,
+  good = true,
+}: {
+  value: number;
+  good?: boolean;
+}) {
+  const rising = value >= 0;
+  const positive = rising === good;
+  const Icon = rising ? TrendingUp : TrendingDown;
+  const rounded = Math.abs(value) >= 10 ? Math.round(Math.abs(value)) : Number(Math.abs(value).toFixed(1));
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums",
+        positive ? "text-emerald-700" : "text-orange-700"
+      )}
+    >
+      <Icon className="h-3 w-3" aria-hidden />
+      {rounded}%
+    </span>
+  );
+}
 
 const toneConfig = {
   primary: {
@@ -50,6 +87,8 @@ export function AffiliateStatCard({
   onAction,
   actionArrow = false,
   compact = false,
+  delta = null,
+  deltaGood = true,
 }: AffiliateStatCardProps) {
   const display = typeof value === "number" ? formatCurrency(value) : value;
   const config = toneConfig[tone];
@@ -77,9 +116,12 @@ export function AffiliateStatCard({
             ) : (
               <span className="ts-stat-label">{label}</span>
             )}
-            <p className={cn("ts-home-stat-value mt-1", config.value)}>
-              {display}
-            </p>
+            <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <p className={cn("ts-home-stat-value", config.value)}>{display}</p>
+              {delta !== null ? (
+                <DeltaBadge value={delta} good={deltaGood} />
+              ) : null}
+            </div>
           </div>
           {actionArrow ? (
             <ChevronRight
@@ -98,9 +140,14 @@ export function AffiliateStatCard({
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <span className="ts-stat-label">{label}</span>
-            <p className={cn("stat-value mt-1 tabular-nums", config.value)}>
-              {display}
-            </p>
+            <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <p className={cn("stat-value tabular-nums", config.value)}>
+                {display}
+              </p>
+              {delta !== null ? (
+                <DeltaBadge value={delta} good={deltaGood} />
+              ) : null}
+            </div>
           </div>
           {Icon ? (
             <div className={cn("ts-icon-box shrink-0", config.icon)}>
@@ -112,7 +159,10 @@ export function AffiliateStatCard({
       {showFooter ? (
         <div
           className={cn(
-            "ts-row-meta border-t border-border/40 leading-snug",
+            // Not `ts-row-meta`: its `truncate` forces one nowrap line, which
+            // cuts the hint mid-word on a narrow phone card. Desktop keeps the
+            // single line via `line-clamp-1` on the hint itself.
+            "border-t border-border/40 text-xs leading-snug text-muted-foreground",
             compact
               ? "flex flex-col gap-1.5 pt-2 lg:flex-row lg:items-center lg:justify-between lg:gap-2 lg:pt-2.5"
               : "flex flex-col gap-1.5 pt-3 lg:flex-row lg:items-center lg:justify-between lg:gap-3",
@@ -124,7 +174,9 @@ export function AffiliateStatCard({
               {hint}
             </span>
           ) : null}
-          {actionLabel ? (
+          {/* The header chevron already says "this goes somewhere"; repeating
+              it as a label crowds the hint off the line. */}
+          {actionLabel && !actionArrow ? (
             <span
               className={cn(
                 "inline-flex items-center gap-0.5 text-xs font-medium",

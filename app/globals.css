@@ -239,6 +239,11 @@
     @apply grid min-w-0 max-w-full grid-cols-1 gap-3 lg:grid-cols-3 lg:gap-4;
   }
 
+  /* Five headline metrics: paired on a phone, one row on a laptop. */
+  .ts-home-stat-grid-wide {
+    @apply grid min-w-0 max-w-full grid-cols-2 gap-3 lg:grid-cols-5 lg:gap-4;
+  }
+
   .ts-home-split {
     @apply grid min-w-0 max-w-full gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-stretch lg:gap-6;
   }

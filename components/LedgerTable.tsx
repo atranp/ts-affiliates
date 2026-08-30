@@ -3,6 +3,7 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { CommissionRow, commissionAmountTone } from "@/components/affiliate/CommissionRow";
 import { CommissionTypeBadge } from "@/components/affiliate/AffiliateBadge";
+import { TrackedByBadge } from "@/components/affiliate/TrackedByBadge";
 import {
   formatCommissionStatus,
   AFFILIATE_COPY,
@@ -44,6 +45,7 @@ type LedgerEntry = {
   } | null;
   dealRule?: { id: string; name: string } | null;
   payoutBatch?: { id: string; label: string; status: string } | null;
+  trackedByClick?: boolean | null;
 };
 
 function statusVariant(
@@ -222,6 +224,7 @@ export function LedgerTable({
               status={status}
               type={entry.type}
               payoutWeek={entry.payoutWeek}
+              trackedByClick={entry.trackedByClick}
             />
           </li>
         );
@@ -332,6 +335,12 @@ export function LedgerTable({
                       entry.sourceAffiliate?.email ??
                       "—"}
                   </p>
+                  {affiliateView && entry.trackedByClick !== null && (
+                    <TrackedByBadge
+                      tracked={entry.trackedByClick}
+                      className="mt-1"
+                    />
+                  )}
                   {entry.sourceAffiliate && !affiliateView && (
                     <p className="ts-row-meta mt-0.5">
                       Source:{" "}

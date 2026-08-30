@@ -108,6 +108,31 @@ export const AFFILIATE_COPY = {
     viewAllCommissions: 'View all',
     salesLabel: 'Sales',
   },
+  performance: {
+    earnings: 'Earnings',
+    earningsTrendTitle: 'Earnings',
+    earningsTrendDescription: 'What you earned each day',
+    readyForPayout: 'Ready for payout',
+    /** Short by necessity: the card footer clamps this to one line on desktop. */
+    readyForPayoutHint: 'Your balance, not just this period',
+    clicks: 'Clicks',
+    sales: 'Sales',
+    conversion: 'Conversion',
+    /**
+     * Sales with no click on file are left out of this rate on purpose, so the
+     * label has to say so — an unqualified "conversion" would read as though
+     * every sale had been counted.
+     */
+    conversionHint: 'Of tracked clicks',
+    attributionTitle: 'How your sales reached us',
+    salesFromClicks: 'Sales from clicks',
+    salesFromClicksHint: 'Traced to a click',
+    untracedSales: 'Sales with no click',
+    untracedSalesHint: 'Still paid to you',
+    weekTitle: 'Your week at a glance',
+    weekDescription: 'Clicks and sales by day',
+    noComparison: 'No earlier period to compare',
+  },
   team: {
     title: 'Team',
     rosterTitle: 'Your Team Roster',
@@ -209,6 +234,19 @@ export const AFFILIATE_COPY = {
       payout: 'Payout date',
       status: 'Status',
     },
+    exportCsv: 'Export CSV',
+    tracked: {
+      linked: 'Link click',
+      linkedHint: 'We matched this sale to a click on your link.',
+      unlinked: 'No click',
+      /**
+       * Deliberately lists both causes rather than naming a coupon: nothing on
+       * the commission records which one it was, and guessing in the UI would
+       * be stating an inference as fact.
+       */
+      unlinkedHint:
+        'No click on file for this sale — usually a discount code, or a browser that dropped the referral. You are paid either way.',
+    },
   },
   payouts: {
     title: 'Payouts',
@@ -243,10 +281,10 @@ export const AFFILIATE_COPY = {
     title: 'Your Traffic',
     description: 'Clicks on your referral links, and what they turned into.',
     empty: 'No clicks yet. Share your link to start tracking traffic.',
-    trendTitle: 'Last 30 days',
-    trendDescription: 'Clicks per day',
+    trendTitle: 'Clicks and sales',
+    trendDescription: 'Daily',
     recentTitle: 'Recent clicks',
-    recentDescription: 'Where people landed and where they came from',
+    recentDescription: 'Where people landed after following your link',
     convertedBadge: 'Sale',
     previous: 'Newer',
     next: 'Older',

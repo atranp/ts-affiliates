@@ -54,10 +54,15 @@ import {
   useAffiliateLink,
   useAffiliateSettings,
   useAffiliateVisits,
+  type VisitOutcomeFilter,
 } from '@/hooks/use-affiliate-reach';
 import { apiFetch } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
 import { AFFILIATE_COPY } from '@/lib/affiliate/copy';
+import { PeriodPicker } from '@/components/affiliate/PeriodPicker';
+import { EarningsTrend } from '@/components/affiliate/PerformanceCharts';
+import { percentChange, usePerformance } from '@/hooks/use-performance';
+import { periodFromParams, type PeriodKey } from '@/lib/affiliate/period';
 import type { PayoutBatchListItem } from '@/lib/payouts/types';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useMinLg } from '@/hooks/use-media-query';
@@ -88,6 +93,10 @@ const DASHBOARD_TABS: DashboardTab[] = [
 function resolveTab(value: string | null): DashboardTab {
   if (value === 'commissions') return 'ledger';
   return DASHBOARD_TABS.find((tab) => tab === value) ?? 'overview';
+}
+
+function resolveVisitOutcome(value: string | null): VisitOutcomeFilter {
+  return value === 'converted' || value === 'none' ? value : 'all';
 }
 
 export default function DashboardPage() {
@@ -151,6 +160,45 @@ function DashboardPageContent() {
   const sortKey = resolveLedgerSortKey(searchParams.get('sort'));
   const sortDir = resolveLedgerSortDir(searchParams.get('dir'), sortKey);
 
+  /**
+   * One period param, two defaults. Home and Traffic are reports and open on a
+   * recent window; the ledger is a record and opens on everything, because an
+   * affiliate looking for an order from March should find it without first
+   * discovering a date filter.
+   */
+  const periodFallback: PeriodKey = viewTab === 'ledger' ? 'all' : 'last-30';
+  const period = periodFromParams(searchParams, { fallback: periodFallback });
+  const periodParams = {
+    period: searchParams.get('period') ?? periodFallback,
+    from: searchParams.get('from') ?? undefined,
+    to: searchParams.get('to') ?? undefined,
+  };
+
+  function handlePeriodChange(next: {
+    key: PeriodKey;
+    from?: string;
+    to?: string;
+  }) {
+    if (next.key === 'custom') {
+      setParams({
+        period: 'custom',
+        from: next.from ?? null,
+        to: next.to ?? null,
+        page: null,
+      });
+      return;
+    }
+
+    // Drop the param when it matches this tab's default, so a shared URL does
+    // not pin a period the sender never chose.
+    setParams({
+      period: next.key === periodFallback ? null : next.key,
+      from: null,
+      to: null,
+      page: null,
+    });
+  }
+
   // Typing stays local for responsiveness, then lands in the URL once settled.
   const [q, setQ] = useState(urlQuery);
   const lastWritten = useRef(urlQuery);
@@ -175,11 +223,39 @@ function DashboardPageContent() {
 
   const tabFilters = ledgerTabToFilters(ledgerTab, sourceFilter);
 
+  /**
+   * The CSV has to answer for exactly what is on screen, so it is built from
+   * the same values the table query uses rather than from the raw URL — the
+   * status tab and the type filter both translate before they reach the API.
+   */
+  const exportHref = (() => {
+    const params = new URLSearchParams();
+    const apiType = ledgerTypeFilterToApi(typeFilter);
+
+    if (tabFilters.status) params.set('status', tabFilters.status);
+    if (tabFilters.type) params.set('type', tabFilters.type);
+    if (apiType) params.set('type', apiType);
+    if (tabFilters.sourceAffiliateId) {
+      params.set('sourceAffiliateId', tabFilters.sourceAffiliateId);
+    }
+    if (teamFilter !== 'all') params.set('teamId', teamFilter);
+    if (urlQuery) params.set('q', urlQuery);
+
+    params.set('period', periodParams.period);
+    if (periodParams.from) params.set('from', periodParams.from);
+    if (periodParams.to) params.set('to', periodParams.to);
+    params.set('sort', sortKey);
+    params.set('dir', sortDir);
+
+    return `/api/ledger/export?${params.toString()}`;
+  })();
+
   const { data, error, isLoading, refetch, isFetching } = useLedger({
     ...tabFilters,
     type: ledgerTypeFilterToApi(typeFilter),
     q: urlQuery,
     teamId: teamFilter !== 'all' ? teamFilter : undefined,
+    ...periodParams,
     page,
     limit: 50,
     sortBy: sortKey,
@@ -187,28 +263,57 @@ function DashboardPageContent() {
     enabled: !!user,
   });
 
+  // Home and Traffic both read this; fetching it on either avoids a second
+  // round trip when the affiliate moves between them.
+  const { data: performance } = usePerformance({
+    ...periodParams,
+    enabled: !!user && (viewTab === 'overview' || viewTab === 'visits'),
+  });
+
+  const countOf = (value: number | undefined) =>
+    value === undefined ? '—' : value.toLocaleString('en-US');
+
+  const rateOf = (value: number | null | undefined) =>
+    value === null || value === undefined ? '—' : `${value.toFixed(1)}%`;
+
+  /**
+   * Movement on one metric. Null whenever the comparison would be invented
+   * rather than measured — an unbounded period, or a baseline of zero.
+   */
+  function periodDelta(
+    key: 'earnings' | 'clicks' | 'sales' | 'conversionRate',
+  ): number | null {
+    const current = performance?.current[key];
+    const previous = performance?.previous?.[key];
+    if (current === null || current === undefined) return null;
+    if (previous === null || previous === undefined) return null;
+    return percentChange(current, previous);
+  }
+
   const { data: teamsData, isLoading: teamsLoading } = useTeams(
     undefined,
     !!user,
   );
   const { data: legacyTeamData } = useTeam(undefined, !!user);
-  const { data: payoutsData } = useQuery({
+
+  // Warms the cache for the payouts tab and the home preview, which render it.
+  useQuery({
     queryKey: queryKeys.payouts,
     queryFn: () => apiFetch<{ batches: PayoutBatchListItem[] }>('/api/payouts'),
     enabled: !!user,
     staleTime: 60 * 1000,
   });
 
-  const payoutsCount = payoutsData?.batches.length ?? 0;
-
   // The promotional tabs fetch only once their tab is open — visits in
   // particular is the heaviest query here, and most sessions never open it.
   const visitsPage = Math.max(1, Number(searchParams.get('vp') ?? '1') || 1);
+  const visitOutcome = resolveVisitOutcome(searchParams.get('clicks'));
 
   const { data: linkData } = useAffiliateLink(!!user && viewTab === 'links');
   const { data: visitsData, isFetching: visitsFetching } = useAffiliateVisits(
     visitsPage,
     !!user && viewTab === 'visits',
+    visitOutcome,
   );
   const { data: creativesData } = useAffiliateCreatives(
     !!user && viewTab === 'creatives',
@@ -349,7 +454,7 @@ function DashboardPageContent() {
         >
           <TabsContent
             value="overview"
-            className="ts-affiliate-tab-scroll ts-home-overview lg:ts-affiliate-tab-fill lg:grid lg:grid-rows-[auto_auto_auto_minmax(0,1fr)] lg:gap-4 lg:space-y-0 lg:overflow-hidden lg:pb-0"
+            className="ts-affiliate-tab-scroll ts-home-overview"
           >
             <div className="min-w-0 shrink-0">
               <h1 className="page-title">
@@ -358,35 +463,58 @@ function DashboardPageContent() {
               <p className="page-description">{AFFILIATE_COPY.home.subtitle}</p>
             </div>
 
-            <div className="ts-home-stat-grid shrink-0">
+            <PeriodPicker period={period} onChange={handlePeriodChange} />
+
+            <div className="ts-home-stat-grid-wide shrink-0">
+              <AffiliateStatCard
+                compact
+                label={AFFILIATE_COPY.performance.earnings}
+                value={performance?.current.earnings ?? 0}
+                tone="primary"
+                delta={periodDelta('earnings')}
+              />
               <AffiliateStatCard
                 compact
                 actionArrow
-                label={AFFILIATE_COPY.stats.owed.label}
-                value={data.summary.unpaidTotal}
-                tone="primary"
+                label={AFFILIATE_COPY.performance.readyForPayout}
+                hint={AFFILIATE_COPY.performance.readyForPayoutHint}
+                value={data.accountSummary.unpaidTotal}
+                tone="success"
                 actionLabel={AFFILIATE_COPY.stats.owed.action}
                 onAction={() => setViewTab('ledger')}
               />
               <AffiliateStatCard
                 compact
-                actionArrow
-                label={AFFILIATE_COPY.stats.paid.label}
-                value={data.summary.paidTotal}
-                tone="success"
-                actionLabel={AFFILIATE_COPY.stats.paid.action}
-                onAction={() => setViewTab('payouts')}
+                label={AFFILIATE_COPY.performance.clicks}
+                value={countOf(performance?.current.clicks)}
+                delta={periodDelta('clicks')}
               />
               <AffiliateStatCard
                 compact
-                actionArrow
-                label={AFFILIATE_COPY.stats.payouts.label}
-                value={String(payoutsCount)}
-                tone="primary"
-                actionLabel={AFFILIATE_COPY.stats.payouts.action}
-                onAction={() => setViewTab('payouts')}
+                label={AFFILIATE_COPY.performance.sales}
+                value={countOf(performance?.current.sales)}
+                delta={periodDelta('sales')}
+              />
+              <AffiliateStatCard
+                compact
+                label={AFFILIATE_COPY.performance.conversion}
+                hint={AFFILIATE_COPY.performance.conversionHint}
+                value={rateOf(performance?.current.conversionRate)}
+                delta={periodDelta('conversionRate')}
               />
             </div>
+
+            <AffiliateHomeCard
+              className="shrink-0"
+              title={AFFILIATE_COPY.performance.earningsTrendTitle}
+              description={`${AFFILIATE_COPY.performance.earningsTrendDescription} · ${period.label}`}
+            >
+              {performance ? (
+                <EarningsTrend daily={performance.daily} />
+              ) : (
+                <div className="h-32 animate-pulse rounded-lg bg-muted/20" />
+              )}
+            </AffiliateHomeCard>
 
             <div className="ts-home-split shrink-0">
               <CommissionsHomePreview
@@ -577,7 +705,10 @@ function DashboardPageContent() {
 
           <TabsContent
             value="visits"
-            className="ts-affiliate-tab-scroll flex min-h-0 min-w-0 max-w-full flex-col gap-4 lg:ts-affiliate-tab-fill lg:gap-5"
+            /* Scrolls rather than fills: stat cards, two charts and the click
+               list together exceed a laptop viewport, and a fill layout would
+               crush the list to nothing and clip it. */
+            className="ts-affiliate-tab-scroll flex min-h-0 min-w-0 max-w-full flex-col gap-4 lg:gap-5"
           >
             <div className="ts-page-header shrink-0">
               <h1 className="page-title">{AFFILIATE_COPY.visits.title}</h1>
@@ -585,9 +716,25 @@ function DashboardPageContent() {
                 {AFFILIATE_COPY.visits.description}
               </p>
             </div>
+
+            <PeriodPicker
+              period={period}
+              onChange={handlePeriodChange}
+              className="shrink-0"
+            />
+
             {visitsData ? (
               <StatsPanel
                 data={visitsData}
+                performance={performance}
+                periodLabel={period.label}
+                outcome={visitOutcome}
+                onOutcomeChange={(next) =>
+                  setParams({
+                    clicks: next === 'all' ? null : next,
+                    vp: null,
+                  })
+                }
                 page={visitsPage}
                 isFetching={visitsFetching}
                 onPageChange={(next) =>
@@ -627,8 +774,15 @@ function DashboardPageContent() {
               </p>
             </div>
 
+            <PeriodPicker
+              period={period}
+              onChange={handlePeriodChange}
+              className="shrink-0"
+            />
+
             <CommissionsPanel
               data={data}
+              exportHref={exportHref}
               teams={teamsData?.teams}
               ledgerTab={ledgerTab}
               typeFilter={typeFilter}

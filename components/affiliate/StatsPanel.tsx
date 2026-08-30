@@ -1,29 +1,35 @@
 "use client";
 
-import { ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { affiliateBadgeClass } from "@/components/affiliate/AffiliateBadge";
+import { AffiliateStatCard } from "@/components/affiliate/AffiliateStatCard";
 import {
-  AffiliateCompactStat,
+  ClicksAndSalesTrend,
+  DayOfWeekBars,
+} from "@/components/affiliate/PerformanceCharts";
+import {
   AffiliateEmptyState,
   AffiliateHomeCard,
   AffiliateListPanel,
 } from "@/components/affiliate/primitives";
+import type { VisitOutcomeFilter } from "@/hooks/use-affiliate-reach";
+import type { PerformanceResponse } from "@/hooks/use-performance";
 import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
-import { cn } from "@/lib/utils";
 import type { AffiliateVisits } from "@/lib/affiliate/reach";
+import { cn } from "@/lib/utils";
 
 /**
- * Referral traffic: headline counts, a 30-day trend, and the individual clicks.
+ * Referral traffic for the chosen period, then the individual clicks.
  *
- * The WordPress portal lists every visit row, so the rows are here for parity
- * rather than only a rollup — an affiliate checking whether a specific post is
- * working needs to see landing pages, not a total.
+ * The rows stay because an affiliate checking whether a specific post is
+ * working needs to see landing pages, not a total. The referrer column does
+ * not: better than nine in ten clicks arrive with no referrer at all, because
+ * in-app browsers strip it, so a "top sources" list would be a chart of one
+ * enormous "Direct" bar and a rounding error.
  */
 
-function formatCount(value: number): string {
-  return value.toLocaleString("en-US");
-}
+const countFormat = (value: number) => value.toLocaleString("en-US");
 
 /** Path only: the domain is the same on every row and just adds noise. */
 function pathOf(url: string | null): string {
@@ -36,23 +42,6 @@ function pathOf(url: string | null): string {
   }
 }
 
-/** Bare hostname, or "Direct" when the click carried no referrer. */
-function sourceOf(url: string | null): string {
-  if (!url) return "Direct";
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
-
-function formatDay(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-}
-
 function formatWhen(iso: string): string {
   return new Date(iso).toLocaleString("en-US", {
     month: "short",
@@ -62,98 +51,152 @@ function formatWhen(iso: string): string {
   });
 }
 
-/**
- * A bar per day, scaled to the busiest one. Deliberately CSS rather than a
- * charting dependency — it is one series of thirty values.
- */
-function VisitTrend({ daily }: { daily: AffiliateVisits["daily"] }) {
-  const peak = Math.max(...daily.map((day) => day.visits), 1);
-
-  return (
-    <div className="flex h-28 items-end gap-[3px]" role="img"
-      aria-label={`Clicks per day over the last ${daily.length} days`}
-    >
-      {daily.map((day) => (
-        <div
-          key={day.date}
-          className="group relative flex h-full flex-1 items-end"
-          title={`${formatDay(day.date)}: ${formatCount(day.visits)} clicks, ${day.converted} converted`}
-        >
-          <div
-            className="w-full rounded-sm bg-primary/25 transition-colors group-hover:bg-primary/50"
-            style={{ height: `${Math.max((day.visits / peak) * 100, 2)}%` }}
-          />
-        </div>
-      ))}
-    </div>
-  );
-}
+const OUTCOME_OPTIONS: Array<{ key: VisitOutcomeFilter; label: string }> = [
+  { key: "all", label: "All clicks" },
+  { key: "converted", label: "Led to a sale" },
+  { key: "none", label: "No sale" },
+];
 
 export function StatsPanel({
   data,
+  performance,
+  periodLabel,
+  outcome,
+  onOutcomeChange,
   page,
   onPageChange,
   isFetching,
 }: {
   data: AffiliateVisits;
+  performance?: PerformanceResponse;
+  periodLabel: string;
+  outcome: VisitOutcomeFilter;
+  onOutcomeChange: (value: VisitOutcomeFilter) => void;
   page: number;
   onPageChange: (page: number) => void;
   isFetching: boolean;
 }) {
   const copy = AFFILIATE_COPY.visits;
-  const { stats, daily, recent } = data;
+  const perf = AFFILIATE_COPY.performance;
+  const { recent } = data;
+
+  const current = performance?.current;
+  const attribution = performance?.attribution;
 
   const lastPage = Math.max(1, Math.ceil(data.total / data.pageSize));
 
+  const change = (now?: number | null, before?: number | null) => {
+    if (now === null || now === undefined) return null;
+    if (before === null || before === undefined || before === 0) return null;
+    return ((now - before) / before) * 100;
+  };
+
+  const delta = (key: "clicks" | "sales" | "conversionRate") =>
+    change(performance?.current[key], performance?.previous?.[key]);
+
+  // No `min-h-0` anywhere down this column: the tab scrolls, so these have to
+  // keep their natural height. Letting them shrink hands the flex parent room
+  // to squash the click list and clip it behind the card's `overflow: hidden`.
   return (
-    <div className="flex min-h-0 flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <div className="grid min-w-0 max-w-full shrink-0 grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        <AffiliateCompactStat
-          label={copy.stats.total}
-          value={formatCount(stats.total)}
+        <AffiliateStatCard
+          compact
+          label={perf.clicks}
+          value={current ? countFormat(current.clicks) : "—"}
+          delta={delta("clicks")}
         />
-        <AffiliateCompactStat
-          label={copy.stats.last7}
-          value={formatCount(stats.last7Days)}
-          tone="primary"
-        />
-        <AffiliateCompactStat
-          label={copy.stats.last30}
-          value={formatCount(stats.last30Days)}
-          tone="primary"
-        />
-        <AffiliateCompactStat
-          label={copy.stats.converted}
-          value={
-            stats.conversionRate === null
-              ? formatCount(stats.converted)
-              : `${formatCount(stats.converted)} · ${stats.conversionRate.toFixed(1)}%`
-          }
+        <AffiliateStatCard
+          compact
+          label={perf.salesFromClicks}
+          hint={perf.salesFromClicksHint}
+          value={attribution ? countFormat(attribution.tracked) : "—"}
           tone="success"
+          delta={change(
+            attribution?.tracked,
+            performance?.previousAttribution?.tracked,
+          )}
+        />
+        <AffiliateStatCard
+          compact
+          label={perf.conversion}
+          hint={perf.conversionHint}
+          value={
+            current?.conversionRate === null ||
+            current?.conversionRate === undefined
+              ? "—"
+              : `${current.conversionRate.toFixed(1)}%`
+          }
+          delta={delta("conversionRate")}
+        />
+        <AffiliateStatCard
+          compact
+          label={perf.untracedSales}
+          hint={perf.untracedSalesHint}
+          value={attribution ? countFormat(attribution.untracked) : "—"}
         />
       </div>
 
-      {daily.length > 0 && (
+      <div className="ts-home-split shrink-0">
         <AffiliateHomeCard
           title={copy.trendTitle}
-          description={copy.trendDescription}
-          className="shrink-0"
+          description={`${copy.trendDescription} · ${periodLabel}`}
         >
-          <VisitTrend daily={daily} />
-          <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
-            <span>{formatDay(daily[0].date)}</span>
-            <span>{formatDay(daily[daily.length - 1].date)}</span>
-          </div>
+          {performance ? (
+            <ClicksAndSalesTrend daily={performance.daily} />
+          ) : (
+            <div className="h-32 animate-pulse rounded-lg bg-muted/20" />
+          )}
         </AffiliateHomeCard>
-      )}
+
+        <AffiliateHomeCard
+          title={perf.weekTitle}
+          description={perf.weekDescription}
+        >
+          {performance ? (
+            <DayOfWeekBars data={performance.byDayOfWeek} />
+          ) : (
+            <div className="h-40 animate-pulse rounded-lg bg-muted/20" />
+          )}
+        </AffiliateHomeCard>
+      </div>
 
       <AffiliateHomeCard
         title={copy.recentTitle}
         description={copy.recentDescription}
-        className={cn("min-h-0", isFetching && "opacity-70")}
+        className={cn(isFetching && "opacity-70")}
       >
+        <div className="mb-3 flex shrink-0 flex-wrap items-center gap-2">
+          <div className="ts-segment" role="group" aria-label="Click outcome">
+            {OUTCOME_OPTIONS.map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                aria-pressed={outcome === option.key}
+                onClick={() => onOutcomeChange(option.key)}
+                className={cn(
+                  "ts-segment-item whitespace-nowrap",
+                  outcome === option.key
+                    ? "ts-segment-item-active"
+                    : "ts-segment-item-inactive"
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <p className="ts-row-meta">
+            {countFormat(data.total)}{" "}
+            {data.total === 1 ? "click" : "clicks"}
+          </p>
+        </div>
+
         {recent.length === 0 ? (
-          <AffiliateEmptyState>{copy.empty}</AffiliateEmptyState>
+          <AffiliateEmptyState>
+            {outcome === "all"
+              ? copy.empty
+              : "No clicks match this filter yet."}
+          </AffiliateEmptyState>
         ) : (
           <>
             <AffiliateListPanel inset>
@@ -163,15 +206,9 @@ export function StatsPanel({
                     key={visit.id}
                     className="flex items-center justify-between gap-3 px-3 py-2.5"
                   >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-mono text-xs text-brand-dark">
-                        {pathOf(visit.landingUrl)}
-                      </p>
-                      <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
-                        <ArrowUpRight className="h-3 w-3" aria-hidden />
-                        {sourceOf(visit.referrerUrl)}
-                      </p>
-                    </div>
+                    <p className="min-w-0 flex-1 truncate font-mono text-xs text-brand-dark">
+                      {pathOf(visit.landingUrl)}
+                    </p>
 
                     <div className="flex shrink-0 items-center gap-2">
                       {visit.converted && (
@@ -189,7 +226,7 @@ export function StatsPanel({
             </AffiliateListPanel>
 
             {lastPage > 1 && (
-              <div className="mt-3 flex items-center justify-between gap-3">
+              <div className="mt-3 flex shrink-0 items-center justify-between gap-3">
                 <p className="text-xs text-muted-foreground">
                   {copy.pageOf(page, lastPage)}
                 </p>

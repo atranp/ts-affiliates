@@ -17,7 +17,7 @@ Replace the SliceWP affiliate-facing UI with [ts-affiliate-platform](https://ts-
 | Direct payouts | Recorded in platform; write-back to SliceWP via bridge |
 | Dev WordPress | Local by Flywheel (`true-sciences-04.local`) |
 | Dev platform DB | Prod Supabase through M2. **A dev Supabase project is required from M3 on** — see [Dev modes](#dev-modes) |
-| Lifetime commissions | Enable **after** portal cutover (Milestone 7); hide `lifetime_sale` in affiliate UI |
+| Lifetime commissions | **Required, not optional** (Milestone 7). Prove locally → invite affiliates → *then* enable on prod. Customer links backfilled early, while inert |
 
 ---
 
@@ -228,9 +228,16 @@ Fix before M6, when a **read/write** SliceWP key goes into that same column. See
 ## Milestone dependency graph
 
 ```
-M0 ✅ ──► M1 ✅ ──► M2 ✅ ──► M3 ✅ ──► M4 ✅ ──► M5 ✅ ──► M6 ──► M7 (optional)
-                             ▲
+M0 ✅ ──► M1 ✅ ──► M2 ✅ ──► M3 ✅ ──► M4 ✅ ──► M5 ✅ ──► M6 ──► M7
+                             ▲                                        ▲
+                             │                                        └── the flip
                              └── dev Supabase (Mode C) required from here on
+
+M7 prep runs in parallel with M6 — it writes nothing an affiliate can see:
+
+  rules sign-off ──┐
+                   ├──► link backfill (local) ──► link backfill (prod, inert) ──► M7 flip
+  local add-on ────┘
 ```
 
 ## Testing posture
@@ -1094,10 +1101,10 @@ reason — it needs production SliceWP credentials.
 
 ### Tasks
 
-- [ ] **Set `NEXT_PUBLIC_APP_URL` on Vercel production** — invite links are unusable without it
-- [ ] Resolve the `Settings` row / env-var credential split before the read/write key goes in
-- [ ] Deploy `ts-slicewp-bridge.php` to prod `mu-plugins/`
-- [ ] Create prod `read_write` SliceWP API key (admin-owned) → Vercel env / prod Settings
+- [x] **Set `NEXT_PUBLIC_APP_URL` on Vercel production** — invite links are unusable without it
+- [x] Resolve the `Settings` row / env-var credential split before the read/write key goes in — re-saved through prod Admin → Integrations
+- [x] Deploy `true-sciences-slicewp-bridge.php` to prod `mu-plugins/` (2026-08-30)
+- [x] Create prod `read_write` SliceWP API key (admin-owned) → Vercel env / prod Settings
 - [ ] Set `ALLOW_PRODUCTION_WRITES=true` on Vercel production only
 - [ ] Supabase provisioning hook on `slicewp_register_affiliate`
 - [ ] Redirect `/affiliate-account/` → platform dashboard
@@ -1105,6 +1112,9 @@ reason — it needs production SliceWP credentials.
 - [ ] Onboard the 48 recently-earning affiliates before the redirect goes sitewide
 - [ ] Remove theme SliceWP UI overrides (keep commission logic — see below)
 - [ ] **Enable Supabase leaked-password protection** (Authentication → Password Security) — the only password check that cannot be done in code
+
+Blair, Trin and Emmie should be in the pilot cohort. M7 cannot flip until the
+redirect has taken them off the WP affiliate area, so their onboarding gates it.
 
 ### Exit criteria
 
@@ -1134,23 +1144,155 @@ Keep the theme's SliceWP UI overrides in place (last task) until the pilot has r
 
 ---
 
-## Milestone 7 — Lifetime commissions (optional, post-cutover)
+## Milestone 7 — Lifetime commissions
 
-**Goal:** Enable lifetime commissions without affiliates noticing.
+**Goal:** Blair, Trin and Emmie earn on repeat orders that carry no link and no
+coupon — and learn about it on the platform, not in the SliceWP dashboard.
+
+Not optional. The portal migration is the delivery vehicle for this deal; M6
+without M7 ships a nicer UI and nothing else.
+
+### Why the flip comes last
+
+SliceWP shows affiliates the commission type. The account tab builds a `Type`
+column (`class-list-table-affiliate-account-commissions.php`), and the add-on
+registers the type with a self-explaining label:
+
+```php
+$commission_types['lifetime_sale'] = array(
+    'label'      => __( 'Sale (lifetime)', 'slicewp' ),
+    'rate_types' => array( 'percentage', 'fixed_amount' )
+);
+```
+
+Enable it on prod before the redirect ships and the three affiliates most
+attentive to their numbers read "Sale (lifetime)" in the old dashboard, against
+an order they cannot trace to a link or a coupon. So: prove locally → cut over →
+flip. The platform is the only surface where the wording is ours to choose.
+
+### The customer link, and why it has to be backfilled
+
+Lifetime does not reason about who referred a customer historically. It reads one
+stored link and gives up if it is missing:
+
+```php
+$lifetime_affiliate_id = slicewp_get_customer_meta( $customer->get( 'id' ), 'affiliate_id', true );
+
+if ( empty( $lifetime_affiliate_id ) ) {
+    return $affiliate_id;
+}
+```
+
+That row is written by `slicewp_ltc_link_customer_on_purchase`, hooked to
+`slicewp_insert_commission` — and that function ships **inside the add-on**. The
+add-on has never run on production, so no live customer has ever been linked.
+
+Flipping the switch alone therefore pays nobody. Lifetime would only begin
+working for customers who make a fresh *referred* purchase afterwards, and those
+orders already pay the affiliate through the link or coupon that referred them.
+Without a backfill the feature is worth approximately zero.
+
+### The backfill is safe to run early
+
+Nothing reads that meta while the add-on is off. Core SliceWP touches customer
+meta in exactly one place, `slicewp_delete_customer`, and only to delete it. No
+theme file, mu-plugin, or affiliate-facing template reads it. The only reader
+ships with the add-on.
+
+So the links can be written to production months before the flip: dormant data,
+invisible to affiliates, no commission behaviour changed. Which is where they
+belong — resolving customers by email versus user ID, duplicate customer rows,
+and contested customers is judgement work that should not happen under time
+pressure with live commissions flowing. Run it, inspect it in the Linked
+Customers admin screen, correct it, re-run it. The flip then becomes one toggle
+that is right immediately, and reversible by toggling back.
+
+> **Two different "backfills."** `COMMISSION-RULES-CONFIRM.md` asks about
+> backfill meaning *retroactive payment on past orders* — Gavin's call, current
+> lean is A, none. The link backfill is a separate thing that pays no one and is
+> required regardless. Split the question before sending, or an answer of "A"
+> reads as cancelling both.
 
 ### Tasks
 
-- [ ] Enable add-on on prod (pilot cohort via per-affiliate meta first, not sitewide)
-- [ ] Set `commission_rate_lifetime_sale` = 20% (match sale rate)
-- [ ] Platform: display `lifetime_sale` as `"Sale"` in affiliate UI
+**Prep — runs alongside M6, touches nothing visible**
+
+- [ ] Split the backfill question in `COMMISSION-RULES-CONFIRM.md` into payment vs. customer-link, then get sign-off
+- [ ] Pin **"first referred by"** — first paid order on/after 8/17, or first paid order ever. Decides how far the backfill reaches and who owns contested customers. The script takes it as `--since`
+- [x] **`npm run lifetime-link-backfill`** — dry run by default, `--affiliates` required, idempotent, refuses to run while the add-on is active, never writes `0`
+
+#### What the backfill derives ownership from
+
+SliceWP already records the answer twice, and the script uses both.
+
+`slicewp_process_customer` stamps `customers.affiliate_id` when the customer row
+is first inserted and never revises it, so that column *is* "the affiliate who
+first earned on this customer." On the local clone it agrees with the first
+qualifying commission for **1029 of 1029** customers, zero exceptions.
+
+The script derives the link from commission history rather than copying the
+column, because history is what the rules doc actually describes and it can be
+filtered — but it reports every disagreement with the column, and on an all-time
+run refuses `--apply` if any exist. Two independent records of the same fact,
+and a run only proceeds when they agree.
+
+Two exclusions matter:
+
+- **`inherit` never links.** It is the MLM override credited to a sponsor;
+  letting it link would hand the sponsor a customer their downline referred.
+  Matches the add-on's own type list.
+- **`rejected` never links.** A referral that did not stand grants nothing.
+
+Those two filters are why the counts come in under the raw customer totals —
+affiliate #15 owns 604 customer rows but only 574 qualify.
+
+`--since` narrows the commissions considered *before* the first one is picked,
+not after. "First referred on or after 8/17" means the earliest referral inside
+that window; filtering afterwards would instead mean "customers whose very first
+order ever happened to fall in it," which excludes every established customer and
+inverts the point of a lifetime deal. Worth knowing when reading the output: with
+`--since` set, disagreement with the all-time column is expected, not alarming.
+
+**Prove locally**
+
+- [ ] Activate the add-on on Local WP (`active_add_ons` option — per-site, prod unaffected)
+- [ ] Enable per-affiliate on cohort affiliates only; leave the sitewide setting off
+- [ ] Run the backfill locally, then place a naked repeat order and confirm `lifetime_sale`
+- [ ] Platform: `formatCommissionType` has no `lifetime_sale` case, so it currently falls through to the default and renders "Lifetime sale" to the affiliate. Map it to `"Sale"`
+- [ ] Confirm the commission sync ingests an unfamiliar type without dropping the row
 - [ ] Tagada gate: priority-25 filter re-blocks lifetime override on unpaid manual orders
-- [ ] Roll out sitewide after pilot validates Tagada + self-referral paths
+- [ ] Self-referral path still scores correctly when the lifetime affiliate replaces the referrer
+
+**Prod data, still inert**
+
+- [ ] Point the script at production (`WP_MYSQL_*` / `WP_TABLE_PREFIX`), or apply the `--out` SQL through SiteGround — the statements carry their own existence guard, so the delivery channel does not change the outcome
+- [ ] Dry-run first; review counts and any disagreements with Gavin
+- [ ] Write the links. Add-on stays **off**
+
+**Flip — after M6 cutover, and only once the three are off the WP dashboard**
+
+- [ ] Activate the add-on on prod
+- [ ] Set `commission_rate_lifetime_sale` = 20% (match sale rate)
+- [ ] Enable per-affiliate for Blair / Trin / Emmie only — **not** sitewide. With both the affiliate meta and the sitewide setting empty, the code returns early, so the other 212 are untouched
+- [ ] Watch the first naked repeat order end to end
 
 ### Exit criteria
 
-- [ ] Repeat purchase generates `lifetime_sale` in SliceWP
-- [ ] Affiliate sees normal sale line in platform ledger
+- [ ] Repeat purchase with no link and no coupon generates `lifetime_sale` for the linked affiliate
+- [ ] Affiliate sees a normal sale line in the platform ledger — the word "lifetime" appears nowhere
 - [ ] No premature commissions on unpaid Tagada orders
+- [ ] An affiliate outside the three earns nothing new
+
+### Rollback
+
+Deactivate the add-on. The customer links go dormant, the reader stops existing,
+and behaviour returns to link-or-coupon per order. Commissions already written
+stay written — decide separately whether to void them.
+
+### Touches live?
+
+Only the last block. The prep and the prod link backfill write no commissions
+and change no affiliate-visible surface.
 
 ---
 
@@ -1210,7 +1352,11 @@ All native writes require a **Read/Write** API key owned by a WordPress **admini
 | 2026-08-30 | **M6 pre-flight** | Production schema audited: all M3–M5 tables and columns present, code is deployable. Two problems found. The onboarding gap is 213 of 215 affiliates with no login (48 of them earning in the last 90 days), so "pilot then redirect" under-scoped the cutover by an order of magnitude. And the production `Settings` row does not decrypt with any key available locally, meaning production silently runs on Vercel env vars — which will strand the read/write SliceWP key when it lands in that same column |
 | 2026-08-30 | **Password rules** | Floor raised 8 → 12 with pattern checks (repeats, sequential runs, own email, predictable terms) and no composition rules, per NIST SP 800-63B. Closed a split where the form imported `MIN_PASSWORD_LENGTH` while the endpoint hard-coded its own `< 8`, so tightening the constant would have moved the UI and not the server. Dropped the planned server-side forced-change gate: with links there is no admin-issued password left to keep using, so skipping the page only strands the affiliate without one — not worth a profile lookup on every page render |
 | 2026-08-30 | **Portal access hand-off** | Invites and resets became single-use `generateLink` links instead of plaintext passwords relayed by hand; selection stays manual, delivery stays human, and the platform still sends no email. Supabase's `action_link` is unused because it breaks under PKCE, so `/auth/confirm` redeems `hashed_token` server-side. Re-issuing now retires the account's existing password, which finally kills every credential the old flow mailed out. Found `NEXT_PUBLIC_APP_URL` unset in production — every invite message ever generated there pointed at localhost. `portal-link-smoke` 12/12 against real tokens, six route branches curled, guards 6/6 |
-| | | **Next:** M6 — cutover |
+| 2026-08-30 | **M7 sequencing** | Lifetime commissions promoted from optional to required, and the order fixed: prove locally → invite → flip on prod. Enabling first would print "Sale (lifetime)" in the old SliceWP dashboard, which shows a `Type` column, to the three affiliates who reconcile most closely. Found that the flip alone would pay nobody: the customer→affiliate link lives in `slicewp_customermeta` and is written by a hook that ships inside the add-on, so no production customer has ever been linked. Backfilling those links is now its own task — and it can run on prod early, because outside the add-on the only code that touches customer meta is `slicewp_delete_customer` |
+| 2026-08-30 | **Link backfill built** | `npm run lifetime-link-backfill` — dry run by default, `--affiliates` mandatory, idempotent by construction (each statement carries its own `NOT EXISTS` guard, so the emitted SQL is safe to apply anywhere, twice). Talks to MySQL directly rather than booting WordPress, so no hook fires and nothing can mail an affiliate. Refuses to run while the add-on is active, which would otherwise shift attribution mid-run. Found that SliceWP records ownership twice — `customers.affiliate_id` is stamped at insert and never revised — so the run cross-checks derived links against it and blocks `--apply` on any all-time disagreement; 1029/1029 agree locally. Fixed a semantics bug in `--since` before it could matter: the window has to narrow the commissions considered *before* the first is picked, otherwise it means "customers whose first order ever fell after 8/17" and excludes exactly the established customers the deal is for. Verified on the clone: 235 links for Blair + Trin, commissions / customers / payments checksums byte-identical afterwards, re-run finds nothing, guard trips as designed |
+| 2026-08-30 | **Bridge live on prod** | `true-sciences-slicewp-bridge.php` deployed to `true-sciences.com`. Staged through `~/tmp` and syntax-checked against the server's PHP 8.2 first, because the local site runs an older PHP and a fatal in an mu-plugin takes the whole site down. Installed on `staging3` ahead of prod, where WP-CLI confirmed WordPress still booted and all 8 routes registered — staging sits behind HTTP basic auth, so curl alone could not have told a working bridge from a broken one. On prod: home, `/affiliate-account/`, `/shop/` and `/ambassadors/` all still 200, bridge routes moved 404 → 401 (registered and gated), native SliceWP REST untouched, `php_errorlog` unchanged at one pre-existing line from 6 Aug. Prod SliceWP is 1.2.10 against 1.2.9 locally; Pro matches at 1.1.6. Noted for follow-up: prod carries four `read_write` admin-owned API keys, where one would do |
+| 2026-08-30 | **Dashboard reporting** | Home, Traffic and Commissions gained a shared period window (this week / last week / this month / last 30 / all time / custom), each figure now carrying its change against the preceding window of equal length. New `/api/performance` aggregates earnings, clicks, sales and attribution in SQL — a single ambassador takes 11k clicks in a month, so loading rows to count them was never an option; day-of-week and the totals fold out of the daily buckets rather than costing their own queries. Sales are split only as far as the data can prove: a commission either carries the click that produced it or it does not. There is no coupon recorded against a sale, so the third bucket the mockups showed would have been an inference dressed as a fact — it reads "no click recorded", with a line saying the pay is the same either way. `Visit.slicewpCommissionId` had no index and the all-time query took 645ms; with one it takes 17ms. Ledger CSV export added, cross-checked against the dashboard on real data (491 traced / 118 not, both surfaces agreeing). Dropped the sales overlay from the weekly panel: sales are two orders of magnitude below clicks, so any visible bar would have been a second scale inside a track that meant something else |
+| | | **Next:** M6 — `ALLOW_PRODUCTION_WRITES`, then pilot invites. Redirect stays last |
 
 _Update this table as milestones complete._
 

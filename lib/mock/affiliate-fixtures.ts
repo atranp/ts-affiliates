@@ -1,4 +1,5 @@
 import type { LedgerData, LedgerEntry } from "@/lib/ledger/types";
+import type { ResolvedPeriod } from "@/lib/affiliate/period";
 import type { LedgerSortKey, SortDirection } from "@/lib/ledger/sort";
 import { defaultSortDirection, sortLedgerEntries } from "@/lib/ledger/sort";
 import type { PayoutBatchDetail, PayoutBatchListItem } from "@/lib/payouts/types";
@@ -468,7 +469,12 @@ export function mockLedgerResponse(options: {
   const total = sorted.length;
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const start = (page - 1) * limit;
-  const entries = sorted.slice(start, start + limit);
+  // Roughly seven in ten direct sales carry a click, matching what the mirror
+  // actually looks like, so the attribution panel is never a solid single bar.
+  const entries = sorted.slice(start, start + limit).map((entry, index) => ({
+    ...entry,
+    trackedByClick: entry.type === "DIRECT" ? index % 10 < 7 : null,
+  }));
 
   return {
     entries,
@@ -608,21 +614,45 @@ const MOCK_REFERRERS = [
   null,
 ];
 
-export function mockAffiliateVisits(page = 1) {
+/** Every seventeenth click converts, matching the fixture's headline rate. */
+const MOCK_CONVERTS_EVERY = 17;
+
+export function mockAffiliateVisits(page = 1, convertedOnly?: boolean) {
   const pageSize = 50;
   const total = 13_309;
   const converted = 214;
 
+  /**
+   * The outcome filter narrows the list the same way the real query does, so
+   * the chips visibly do something in mock mode rather than returning the same
+   * fifty rows under all three labels.
+   */
+  const listTotal =
+    convertedOnly === undefined
+      ? total
+      : convertedOnly
+        ? converted
+        : total - converted;
+
   const recent = Array.from({ length: pageSize }, (_, index) => {
-    const absolute = (page - 1) * pageSize + index;
+    const slot = (page - 1) * pageSize + index;
+    // Walk the matching subsequence rather than filtering a page, so a filtered
+    // page is full instead of showing the three hits that happened to land in it.
+    const absolute =
+      convertedOnly === undefined
+        ? slot
+        : convertedOnly
+          ? slot * MOCK_CONVERTS_EVERY
+          : slot + Math.floor(slot / (MOCK_CONVERTS_EVERY - 1)) + 1;
+
     return {
       id: `mock-visit-${absolute}`,
       landingUrl: `${MOCK_SITE}${MOCK_LANDING_PAGES[absolute % MOCK_LANDING_PAGES.length]}`,
       referrerUrl: MOCK_REFERRERS[absolute % MOCK_REFERRERS.length],
-      converted: absolute % 17 === 0,
+      converted: absolute % MOCK_CONVERTS_EVERY === 0,
       occurredAt: daysAgo(Math.floor(absolute / 6)),
     };
-  });
+  }).slice(0, Math.max(0, Math.min(pageSize, listTotal - (page - 1) * pageSize)));
 
   // A gentle wave rather than a flat line, so the chart is legibly a chart.
   const daily = Array.from({ length: 30 }, (_, index) => {
@@ -646,9 +676,92 @@ export function mockAffiliateVisits(page = 1) {
     },
     recent,
     daily,
-    total,
+    // Paging and the "N clicks" caption follow the filtered list; the stats
+    // above stay account-wide so the filter has something to be a share of.
+    total: listTotal,
     page,
     pageSize,
+  };
+}
+
+/**
+ * Performance for whatever window the picker asks for. Shaped like the real
+ * thing — most sales trace to a click, a meaningful minority do not — so the
+ * attribution panel is exercised rather than always showing a full bar.
+ */
+export function mockAffiliatePerformance(period: ResolvedPeriod) {
+  const DAY = 86_400_000;
+  const range = period.range;
+
+  const days = range
+    ? Math.max(1, Math.round((range.to.getTime() - range.from.getTime()) / DAY))
+    : 30;
+  const start = range ? range.from : new Date(now.getTime() - 29 * DAY);
+
+  // Seeded from the calendar day rather than the loop index, so two windows of
+  // the same length over different dates do not come back with identical
+  // numbers — which would make the period picker look broken when it is not.
+  const daily = Array.from({ length: Math.min(days, 180) }, (_, index) => {
+    const day = new Date(start.getTime() + index * DAY);
+    const seed = Math.floor(day.getTime() / DAY);
+    const clicks = 34 + Math.round(22 * Math.sin(seed / 3.1)) + (seed % 5) * 4;
+    const sales = seed % 4 === 0 ? 0 : seed % 7 === 0 ? 3 : 1;
+    return {
+      date: day.toISOString().slice(0, 10),
+      clicks,
+      sales,
+      earnings: Math.round(sales * 28.4 * 100) / 100,
+    };
+  });
+
+  const sales = daily.reduce((sum, point) => sum + point.sales, 0);
+  const clicks = daily.reduce((sum, point) => sum + point.clicks, 0);
+  const earnings =
+    Math.round(daily.reduce((sum, point) => sum + point.earnings, 0) * 100) / 100;
+  const tracked = Math.round(sales * 0.71);
+
+  const byDayOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
+    (label, index) => ({ day: index + 1, label, clicks: 0, sales: 0 })
+  );
+
+  for (const point of daily) {
+    const [y, m, d] = point.date.split("-").map(Number);
+    const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+    const bucket = byDayOfWeek[(weekday + 6) % 7];
+    bucket.clicks += point.clicks;
+    bucket.sales += point.sales;
+  }
+
+  return {
+    current: {
+      earnings,
+      clicks,
+      sales,
+      conversionRate: clicks > 0 ? (tracked / clicks) * 100 : null,
+    },
+    previous: period.previous
+      ? {
+          earnings: Math.round(earnings * 0.84 * 100) / 100,
+          clicks: Math.round(clicks * 0.76),
+          sales: Math.round(sales * 1.1),
+          conversionRate:
+            clicks > 0 ? (tracked / Math.round(clicks * 0.76)) * 100 : null,
+        }
+      : null,
+    daily,
+    byDayOfWeek,
+    attribution: { tracked, untracked: sales - tracked },
+    previousAttribution: period.previous
+      ? {
+          tracked: Math.round(tracked * 1.18),
+          untracked: Math.round((sales - tracked) * 0.9),
+        }
+      : null,
+    period: {
+      key: period.key,
+      label: period.label,
+      comparisonLabel: period.comparisonLabel,
+    },
   };
 }
 

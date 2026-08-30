@@ -1,6 +1,7 @@
 import { CommissionStatus, LedgerEntryType } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { jsonCached } from "@/lib/api-cache";
+import { periodFromParams } from "@/lib/affiliate/period";
 import { getLedgerResponse } from "@/lib/ledger/queries";
 import { isAffiliateMockMode } from "@/lib/mock/config";
 import { mockLedgerResponse } from "@/lib/mock/affiliate-fixtures";
@@ -27,6 +28,10 @@ export async function GET(request: Request) {
   const limit = Number(searchParams.get("limit") ?? "50");
   const sortBy = resolveLedgerSortKey(searchParams.get("sort"));
   const sortDir = resolveLedgerSortDir(searchParams.get("dir"), sortBy);
+
+  // The ledger is a record rather than a report, so it shows everything until
+  // a window is asked for.
+  const period = periodFromParams(searchParams, { fallback: "all" });
 
   const status =
     statusParam && VALID_STATUSES.has(statusParam)
@@ -71,6 +76,7 @@ export async function GET(request: Request) {
     sourceAffiliateId,
     teamId,
     q,
+    range: period.range,
     page,
     limit,
     sortBy,

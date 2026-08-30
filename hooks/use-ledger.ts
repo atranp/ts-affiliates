@@ -29,6 +29,11 @@ export type LedgerQueryOptions = {
   sourceAffiliateId?: string;
   teamId?: string;
   q?: string;
+  /** Period key from the picker; sent as-is so the server resolves the dates. */
+  period?: string;
+  /** `YYYY-MM-DD`, only meaningful alongside `period: "custom"`. */
+  from?: string;
+  to?: string;
   sortBy?: LedgerSortKey;
   sortDir?: SortDirection;
   enabled?: boolean;
@@ -46,6 +51,9 @@ function buildLedgerUrl(options: LedgerQueryOptions): string {
     params.set("sourceAffiliateId", options.sourceAffiliateId);
   }
   if (options.teamId) params.set("teamId", options.teamId);
+  if (options.period) params.set("period", options.period);
+  if (options.from) params.set("from", options.from);
+  if (options.to) params.set("to", options.to);
   if (options.sortBy && options.sortBy !== "date") {
     params.set("sort", options.sortBy);
   }

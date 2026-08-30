@@ -4,6 +4,7 @@ import {
   Prisma,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { periodWhere, type PeriodRange } from "@/lib/affiliate/period";
 import { getMilestoneProgress } from "@/lib/milestone";
 import type { LedgerSummary } from "@/lib/rules-engine";
 import { toNumber } from "@/lib/utils";
@@ -39,6 +40,8 @@ export type LedgerFilters = {
   sourceAffiliateId?: string;
   teamId?: string;
   q?: string;
+  /** Half-open window on `occurredAt`; omitted means all time. */
+  range?: PeriodRange | null;
   page?: number;
   limit?: number;
   sortBy?: LedgerSortKey;
@@ -56,6 +59,8 @@ type LedgerGroupRow = {
 };
 
 function buildWhere(filters: LedgerFilters): Prisma.LedgerEntryWhereInput {
+  const occurredAt = periodWhere(filters.range ?? null);
+
   const where: Prisma.LedgerEntryWhereInput = {
     affiliateId: filters.affiliateId,
     ...(filters.status ? { status: filters.status } : {}),
@@ -64,6 +69,7 @@ function buildWhere(filters: LedgerFilters): Prisma.LedgerEntryWhereInput {
       ? { sourceAffiliateId: filters.sourceAffiliateId }
       : {}),
     ...(filters.teamId ? { dealRule: { teamId: filters.teamId } } : {}),
+    ...(occurredAt ? { occurredAt } : {}),
   };
 
   if (filters.q) {
@@ -236,12 +242,104 @@ export async function getPaginatedLedgerEntries(filters: LedgerFilters) {
   });
 
   return {
-    entries,
+    entries: await withClickAttribution(entries, filters.affiliateId),
     page,
     limit,
     total,
     totalPages: Math.max(1, Math.ceil(total / limit)),
   };
+}
+
+type AttributableEntry = {
+  type: LedgerEntryType;
+  slicewpCommissionId: number | null;
+};
+
+/**
+ * Marks each direct sale with whether a click of this affiliate's is on file
+ * for it. One extra query per page, bounded by the page size.
+ *
+ * Overrides are left null rather than false: a team bonus is earned on someone
+ * else's sale, so "no click recorded" would be describing the wrong person's
+ * traffic.
+ */
+async function withClickAttribution<T extends AttributableEntry>(
+  entries: T[],
+  affiliateId: string
+): Promise<Array<T & { trackedByClick: boolean | null }>> {
+  const ids = entries
+    .filter((entry) => entry.type === LedgerEntryType.DIRECT)
+    .map((entry) => entry.slicewpCommissionId)
+    .filter((id): id is number => id !== null);
+
+  const tracked =
+    ids.length > 0
+      ? await prisma.visit.findMany({
+          where: { affiliateId, slicewpCommissionId: { in: ids } },
+          select: { slicewpCommissionId: true },
+          distinct: ["slicewpCommissionId"],
+        })
+      : [];
+
+  const trackedIds = new Set(tracked.map((visit) => visit.slicewpCommissionId));
+
+  return entries.map((entry) => ({
+    ...entry,
+    trackedByClick:
+      entry.type !== LedgerEntryType.DIRECT
+        ? null
+        : entry.slicewpCommissionId !== null &&
+          trackedIds.has(entry.slicewpCommissionId),
+  }));
+}
+
+/**
+ * Every row the current filters match, for CSV export.
+ *
+ * Capped rather than unbounded: an export is a convenience, and a request that
+ * tries to serialise an entire account's history is more likely a mistake than
+ * a need. The cap is well above any real affiliate's lifetime entry count.
+ */
+export const EXPORT_ROW_LIMIT = 5000;
+
+export async function getLedgerExportRows(filters: LedgerFilters) {
+  const entries = await prisma.ledgerEntry.findMany({
+    where: buildWhere(filters),
+    include: {
+      sourceAffiliate: { select: { displayName: true, email: true } },
+      payoutBatch: { select: { label: true } },
+    },
+    orderBy: buildLedgerOrderBy(
+      filters.sortBy ?? "date",
+      filters.sortDir ?? defaultSortDirection(filters.sortBy ?? "date")
+    ),
+    take: EXPORT_ROW_LIMIT,
+  });
+
+  /**
+   * Every converting click at once, rather than an `IN` list built from up to
+   * five thousand exported rows. Only visits that produced a commission carry
+   * an id at all, so this set stays in the hundreds even for the busiest
+   * affiliate in the account.
+   */
+  const converted = await prisma.visit.findMany({
+    where: { affiliateId: filters.affiliateId, slicewpCommissionId: { not: null } },
+    select: { slicewpCommissionId: true },
+    distinct: ["slicewpCommissionId"],
+  });
+
+  const trackedIds = new Set(
+    converted.map((visit) => visit.slicewpCommissionId)
+  );
+
+  return entries.map((entry) => ({
+    ...entry,
+    trackedByClick:
+      entry.type !== LedgerEntryType.DIRECT
+        ? null
+        : entry.slicewpCommissionId !== null &&
+          trackedIds.has(entry.slicewpCommissionId),
+  }));
 }
 
 /**
@@ -274,7 +372,23 @@ export async function getLedgerResponse(filters: LedgerFilters) {
     _count: { _all: true },
   });
 
-  const summary = summaryFromGroups(groups, {
+  const occurredAt = periodWhere(filters.range ?? null);
+
+  /**
+   * Tab counts and the filtered summary follow the chosen period, so "Unpaid ·
+   * 12" agrees with the twelve rows on screen. The account-wide totals below
+   * deliberately do not — an outstanding balance is not a property of a window.
+   */
+  const scopedGroups = occurredAt
+    ? await prisma.ledgerEntry.groupBy({
+        by: ["type", "status", "sourceAffiliateId"],
+        where: { affiliateId: filters.affiliateId, occurredAt },
+        _sum: { amount: true },
+        _count: { _all: true },
+      })
+    : groups;
+
+  const summary = summaryFromGroups(scopedGroups, {
     type: filters.type,
     status: filters.status,
     sourceAffiliateId: filters.sourceAffiliateId,
@@ -282,7 +396,7 @@ export async function getLedgerResponse(filters: LedgerFilters) {
 
   const accountSummary = summaryFromGroups(groups);
 
-  const overrideSummary = summaryFromGroups(groups, {
+  const overrideSummary = summaryFromGroups(scopedGroups, {
     type: LedgerEntryType.OVERRIDE,
     sourceAffiliateId: filters.sourceAffiliateId,
   });
@@ -377,6 +491,6 @@ export async function getLedgerResponse(filters: LedgerFilters) {
     overrideAccountSummary,
     teamBonuses,
     sourceAffiliates,
-    tabCounts: tabCountsFromGroups(groups),
+    tabCounts: tabCountsFromGroups(scopedGroups),
   };
 }

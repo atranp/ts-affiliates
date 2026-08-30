@@ -10,10 +10,15 @@ export const queryKeys = {
     q?: string;
     sortBy?: string;
     sortDir?: string;
+    from?: string;
+    to?: string;
   } = {}) => ["ledger", params] as const,
+  performance: (params: { period: string; from?: string; to?: string }) =>
+    ["performance", params] as const,
   payouts: ["payouts"] as const,
   links: ["links"] as const,
-  visits: (page: number) => ["visits", page] as const,
+  visits: (page: number, outcome: string = "all") =>
+    ["visits", page, outcome] as const,
   creatives: ["creatives"] as const,
   coupons: ["coupons"] as const,
   accountSettings: ["account", "settings"] as const,

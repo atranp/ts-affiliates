@@ -77,7 +77,16 @@ function daysAgo(days: number): Date {
 
 export async function getAffiliateVisits(
   affiliateId: string,
-  options: { page?: number; pageSize?: number } = {}
+  options: {
+    page?: number;
+    pageSize?: number;
+    /**
+     * Narrows the listed clicks to those that did or did not produce a sale.
+     * Affects the list and its total only — the headline stats stay account-wide
+     * so the filter has something to be a fraction of.
+     */
+    converted?: boolean;
+  } = {}
 ): Promise<AffiliateVisits> {
   const pageSize = Math.min(
     Math.max(options.pageSize ?? DEFAULT_VISIT_PAGE_SIZE, 1),
@@ -86,6 +95,13 @@ export async function getAffiliateVisits(
   const page = Math.max(options.page ?? 1, 1);
 
   const where = { affiliateId };
+  const listWhere =
+    options.converted === undefined
+      ? where
+      : {
+          ...where,
+          slicewpCommissionId: options.converted ? { not: null } : null,
+        };
 
   const [total, last7, last30, converted, lastVisit, recent, daily] =
     await Promise.all([
@@ -105,7 +121,7 @@ export async function getAffiliateVisits(
         select: { occurredAt: true },
       }),
       prisma.visit.findMany({
-        where,
+        where: listWhere,
         orderBy: { occurredAt: "desc" },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -119,6 +135,14 @@ export async function getAffiliateVisits(
       }),
       dailyVisitCounts(affiliateId),
     ]);
+
+  // Only worth a second count when a filter is actually narrowing the list.
+  const listTotal =
+    options.converted === undefined
+      ? total
+      : options.converted
+        ? converted
+        : total - converted;
 
   return {
     stats: {
@@ -137,7 +161,7 @@ export async function getAffiliateVisits(
       occurredAt: visit.occurredAt.toISOString(),
     })),
     daily,
-    total,
+    total: listTotal,
     page,
     pageSize,
   };

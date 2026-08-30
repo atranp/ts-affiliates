@@ -178,6 +178,9 @@ model Visit {
 
   @@index([affiliateId, occurredAt])
   @@index([occurredAt])
+  /// Looked up per ledger entry to tell a sale traced to a click from one that
+  /// arrived without one, so it has to be indexed on its own.
+  @@index([slicewpCommissionId])
 }
 
 /// A marketing asset affiliates can use. Store-wide, not per-affiliate: the

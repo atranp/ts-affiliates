@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Search, X } from 'lucide-react';
+import { Download, Search, X } from 'lucide-react';
 import { AffiliateStatCard } from '@/components/affiliate/AffiliateStatCard';
 import { LedgerFilterSelect } from '@/components/affiliate/LedgerFilterSelect';
 import { LedgerTable } from '@/components/LedgerTable';
@@ -43,6 +43,8 @@ type CommissionsPanelProps = {
   onSortChange: (key: LedgerSortKey, dir: SortDirection) => void;
   onClearFilters: () => void;
   onPageChange: (page: number) => void;
+  /** URL of the CSV for the current filters; the button is hidden without it. */
+  exportHref?: string;
   fillHeight?: boolean;
   className?: string;
 };
@@ -160,6 +162,7 @@ export function CommissionsPanel({
   onSortChange,
   onClearFilters,
   onPageChange,
+  exportHref,
   fillHeight = false,
   className,
 }: CommissionsPanelProps) {
@@ -368,15 +371,28 @@ export function CommissionsPanel({
               />
             </div>
 
-            <div className="relative min-w-0 w-full sm:max-w-xs">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={q}
-                onChange={(event) => onSearchChange(event.target.value)}
-                placeholder={AFFILIATE_COPY.commissions.searchPlaceholder}
-                className="ts-input pl-9"
-                aria-label={AFFILIATE_COPY.commissions.searchPlaceholder}
-              />
+            <div className="flex min-w-0 items-end gap-2 sm:justify-end">
+              <div className="relative min-w-0 flex-1 sm:w-64 sm:max-w-xs sm:flex-none">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={q}
+                  onChange={(event) => onSearchChange(event.target.value)}
+                  placeholder={AFFILIATE_COPY.commissions.searchPlaceholder}
+                  className="ts-input pl-9"
+                  aria-label={AFFILIATE_COPY.commissions.searchPlaceholder}
+                />
+              </div>
+
+              {exportHref ? (
+                <a
+                  href={exportHref}
+                  download
+                  className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-input bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Download className="h-3.5 w-3.5" aria-hidden />
+                  {AFFILIATE_COPY.commissions.exportCsv}
+                </a>
+              ) : null}
             </div>
           </div>
 

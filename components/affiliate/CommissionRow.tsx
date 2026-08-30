@@ -5,6 +5,7 @@ import {
   commissionTypeVariant,
 } from '@/components/affiliate/AffiliateBadge';
 import { AffiliateAmountCell } from '@/components/affiliate/primitives';
+import { TrackedByBadge } from '@/components/affiliate/TrackedByBadge';
 import {
   formatCommissionStatus,
   formatCommissionType,
@@ -38,6 +39,7 @@ type CommissionRowProps = {
   status: string;
   type: string;
   payoutWeek?: string | null;
+  trackedByClick?: boolean | null;
   onClick?: () => void;
   className?: string;
   /** Card = standalone bordered row; flat = divider row inside a panel */
@@ -52,6 +54,7 @@ export function CommissionRow({
   status,
   type,
   payoutWeek = null,
+  trackedByClick = null,
   onClick,
   className,
   layout = 'card',
@@ -82,9 +85,12 @@ export function CommissionRow({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1 space-y-1">
           <p className="ts-row-title truncate leading-snug">{details}</p>
-          <span className={affiliateBadgeClass(variant)}>
-            {formatCommissionType(type)}
-          </span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className={affiliateBadgeClass(variant)}>
+              {formatCommissionType(type)}
+            </span>
+            <TrackedByBadge tracked={trackedByClick} />
+          </div>
           {metaLine ? (
             <p className="ts-row-meta truncate">{metaLine}</p>
           ) : null}
@@ -101,9 +107,12 @@ export function CommissionRow({
       <div className="flex min-w-0 items-start justify-between gap-4">
         <div className="min-w-0 flex-1 space-y-1.5">
           <p className="ts-row-title truncate leading-snug">{details}</p>
-          <span className={affiliateBadgeClass(variant)}>
-            {formatCommissionType(type)}
-          </span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className={affiliateBadgeClass(variant)}>
+              {formatCommissionType(type)}
+            </span>
+            <TrackedByBadge tracked={trackedByClick} />
+          </div>
           {metaLine ? (
             <p className="ts-row-meta truncate">{metaLine}</p>
           ) : null}

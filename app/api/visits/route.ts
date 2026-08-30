@@ -12,9 +12,12 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const page = Number(searchParams.get("page") ?? "1");
   const pageSize = Number(searchParams.get("limit") ?? "50");
+  const convertedParam = searchParams.get("converted");
+  const converted =
+    convertedParam === "1" ? true : convertedParam === "0" ? false : undefined;
 
   if (isAffiliateMockMode()) {
-    return NextResponse.json(mockAffiliateVisits(page));
+    return NextResponse.json(mockAffiliateVisits(page, converted));
   }
 
   const { affiliateId } = auth.user;
@@ -26,6 +29,7 @@ export async function GET(request: Request) {
     await getAffiliateVisits(affiliateId, {
       page: Number.isFinite(page) ? page : 1,
       pageSize: Number.isFinite(pageSize) ? pageSize : 50,
+      converted,
     })
   );
 }

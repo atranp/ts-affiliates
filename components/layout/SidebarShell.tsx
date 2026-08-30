@@ -221,6 +221,18 @@ export function SidebarShell({
     setMobileOpen(false);
   }, [pathname, searchParams]);
 
+  // Escape closes the drawer, the way every other overlay on the site does.
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setMobileOpen(false);
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [mobileOpen]);
+
   const tabParam = searchParams.get("tab");
 
   function navActive(item: SidebarNavItem) {
