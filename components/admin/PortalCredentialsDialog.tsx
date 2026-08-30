@@ -17,8 +17,9 @@ export type PortalCredentials = {
   title: string;
   description: string;
   email: string;
-  temporaryPassword: string;
+  inviteLink: string;
   inviteMessage: string;
+  expiresInHours: number;
 };
 
 export async function copyToClipboard(text: string): Promise<boolean> {
@@ -124,16 +125,15 @@ export function PortalCredentialsDialog({
           <div className="flex gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-xs leading-relaxed text-foreground">
             <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
             <p>
-              This password is shown once and is not stored anywhere. Copy it
-              before closing — recovering it means resetting again.
+              This link works once and expires in {credentials.expiresInHours}{" "}
+              hours. It is shown here only — issue a new one if it is lost or
+              runs out. Avoid channels that scan links, which can spend it
+              before the affiliate clicks.
             </p>
           </div>
 
           <CopyField label="Login email" value={credentials.email} />
-          <CopyField
-            label="Temporary password"
-            value={credentials.temporaryPassword}
-          />
+          <CopyField label="One-time link" value={credentials.inviteLink} />
 
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground">

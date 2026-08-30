@@ -5,6 +5,7 @@ import {
 } from "@/lib/auth-role";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { describePasswordWeakness } from "@/lib/account/change-password-validation";
 
 export async function POST(request: Request) {
   const auth = await requireAuth();
@@ -25,11 +26,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  if (password.length < 8) {
-    return NextResponse.json(
-      { error: "Password must be at least 8 characters" },
-      { status: 400 }
-    );
+  const weakness = describePasswordWeakness(password, {
+    email: auth.user.email,
+  });
+
+  if (weakness) {
+    return NextResponse.json({ error: weakness }, { status: 400 });
   }
 
   const supabase = await createClient();

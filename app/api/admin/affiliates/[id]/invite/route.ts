@@ -6,7 +6,7 @@ import { mockInviteAffiliate } from "@/lib/mock/admin-fixtures";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-export async function POST(_request: Request, context: RouteContext) {
+export async function POST(request: Request, context: RouteContext) {
   const auth = await requireAdmin();
   if ("error" in auth) return auth.error;
 
@@ -17,7 +17,11 @@ export async function POST(_request: Request, context: RouteContext) {
       return NextResponse.json(mockInviteAffiliate(id));
     }
 
-    const result = await inviteAffiliateToPortal(id, auth.user.id);
+    const result = await inviteAffiliateToPortal(
+      id,
+      auth.user.id,
+      new URL(request.url).origin
+    );
     return NextResponse.json(result);
   } catch (error) {
     console.error("Affiliate invite failed:", error);

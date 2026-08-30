@@ -242,6 +242,7 @@ Not proposing a full suite. The minimum is anything where "submit twice" or "par
 - Settle idempotency (M3) — ✅ `npm run m3-smoke`
 - Direct payout anchor dedupe (M3) — ✅ `npm run m3-smoke`
 - `syncDirectLedgerEntries` not walking a settled entry back to `UNPAID` (already fixed) — ✅ `npm run m3-smoke` now runs a full sync mid-test and asserts the batch survives it
+- Portal links being single-use, and a re-issue actually killing the old password — ✅ `npm run portal-link-smoke`
 
 Everything else stays manual via the exit criteria.
 
@@ -877,19 +878,233 @@ shown. It would need decoding before being rendered as an anchor.
 
 ---
 
+## Portal access hand-off ✅ (2026-08-30)
+
+**Goal:** Getting an affiliate into the portal should not require mailing them a
+password. Invite *selection* stays manual and deliberate — an admin still picks
+who — but the credential itself stops being a plaintext string a human relays.
+
+### What was wrong
+
+`inviteAffiliateToPortal()` generated a 16-character password, embedded it in a
+copy-paste message, and left an admin to deliver it. Four consequences:
+
+1. **The credential was also the delivery mechanism.** It never expired and it
+   came to rest permanently in the admin's sent folder and the affiliate's
+   inbox. `mustChangePassword` only fires when *somebody* signs in — whoever got
+   there first set the real password, and that need not be the affiliate.
+2. **No self-service reset.** The login page dead-ended at "contact your
+   administrator", and the admin's reset generated *another* plaintext password,
+   so every reset repeated the problem.
+3. **The password floor was 8 characters** and nothing else.
+4. **The forced-change gate is a cookie**, not a check. Middleware trusts
+   `ts-must-change-password`; deleting that one cookie in devtools skips the gate
+   while the session survives.
+
+Items 1 and 2 are what the links fix. Item 3 is fixed below. Item 4 turned out
+not to be worth fixing — see *The forced-change gate stopped mattering*.
+
+### What replaced it
+
+`supabase.auth.admin.generateLink()` — a single-use, expiring link. Nothing is
+emailed: that method exists precisely so the caller can deliver the link
+themselves, which is the whole distinction from `inviteUserByEmail`. The
+codebase still contains no mail provider and no sending Supabase call, so the
+"the platform never sends email" property in the audit above still holds.
+
+| Piece | File |
+|---|---|
+| Link + message construction, origin resolution | `lib/admin/portal-credentials.ts` |
+| Invite / reset using `generateLink` | `lib/admin/affiliate-portal.ts` |
+| Redemption | `app/auth/confirm/route.ts` |
+
+Four decisions worth keeping:
+
+**Supabase's `action_link` is deliberately unused.** It assumes the implicit
+flow and breaks under PKCE, because the browser that generated the link is not
+the one redeeming it. `/auth/confirm` exchanges `hashed_token` server-side via
+`verifyOtp` instead. A pleasant side effect: since we never follow Supabase's
+redirect, no redirect-URL allowlisting is needed.
+
+**Re-issuing a link retires the account's current password.** Every password the
+old flow produced reached its owner as plaintext sitting in a mailbox, so the
+moment a new link is issued is the right moment to make the old one dead. The
+replacement is 48 random characters that are never returned or displayed, which
+leaves the link as the only way in. For an account that already exists the
+password is retired *before* the link is minted, so the two cannot race.
+
+**The origin is configured, never taken from the request.** A link pointing at
+the wrong host hands the token to whoever owns that host, so a forged `Host`
+header must not be able to aim an invite. `NEXT_PUBLIC_APP_URL` wins, then
+`VERCEL_PROJECT_PRODUCTION_URL`, and the request origin is a development
+convenience only.
+
+**The token proves control of a mailbox, not that access is still allowed.** A
+link minted before an account was disabled must not resurrect it, so
+`/auth/confirm` re-checks `portalDisabledAt` after `verifyOtp` and signs the
+session straight back out if it is set.
+
+### `NEXT_PUBLIC_APP_URL` was never set in production
+
+It is documented in `.env.example` but absent from Vercel, so `portalLoginUrl()`
+had been falling back to `http://localhost:3000` — every invite message ever
+generated on production told the affiliate to sign in at localhost. Harmless
+while only two affiliates had logins and the message was mostly a password;
+fatal once the message *is* a link. **Set it on Vercel production before
+deploying this.**
+
+### Link expiry is a dashboard setting, not code
+
+Supabase's *Email OTP expiration* governs invite, recovery, confirmation and
+email-change links as well as OTPs. `PORTAL_LINK_TTL_HOURS` only controls the
+wording shown to the admin and written into the message; changing it does not
+change when a link stops working. The two have to be kept in step by hand.
+
+### Password rules now live in one place
+
+`MIN_PASSWORD_LENGTH` was 8, and the form imported it while
+`POST /api/account/change-password` hard-coded its own `password.length < 8`.
+Raising the constant would therefore have tightened the UI while leaving the
+endpoint accepting the old minimum — a split worth closing regardless of the
+number. Both sides now call `describePasswordWeakness()`.
+
+The floor moved to 12, with no composition rules. That follows NIST SP 800-63B:
+length and screening beat "one uppercase, one digit", which mostly produces
+predictable substitutions. Alongside the length check it rejects a single
+repeated character, a sequential run of six or more, anything containing the
+account's own email local part, and a short list of terms an attacker on a True
+Sciences login would try first.
+
+Screening against known-breached passwords is deliberately **not** done here —
+it needs the breach list. Turn on Supabase → Authentication → Password Security
+→ leaked password protection, which is still off.
+
+### The forced-change gate stopped mattering
+
+This was on the list as hardening, and the links removed the reason for it.
+
+Under the old flow the gate protected against an affiliate continuing to use the
+password an admin had mailed them. There is no such password now: `generateLink`
+with `type: invite` creates the account without one, and re-issuing sets 48
+random characters nobody has seen. An affiliate who deletes the cookie and skips
+the page therefore ends up with a *session but no password*, and the next visit
+needs another link. That is a lockout waiting to happen, not an escalation —
+they can only inconvenience themselves.
+
+So the middleware cookie stays as-is. Enforcing it server-side would mean a
+profile lookup on every affiliate page render to defend a user against
+themselves, which is not a trade worth making. `/auth/confirm`, `/api/me` and
+the login flow all set the cookie, so the only way to miss it is to go looking.
+
+### Known operational caveat: link prefetching
+
+Redemption is a `GET` that consumes a one-time token, so any system that
+prefetches or scans links — corporate mail filters, some chat clients — can
+spend it before the affiliate clicks. The admin dialog warns about this. It is
+an argument for delivering pilot links over SMS or WhatsApp, and something
+Phase 2 has to handle properly if invites ever go out by email.
+
+### Verification (Mode C, local Supabase)
+
+`npm run portal-link-smoke` — 13/13. Real tokens against a real Supabase,
+because "does the old credential actually stop working" is a question a mocked
+client answers by construction and therefore proves nothing about.
+
+| Check | Result |
+|---|---|
+| Invite returns a link and no password | pass |
+| Link targets `/auth/confirm` with an invite token | pass |
+| Link origin honours the configured app URL | pass |
+| Profile created, linked, flagged to set a password | pass |
+| Message carries the link, not a credential | pass |
+| Token redeems into a session | pass |
+| Same token cannot be redeemed twice | pass |
+| Known password signs in before re-issue | pass |
+| Reset retires the previous password | pass |
+| Reset issues a recovery link | pass |
+| Recovery token redeems into a session | pass |
+| Password rules hold at a 12-character floor | pass |
+| Forged token is refused | pass |
+
+Route behaviour, curled against `npm run dev`:
+
+| Request | Redirect |
+|---|---|
+| No parameters | `/login?error=link_invalid` |
+| `type=magiclink` (outside the allowlist) | `/login?error=link_invalid` |
+| Garbage token | `/login?error=link_expired` |
+| Valid invite link | `/account/change-password` |
+| Same link a second time | `/login?error=link_expired` |
+| Link for a disabled account | `/login?error=PORTAL_DISABLED` |
+
+`npm run guard-check` 6/6 unchanged. `npx tsc --noEmit` and `npm run build`
+clean.
+
+Two incidental fixes fell out of this. Middleware used to bounce any signed-in
+visitor off `/auth/*`, which would have stranded a fresh link for anyone who
+still had a session — `/auth/*` are route handlers and now always run. And the
+login page ignored the `?error=` parameter entirely, so `/auth/callback`'s
+existing failure redirect rendered as a blank login form; the reasons are now
+surfaced.
+
+### Touches live?
+
+No. Changes what an admin copies; sends nothing. Affiliates cannot reach the
+portal until the `/affiliate-account/` redirect ships.
+
+---
+
 ## Milestone 6 — Cutover
 
 **Goal:** Affiliates use the platform; WP affiliate area redirects.
 
+### Pre-flight audit (2026-08-30)
+
+`npx tsx scripts/m6-prod-audit.ts "<prod DIRECT_URL>"` — read-only.
+
+**Production schema is up to date.** All three M4 tables and all twelve M3–M5
+columns are present, applied 2026-08-24. The M0–M5 code is deployable.
+
+**The onboarding gap is far larger than this plan assumed:**
+
+| | |
+|---|---|
+| Affiliates mirrored | 215 |
+| Status ACTIVE | 211 |
+| Have a portal login | 2 |
+| Earned in the last 90 days | 49 |
+| ...of those, can log in | 1 |
+
+Local WordPress has 92 affiliates; production has 215. "Pilot 3–5 then redirect"
+strands 213 people, 48 of them actively earning. The redirect has to be gated on
+onboarding progress, not just on the pilot going quietly.
+
+**The production `Settings` row does not decrypt.** Neither the local
+`ENCRYPTION_SECRET` nor the service role key opens it (`m6-which-key`), and
+`resolveCredential()` in `lib/settings.ts` swallows the failure and falls through
+to the plain env vars — so production runs on Vercel's `WC_*` / `SLICEWP_*`
+variables while the encrypted row sits ignored. Vercel marks all 14 secrets
+write-only, so `vercel env pull` returns `[SENSITIVE]` placeholders and this
+cannot be confirmed from a local machine either way. It matters because the
+read/write SliceWP key is destined for that same column: if the row cannot be
+read, production silently falls back to the old **read-only** key and every
+payout write-back fails with a 401. Re-saving credentials through prod Admin →
+Integrations settles it. `scripts/m6-prod-volume.ts` could not run for the same
+reason — it needs production SliceWP credentials.
+
 ### Tasks
 
+- [ ] **Set `NEXT_PUBLIC_APP_URL` on Vercel production** — invite links are unusable without it
+- [ ] Resolve the `Settings` row / env-var credential split before the read/write key goes in
 - [ ] Deploy `ts-slicewp-bridge.php` to prod `mu-plugins/`
 - [ ] Create prod `read_write` SliceWP API key (admin-owned) → Vercel env / prod Settings
 - [ ] Set `ALLOW_PRODUCTION_WRITES=true` on Vercel production only
 - [ ] Supabase provisioning hook on `slicewp_register_affiliate`
 - [ ] Redirect `/affiliate-account/` → platform dashboard
 - [ ] Pilot cohort (3–5 affiliates with `Profile` rows) before full redirect
+- [ ] Onboard the 48 recently-earning affiliates before the redirect goes sitewide
 - [ ] Remove theme SliceWP UI overrides (keep commission logic — see below)
+- [ ] **Enable Supabase leaked-password protection** (Authentication → Password Security) — the only password check that cannot be done in code
 
 ### Exit criteria
 
@@ -992,6 +1207,9 @@ All native writes require a **Read/Write** API key owned by a WordPress **admini
 | 2026-08-24 | **M3 complete** | Anchor dedupe via the explicit `slicewpPaymentId` link (exact, not the planned overlap heuristic), with exact set-equality as a backstop. `lib/payouts/reconcile.ts` separates outstanding write-backs from drift, gated on the last commission sync so it cannot accuse itself. Admin banner + per-batch retry on `/admin/payouts`, audited as `payout.write_back_retry`. `m3-smoke` 16/16 and now syncs mid-test, which also proves a sync does not un-pay a settled batch. `npm run drift-probe` confirms the drift query actually fires |
 | 2026-08-24 | **M4 complete** | `Visit` / `Creative` / `AffiliateCoupon` + slug, referral URL and store credit on `Affiliate`. None of those four are in SliceWP's REST payload, so the bridge gained a bulk `GET /affiliate-extras` and lets WordPress build the referral URL rather than reproducing settings-dependent logic here. Visit sync is incremental by date watermark **plus** an unbounded `converted=true` pass, because SliceWP back-fills `commission_id` onto old rows a date filter would never revisit. 32,879 visits backfilled, second run 743. `npm run m4-verify` compares the mirror against SliceWP's MySQL directly — 13/13 with the conversion drill. Found and repaired a corrupt `slicewp_settings` option left by the prod→local clone. M3 16/16 and guards 6/6 still green |
 | 2026-08-24 | **M5 complete** | Five affiliate tabs — Your Link, Creatives, Coupons, Traffic, Settings — behind `lib/affiliate/reach.ts`, all session-scoped. Settings writes do **not** use the native REST API: SliceWP validates custom slugs in a form hook, so `PUT /affiliates/{id}` would let an affiliate take a slug already belonging to someone else and silently steal their clicks. The bridge gained a validating `POST /affiliates/{id}/settings` and a `GET /affiliates/{id}/link` generator. Caught a bug in that same bridge code: `website` is a **column**, not meta, so the original meta write round-tripped perfectly while being invisible to SliceWP's own admin — found by noticing 0 of 92 affiliates had one when the real column had 31. It is now mirrored by the main sync. `m5-bridge-smoke` 10/10, `m5-verify` 17/17, M4 11/11 and guards 6/6 still green |
+| 2026-08-30 | **M6 pre-flight** | Production schema audited: all M3–M5 tables and columns present, code is deployable. Two problems found. The onboarding gap is 213 of 215 affiliates with no login (48 of them earning in the last 90 days), so "pilot then redirect" under-scoped the cutover by an order of magnitude. And the production `Settings` row does not decrypt with any key available locally, meaning production silently runs on Vercel env vars — which will strand the read/write SliceWP key when it lands in that same column |
+| 2026-08-30 | **Password rules** | Floor raised 8 → 12 with pattern checks (repeats, sequential runs, own email, predictable terms) and no composition rules, per NIST SP 800-63B. Closed a split where the form imported `MIN_PASSWORD_LENGTH` while the endpoint hard-coded its own `< 8`, so tightening the constant would have moved the UI and not the server. Dropped the planned server-side forced-change gate: with links there is no admin-issued password left to keep using, so skipping the page only strands the affiliate without one — not worth a profile lookup on every page render |
+| 2026-08-30 | **Portal access hand-off** | Invites and resets became single-use `generateLink` links instead of plaintext passwords relayed by hand; selection stays manual, delivery stays human, and the platform still sends no email. Supabase's `action_link` is unused because it breaks under PKCE, so `/auth/confirm` redeems `hashed_token` server-side. Re-issuing now retires the account's existing password, which finally kills every credential the old flow mailed out. Found `NEXT_PUBLIC_APP_URL` unset in production — every invite message ever generated there pointed at localhost. `portal-link-smoke` 12/12 against real tokens, six route branches curled, guards 6/6 |
 | | | **Next:** M6 — cutover |
 
 _Update this table as milestones complete._

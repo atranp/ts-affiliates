@@ -49,7 +49,11 @@ export async function POST(request: Request, context: RouteContext) {
 
     switch (action) {
       case "reset-password": {
-        const result = await resetAffiliatePortalPassword(id, auth.user.id);
+        const result = await resetAffiliatePortalPassword(
+          id,
+          auth.user.id,
+          new URL(request.url).origin
+        );
         return NextResponse.json(result);
       }
       case "disable": {

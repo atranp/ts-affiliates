@@ -310,19 +310,21 @@ export const AFFILIATE_COPY = {
     changePassword: {
       title: 'Change password',
       description: 'Choose a strong password you do not use anywhere else.',
-      requiredTitle: 'Set a new password',
+      requiredTitle: 'Choose your password',
       requiredDescription:
-        'Your administrator issued a temporary password. Choose a new one to continue.',
+        'You signed in with a one-time link. Choose a password so you can get back in without one.',
       requiredBanner:
-        'You must set a new password before you can use the Ambassador Portal.',
+        'Set a password before using the Ambassador Portal. Your sign-in link cannot be used again.',
       panelTitle: 'New password',
-      panelDescription: 'At least 8 characters. Use a mix you will remember.',
+      panelDescription:
+        'Length matters more than symbols — a few unrelated words you will remember beats a short, clever one.',
       fields: {
         password: 'New password',
         confirm: 'Confirm new password',
       },
       requirements: {
         length: (min: number) => `At least ${min} characters`,
+        strength: 'Not your email or an easy-to-guess pattern',
         match: 'Passwords match',
       },
       submit: 'Update password',
@@ -335,7 +337,7 @@ export const AFFILIATE_COPY = {
       successRedirecting: 'Taking you to your dashboard…',
       successAction: 'Go to dashboard',
       footer:
-        'Need help? Contact your True Sciences administrator to reset your password.',
+        'Need help? Contact your True Sciences administrator for a new sign-in link.',
       errors: {
         updateFailed: 'Unable to update password. Please try again.',
       },

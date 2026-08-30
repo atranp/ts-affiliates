@@ -1,29 +1,56 @@
+import { randomInt } from "node:crypto";
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { assertWritableAuth } from "@/lib/env-guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { linkProfileToAffiliateByEmail } from "@/lib/sync";
 import {
+  buildPortalConfirmUrl,
   buildPortalInviteMessage,
-  randomPassword,
+  PORTAL_LINK_TTL_HOURS,
+  resolveAppOrigin,
+  type PortalLinkKind,
 } from "./portal-credentials";
 import { logAdminAction } from "./audit-log";
 
 export { buildPortalInviteMessage };
 
+/** Where a redeemed link drops the affiliate, so they pick their own password. */
+const SET_PASSWORD_PATH = "/account/change-password";
+
+const PASSWORD_ALPHABET =
+  "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+/**
+ * Retires whatever password an account currently holds. The value is never
+ * returned or shown — that is the point, since it leaves the one-time link as
+ * the only way in. Every password the old flow issued reached its owner as
+ * plaintext sitting in a mailbox, so re-issuing a link is the right moment to
+ * make those dead.
+ */
+function unknowablePassword(length = 48): string {
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += PASSWORD_ALPHABET[randomInt(PASSWORD_ALPHABET.length)];
+  }
+  return result;
+}
+
 export type InviteAffiliateResult = {
   created: boolean;
   linked: boolean;
   email: string;
-  temporaryPassword?: string;
   profileId: string;
+  inviteLink?: string;
   inviteMessage?: string;
+  expiresInHours?: number;
 };
 
 export type PortalActionResult = {
   email: string;
-  temporaryPassword?: string;
+  inviteLink?: string;
   inviteMessage?: string;
+  expiresInHours?: number;
 };
 
 async function getAffiliateWithProfile(affiliateId: string) {
@@ -66,28 +93,61 @@ async function findAuthUserIdByEmail(email: string): Promise<string | null> {
   return null;
 }
 
-async function setAuthPassword(
+async function prepareAuthUser(
   userId: string,
-  password: string,
-  displayName: string
+  displayName: string,
+  options: { retireExistingPassword?: boolean } = {}
 ) {
   const supabase = createAdminClient();
   const { error } = await supabase.auth.admin.updateUserById(userId, {
-    password,
-    email_confirm: true,
     app_metadata: { role: Role.AFFILIATE },
     user_metadata: { name: displayName },
     ban_duration: "none",
+    ...(options.retireExistingPassword
+      ? { password: unknowablePassword() }
+      : {}),
   });
 
   if (error) {
-    throw new Error(`Failed to update login: ${error.message}`);
+    throw new Error(`Failed to prepare login: ${error.message}`);
   }
+}
+
+/**
+ * Returns the token for a single-use link. Sends nothing: `generateLink` exists
+ * precisely so the caller can deliver it themselves, unlike `inviteUserByEmail`.
+ *
+ * `invite` also creates the auth user; `recovery` requires one to exist, which
+ * is why the caller picks based on whether the address is already registered.
+ */
+async function generatePortalLink(
+  email: string,
+  kind: PortalLinkKind
+): Promise<{ tokenHash: string; userId: string | null }> {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase.auth.admin.generateLink({
+    type: kind,
+    email,
+  });
+
+  if (error) {
+    throw new Error(`Failed to generate ${kind} link: ${error.message}`);
+  }
+
+  const tokenHash = data.properties?.hashed_token;
+
+  if (!tokenHash) {
+    throw new Error("Supabase returned no token for the portal link");
+  }
+
+  return { tokenHash, userId: data.user?.id ?? null };
 }
 
 export async function inviteAffiliateToPortal(
   affiliateId: string,
-  adminId?: string
+  adminId?: string,
+  requestOrigin?: string
 ): Promise<InviteAffiliateResult> {
   assertWritableAuth();
 
@@ -142,31 +202,33 @@ export async function inviteAffiliateToPortal(
     };
   }
 
-  const temporaryPassword = randomPassword();
   const existingAuthId = await findAuthUserIdByEmail(email);
+  const kind: PortalLinkKind = existingAuthId ? "recovery" : "invite";
+
+  // `invite` creates the account, so metadata can only be applied afterwards.
+  // For an account that already exists the order is reversed: retire the old
+  // password first, so the link that gets minted is the only way in.
   let userId = existingAuthId;
 
   if (existingAuthId) {
-    await setAuthPassword(existingAuthId, temporaryPassword, displayName);
-  } else {
-    const supabase = createAdminClient();
-    const { data, error } = await supabase.auth.admin.createUser({
-      email,
-      password: temporaryPassword,
-      email_confirm: true,
-      app_metadata: { role: Role.AFFILIATE },
-      user_metadata: { name: displayName },
+    await prepareAuthUser(existingAuthId, displayName, {
+      retireExistingPassword: true,
     });
-
-    if (error) {
-      throw new Error(`Failed to create login: ${error.message}`);
-    }
-
-    userId = data.user.id;
   }
+
+  const { tokenHash, userId: generatedUserId } = await generatePortalLink(
+    email,
+    kind
+  );
+
+  userId = userId ?? generatedUserId;
 
   if (!userId) {
     throw new Error("Failed to resolve portal user");
+  }
+
+  if (!existingAuthId) {
+    await prepareAuthUser(userId, displayName);
   }
 
   await prisma.profile.upsert({
@@ -191,10 +253,18 @@ export async function inviteAffiliateToPortal(
 
   await linkProfileToAffiliateByEmail(userId, email);
 
+  const inviteLink = buildPortalConfirmUrl({
+    origin: resolveAppOrigin(requestOrigin),
+    tokenHash,
+    kind,
+    next: SET_PASSWORD_PATH,
+  });
+
   const inviteMessage = buildPortalInviteMessage({
     name: displayName,
     email,
-    temporaryPassword,
+    link: inviteLink,
+    kind,
   });
 
   if (adminId) {
@@ -202,7 +272,7 @@ export async function inviteAffiliateToPortal(
       adminId,
       action: existingAuthId ? "PORTAL_RESET_PASSWORD" : "PORTAL_CREATE",
       affiliateId,
-      metadata: { profileId: userId },
+      metadata: { profileId: userId, linkKind: kind },
     });
   }
 
@@ -210,15 +280,17 @@ export async function inviteAffiliateToPortal(
     created: !existingAuthId,
     linked: true,
     email,
-    temporaryPassword,
     profileId: userId,
+    inviteLink,
     inviteMessage,
+    expiresInHours: PORTAL_LINK_TTL_HOURS,
   };
 }
 
 export async function resetAffiliatePortalPassword(
   affiliateId: string,
-  adminId: string
+  adminId: string,
+  requestOrigin?: string
 ): Promise<PortalActionResult> {
   assertWritableAuth();
 
@@ -228,14 +300,16 @@ export async function resetAffiliatePortalPassword(
     throw new Error("Affiliate does not have portal access");
   }
 
-  const temporaryPassword = randomPassword();
   const displayName =
     affiliate.displayName ?? affiliate.profile.name ?? affiliate.email;
 
-  await setAuthPassword(
-    affiliate.profile.id,
-    temporaryPassword,
-    displayName
+  await prepareAuthUser(affiliate.profile.id, displayName, {
+    retireExistingPassword: true,
+  });
+
+  const { tokenHash } = await generatePortalLink(
+    affiliate.profile.email,
+    "recovery"
   );
 
   await prisma.profile.update({
@@ -246,23 +320,32 @@ export async function resetAffiliatePortalPassword(
     },
   });
 
+  const inviteLink = buildPortalConfirmUrl({
+    origin: resolveAppOrigin(requestOrigin),
+    tokenHash,
+    kind: "recovery",
+    next: SET_PASSWORD_PATH,
+  });
+
   const inviteMessage = buildPortalInviteMessage({
     name: displayName,
     email: affiliate.profile.email,
-    temporaryPassword,
+    link: inviteLink,
+    kind: "recovery",
   });
 
   await logAdminAction({
     adminId,
     action: "PORTAL_RESET_PASSWORD",
     affiliateId,
-    metadata: { profileId: affiliate.profile.id },
+    metadata: { profileId: affiliate.profile.id, linkKind: "recovery" },
   });
 
   return {
     email: affiliate.profile.email,
-    temporaryPassword,
+    inviteLink,
     inviteMessage,
+    expiresInHours: PORTAL_LINK_TTL_HOURS,
   };
 }
 

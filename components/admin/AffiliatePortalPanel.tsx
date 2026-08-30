@@ -71,13 +71,14 @@ export function AffiliatePortalPanel({
 
       setInviteOpen(false);
 
-      if (result.temporaryPassword && result.inviteMessage) {
+      if (result.inviteLink && result.inviteMessage) {
         setCredentials({
-          title: "Portal login created",
-          description: `${affiliateName} can now sign in with these credentials.`,
+          title: result.created ? "Portal login created" : "New link issued",
+          description: `Send this to ${affiliateName}. They choose their own password when they open it.`,
           email: result.email,
-          temporaryPassword: result.temporaryPassword,
+          inviteLink: result.inviteLink,
           inviteMessage: result.inviteMessage,
+          expiresInHours: result.expiresInHours ?? 24,
         });
       } else if (result.linked) {
         toast.success("Portal access linked");
@@ -111,15 +112,16 @@ export function AffiliatePortalPanel({
 
       if (
         action === "reset-password" &&
-        result.temporaryPassword &&
+        result.inviteLink &&
         result.inviteMessage
       ) {
         setCredentials({
           title: "Password reset",
-          description: `The previous password for ${affiliateName} no longer works.`,
+          description: `The previous password for ${affiliateName} no longer works. This link lets them set a new one.`,
           email: result.email,
-          temporaryPassword: result.temporaryPassword,
+          inviteLink: result.inviteLink,
           inviteMessage: result.inviteMessage,
+          expiresInHours: result.expiresInHours ?? 24,
         });
       } else if (action === "disable") {
         toast.success("Portal access disabled");
@@ -239,8 +241,9 @@ export function AffiliatePortalPanel({
 
           {!portal.hasAccess && (
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Creates a login with a temporary password and an invite message
-              you can send to {affiliateName}.
+              Creates a login and a one-time link you can send to{" "}
+              {affiliateName}. Nothing is emailed — you choose how it reaches
+              them, and they set their own password.
             </p>
           )}
         </CardContent>
@@ -249,7 +252,7 @@ export function AffiliatePortalPanel({
       <ConfirmDialog
         open={inviteOpen}
         title="Create portal login?"
-        description={`Generates a temporary password for ${portal.loginEmail ?? affiliateName} and an invite message you can send them.`}
+        description={`Generates a one-time link for ${portal.loginEmail ?? affiliateName}. Nothing is sent — you deliver it yourself.`}
         confirmLabel="Create login"
         loading={loading === "invite"}
         onConfirm={handleInvite}
@@ -259,7 +262,7 @@ export function AffiliatePortalPanel({
       <ConfirmDialog
         open={resetOpen}
         title="Reset portal password?"
-        description="The current password stops working immediately. You'll get a new temporary password to share."
+        description="The current password stops working immediately. You'll get a one-time link to share so they can set a new one."
         confirmLabel="Reset password"
         loading={loading === "reset-password"}
         onConfirm={() => runPortalAction("reset-password", () => setResetOpen(false))}

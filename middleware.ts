@@ -44,7 +44,15 @@ export async function middleware(request: NextRequest) {
   const mustChangePassword =
     request.cookies.get(MUST_CHANGE_PASSWORD_COOKIE)?.value === "1";
 
-  if (pathname.startsWith("/login") || pathname.startsWith("/auth")) {
+  // Route handlers, not pages. An existing session is not a reason to skip
+  // them: someone already signed in may still be redeeming a fresh invite or
+  // recovery link, and bouncing them here would consume nothing and strand the
+  // link as apparently broken.
+  if (pathname.startsWith("/auth")) {
+    return supabaseResponse;
+  }
+
+  if (pathname.startsWith("/login")) {
     if (user) {
       const next = safeNextPath(request.nextUrl.searchParams.get(NEXT_PARAM));
       return NextResponse.redirect(

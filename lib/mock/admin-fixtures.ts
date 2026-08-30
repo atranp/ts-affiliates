@@ -6,8 +6,10 @@ import type {
   PortalActionResult,
 } from "@/lib/admin/types";
 import {
+  buildPortalConfirmUrl,
   buildPortalInviteMessage,
-  randomPassword,
+  PORTAL_LINK_TTL_HOURS,
+  type PortalLinkKind,
 } from "@/lib/admin/portal-credentials";
 import type { AffiliateOption } from "@/components/admin/AffiliateSearchCombobox";
 import type { PayoutBatchRow } from "@/components/payouts/PayoutHistoryPanel";
@@ -474,6 +476,16 @@ function mockPortalState(affiliate: AffiliateOption): AdminAffiliatePortal {
   return initial;
 }
 
+/** Shaped like a real confirm URL, with a token that redeems nothing. */
+function mockPortalLink(kind: PortalLinkKind): string {
+  return buildPortalConfirmUrl({
+    origin: "http://localhost:3000",
+    tokenHash: `mock-${kind}-${Math.random().toString(36).slice(2, 10)}`,
+    kind,
+    next: "/account/change-password",
+  });
+}
+
 /** Mirrors the real portal actions so the admin UI is exercisable without a DB. */
 export function mockPortalAction(
   affiliateId: string,
@@ -490,7 +502,7 @@ export function mockPortalAction(
 
   switch (action) {
     case "reset-password": {
-      const temporaryPassword = randomPassword();
+      const link = mockPortalLink("recovery");
       session.portals.set(affiliateId, {
         ...portal,
         mustChangePassword: true,
@@ -498,12 +510,14 @@ export function mockPortalAction(
       });
       return {
         email,
-        temporaryPassword,
+        inviteLink: link,
         inviteMessage: buildPortalInviteMessage({
           name,
           email,
-          temporaryPassword,
+          link,
+          kind: "recovery",
         }),
+        expiresInHours: PORTAL_LINK_TTL_HOURS,
       };
     }
     case "disable":
@@ -534,7 +548,7 @@ export function mockInviteAffiliate(affiliateId: string): InviteAffiliateResult 
     };
   }
 
-  const temporaryPassword = randomPassword();
+  const link = mockPortalLink("invite");
   session.portals.set(affiliateId, {
     hasAccess: true,
     disabled: false,
@@ -548,12 +562,14 @@ export function mockInviteAffiliate(affiliateId: string): InviteAffiliateResult 
     linked: true,
     email: affiliate.email,
     profileId: `mock-profile-${affiliateId}`,
-    temporaryPassword,
+    inviteLink: link,
     inviteMessage: buildPortalInviteMessage({
       name,
       email: affiliate.email,
-      temporaryPassword,
+      link,
+      kind: "invite",
     }),
+    expiresInHours: PORTAL_LINK_TTL_HOURS,
   };
 }
 

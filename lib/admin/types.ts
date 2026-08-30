@@ -72,15 +72,17 @@ export type InviteAffiliateResult = {
   created: boolean;
   linked: boolean;
   email: string;
-  temporaryPassword?: string;
   profileId: string;
+  inviteLink?: string;
   inviteMessage?: string;
+  expiresInHours?: number;
 };
 
 export type PortalActionResult = {
   email: string;
-  temporaryPassword?: string;
+  inviteLink?: string;
   inviteMessage?: string;
+  expiresInHours?: number;
 };
 
 export type AdminAffiliateDealRule = {

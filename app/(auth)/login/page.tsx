@@ -15,6 +15,11 @@ const blockMessages: Record<string, string> = {
   PORTAL_DISABLED: "Portal access has been disabled. Contact an administrator.",
   AFFILIATE_INACTIVE:
     "Your affiliate account is not active. Contact an administrator.",
+  auth: "That sign-in attempt could not be completed. Please try again.",
+  link_invalid:
+    "That link isn't valid. Ask your administrator to send a new one.",
+  link_expired:
+    "That link has expired or was already used. Ask your administrator to send a new one.",
 };
 
 const fieldClassName =
@@ -58,7 +63,11 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+  // A failed link redirects here with a reason. Without this the redirect looks
+  // like a plain login page and the affiliate has no idea what went wrong.
+  const [error, setError] = useState(
+    () => blockMessages[searchParams.get("error") ?? ""] ?? ""
+  );
   const [loading, setLoading] = useState(false);
 
   const canSubmit =

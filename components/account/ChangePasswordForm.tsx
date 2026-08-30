@@ -19,8 +19,10 @@ import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
 import { queryKeys } from "@/lib/query-keys";
 import {
   canSubmitChangePassword,
+  describePasswordWeakness,
   MIN_PASSWORD_LENGTH,
   passwordRequirementMet,
+  passwordStrengthMet,
   passwordsMatch,
   validateChangePasswordFields,
   type ChangePasswordField,
@@ -155,7 +157,7 @@ export function ChangePasswordForm({
   required = false,
   onSuccess,
 }: ChangePasswordFormProps) {
-  const { refresh } = useAuth();
+  const { user, refresh } = useAuth();
   const queryClient = useQueryClient();
   const formErrorId = useId();
   const formErrorRef = useRef<HTMLParagraphElement>(null);
@@ -173,8 +175,12 @@ export function ChangePasswordForm({
   >({});
 
   const copy = AFFILIATE_COPY.account.changePassword;
-  const canSubmit = canSubmitChangePassword(password, confirm, loading);
+  // The same context the server validates against, so the button never enables
+  // for something the endpoint will turn around and reject.
+  const context = { email: user?.email };
+  const canSubmit = canSubmitChangePassword(password, confirm, loading, context);
   const lengthMet = passwordRequirementMet(password);
+  const strengthMet = passwordStrengthMet(password, context);
   const matchMet = passwordsMatch(password, confirm);
 
   useEffect(() => {
@@ -201,6 +207,7 @@ export function ChangePasswordForm({
         ...prev,
         ...validateChangePasswordFields(value, confirm, {
           requireConfirm: !!touched.confirm,
+          context,
         }),
       }));
     }
@@ -214,6 +221,7 @@ export function ChangePasswordForm({
         ...prev,
         ...validateChangePasswordFields(password, value, {
           requireConfirm: true,
+          context,
         }),
       }));
     }
@@ -225,6 +233,7 @@ export function ChangePasswordForm({
       ...prev,
       ...validateChangePasswordFields(password, confirm, {
         requireConfirm: field === "confirm" || !!touched.confirm,
+        context,
       }),
     }));
   }
@@ -239,15 +248,14 @@ export function ChangePasswordForm({
 
     const nextErrors = validateChangePasswordFields(password, confirm, {
       requireConfirm: true,
+      context,
     });
 
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      nextErrors.password = `Must be at least ${MIN_PASSWORD_LENGTH} characters`;
-    }
-    if (confirm.length < MIN_PASSWORD_LENGTH) {
-      nextErrors.confirm = `Must be at least ${MIN_PASSWORD_LENGTH} characters`;
-    } else if (password !== confirm) {
-      nextErrors.confirm = "Passwords do not match";
+    // An untouched, empty field reports nothing above, so submitting has to ask
+    // directly rather than trusting the field-level pass.
+    const weakness = describePasswordWeakness(password, context);
+    if (weakness) {
+      nextErrors.password = weakness;
     }
 
     setTouched({ password: true, confirm: true });
@@ -381,6 +389,7 @@ export function ChangePasswordForm({
           met={lengthMet}
           label={copy.requirements.length(MIN_PASSWORD_LENGTH)}
         />
+        <RequirementRow met={strengthMet} label={copy.requirements.strength} />
         <RequirementRow met={matchMet} label={copy.requirements.match} />
       </ul>
 
