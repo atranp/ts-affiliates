@@ -46,6 +46,7 @@ type LedgerEntry = {
   dealRule?: { id: string; name: string } | null;
   payoutBatch?: { id: string; label: string; status: string } | null;
   trackedByClick?: boolean | null;
+  isLifetimeSale?: boolean;
 };
 
 function statusVariant(
@@ -225,6 +226,7 @@ export function LedgerTable({
               type={entry.type}
               payoutWeek={entry.payoutWeek}
               trackedByClick={entry.trackedByClick}
+              isLifetimeSale={entry.isLifetimeSale}
             />
           </li>
         );
@@ -318,7 +320,10 @@ export function LedgerTable({
               </TableCell>
               <TableCell className={tdClass}>
                 {affiliateView ? (
-                  <CommissionTypeBadge type={entry.type} />
+                  <CommissionTypeBadge
+                    type={entry.type}
+                    isLifetimeSale={entry.isLifetimeSale}
+                  />
                 ) : (
                   <Badge
                     variant={entry.type === "OVERRIDE" ? "team" : "direct"}
@@ -335,12 +340,14 @@ export function LedgerTable({
                       entry.sourceAffiliate?.email ??
                       "—"}
                   </p>
-                  {affiliateView && entry.trackedByClick !== null && (
+                  {(affiliateView && entry.trackedByClick !== null) ||
+                  entry.isLifetimeSale ? (
                     <TrackedByBadge
-                      tracked={entry.trackedByClick}
+                      tracked={entry.trackedByClick ?? false}
+                      isLifetimeSale={entry.isLifetimeSale}
                       className="mt-1"
                     />
-                  )}
+                  ) : null}
                   {entry.sourceAffiliate && !affiliateView && (
                     <p className="ts-row-meta mt-0.5">
                       Source:{" "}

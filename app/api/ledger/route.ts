@@ -14,6 +14,17 @@ import {
 const VALID_STATUSES = new Set<string>(Object.values(CommissionStatus));
 const VALID_TYPES = new Set<string>(Object.values(LedgerEntryType));
 
+const VALID_DIRECT_KINDS = new Set(["lifetime", "standard"]);
+
+function parseDirectKind(
+  value: string | null
+): "lifetime" | "standard" | undefined {
+  if (value && VALID_DIRECT_KINDS.has(value)) {
+    return value as "lifetime" | "standard";
+  }
+  return undefined;
+}
+
 export async function GET(request: Request) {
   const auth = await requireAffiliateAuth();
   if ("error" in auth) return auth.error;
@@ -41,6 +52,7 @@ export async function GET(request: Request) {
     typeParam && VALID_TYPES.has(typeParam)
       ? (typeParam as LedgerEntryType)
       : undefined;
+  const directKind = parseDirectKind(searchParams.get("directKind"));
 
   let affiliateId = auth.user.affiliateId;
   if (auth.user.role === "ADMIN" && searchParams.get("affiliateId")) {
@@ -59,6 +71,7 @@ export async function GET(request: Request) {
       mockLedgerResponse({
         status,
         type,
+        directKind,
         sourceAffiliateId,
         q,
         page,
@@ -73,6 +86,7 @@ export async function GET(request: Request) {
     affiliateId,
     status,
     type,
+    directKind,
     sourceAffiliateId,
     teamId,
     q,

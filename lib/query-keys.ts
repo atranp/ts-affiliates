@@ -5,6 +5,7 @@ export const queryKeys = {
     page?: number;
     status?: string;
     type?: string;
+    directKind?: string;
     sourceAffiliateId?: string;
     teamId?: string;
     q?: string;

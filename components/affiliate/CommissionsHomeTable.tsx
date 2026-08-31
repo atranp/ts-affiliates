@@ -156,11 +156,17 @@ export function CommissionsHomeTable({
                 </p>
                 <p className="ts-row-meta mt-0.5">{dateLabel}</p>
                 <div className="mt-1.5 sm:hidden">
-                  <CommissionTypeBadge type={entry.type} />
+                  <CommissionTypeBadge
+                    type={entry.type}
+                    isLifetimeSale={entry.isLifetimeSale}
+                  />
                 </div>
               </TableCell>
               <TableCell className="hidden px-3 py-2.5 align-top sm:table-cell sm:px-4">
-                <CommissionTypeBadge type={entry.type} />
+                <CommissionTypeBadge
+                  type={entry.type}
+                  isLifetimeSale={entry.isLifetimeSale}
+                />
               </TableCell>
               <TableCell className="px-3 py-2.5 align-top text-right sm:px-4">
                 <p

@@ -191,6 +191,7 @@ const ALL_ENTRIES: LedgerEntry[] = [
     payoutBatchId: null,
     sourceAffiliateId: null,
     sourceAffiliate: null,
+    isLifetimeSale: true,
   },
   {
     id: "le-3",
@@ -411,7 +412,8 @@ const TAB_COUNTS = {
   paid: 1_790,
   pending: 24,
   overrides: 1_814,
-  direct: 2_505,
+  direct: 2_504,
+  lifetime: 1,
 };
 
 function sumAmount(entries: LedgerEntry[]): number {
@@ -421,6 +423,7 @@ function sumAmount(entries: LedgerEntry[]): number {
 export function mockLedgerResponse(options: {
   status?: string;
   type?: string;
+  directKind?: "lifetime" | "standard";
   sourceAffiliateId?: string;
   q?: string;
   page?: number;
@@ -435,7 +438,15 @@ export function mockLedgerResponse(options: {
     rows = rows.filter((entry) => entry.status === status);
   }
 
-  if (options.type === "DIRECT") {
+  if (options.directKind === "lifetime") {
+    rows = rows.filter(
+      (entry) => entry.type === "DIRECT" && entry.isLifetimeSale
+    );
+  } else if (options.directKind === "standard") {
+    rows = rows.filter(
+      (entry) => entry.type === "DIRECT" && !entry.isLifetimeSale
+    );
+  } else if (options.type === "DIRECT") {
     rows = rows.filter((entry) => entry.type === "DIRECT");
   } else if (options.type === "OVERRIDE") {
     rows = rows.filter((entry) => entry.type === "OVERRIDE");

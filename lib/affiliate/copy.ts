@@ -1,5 +1,7 @@
 /** Affiliate-facing labels — keep admin jargon out of the partner portal. */
 
+import { isLifetimeSaleType } from "@/lib/affiliate/lifetime";
+
 export function formatCommissionStatus(status: string): string {
   switch (status) {
     case 'PAID':
@@ -13,7 +15,14 @@ export function formatCommissionStatus(status: string): string {
   }
 }
 
-export function formatCommissionType(type: string): string {
+export function formatCommissionType(
+  type: string,
+  options?: { isLifetimeSale?: boolean }
+): string {
+  if (options?.isLifetimeSale || isLifetimeSaleType(type)) {
+    return AFFILIATE_COPY.commissions.typeLifetime;
+  }
+
   switch (type) {
     case 'OVERRIDE':
       return 'Team earnings';
@@ -128,7 +137,7 @@ export const AFFILIATE_COPY = {
     salesFromClicks: 'Sales from clicks',
     salesFromClicksHint: 'Traced to a click',
     untracedSales: 'Sales with no click',
-    untracedSalesHint: 'Still paid to you',
+    untracedSalesHint: 'Discount codes, dropped referrals, or repeat customers you referred earlier — still paid to you',
     weekTitle: 'Your week at a glance',
     weekDescription: 'Clicks and sales by day',
     noComparison: 'No earlier period to compare',
@@ -197,6 +206,7 @@ export const AFFILIATE_COPY = {
     allTypes: 'All types',
     allStatuses: 'All statuses',
     typeDirect: 'Direct sale',
+    typeLifetime: 'Lifetime sale',
     typeTeam: 'Team earnings',
     clearFilters: 'Clear filters',
     filters: {
@@ -240,10 +250,12 @@ export const AFFILIATE_COPY = {
       linkedHint: 'We matched this sale to a click on your link.',
       unlinked: 'No click',
       /**
-       * Deliberately lists both causes rather than naming a coupon: nothing on
-       * the commission records which one it was, and guessing in the UI would
-       * be stating an inference as fact.
+       * Repeat-customer sales (SliceWP `lifetime_sale`) — same pay, no link on
+       * this order. Wording deliberately avoids "lifetime".
        */
+      repeatCustomer: 'Repeat customer',
+      repeatCustomerHint:
+        'You referred this customer on an earlier order — no link or coupon was needed on this one.',
       unlinkedHint:
         'No click on file for this sale — usually a discount code, or a browser that dropped the referral. You are paid either way.',
     },

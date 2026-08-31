@@ -3,11 +3,13 @@ import {
   formatCommissionStatus,
   formatCommissionType,
 } from "@/lib/affiliate/copy";
+import { isLifetimeCommission } from "@/lib/affiliate/lifetime";
 import { cn } from "@/lib/utils";
 
 export type AffiliateBadgeVariant =
   | "direct"
   | "team"
+  | "lifetime"
   | "paid"
   | "unpaid"
   | "pending"
@@ -16,6 +18,7 @@ export type AffiliateBadgeVariant =
 const variantClass: Record<AffiliateBadgeVariant, string> = {
   direct: "ts-affiliate-badge-direct",
   team: "ts-affiliate-badge-team",
+  lifetime: "ts-affiliate-badge-lifetime",
   paid: "ts-affiliate-badge-paid",
   unpaid: "ts-affiliate-badge-unpaid",
   pending: "ts-affiliate-badge-pending",
@@ -29,7 +32,11 @@ export function affiliateBadgeClass(
   return cn("ts-affiliate-badge", variantClass[variant], className);
 }
 
-export function commissionTypeVariant(type: string): AffiliateBadgeVariant {
+export function commissionTypeVariant(
+  type: string,
+  isLifetimeSale?: boolean
+): AffiliateBadgeVariant {
+  if (isLifetimeCommission(type, isLifetimeSale)) return "lifetime";
   return type === "OVERRIDE" ? "team" : "direct";
 }
 
@@ -65,14 +72,21 @@ export function AffiliateBadge({
 
 export function CommissionTypeBadge({
   type,
+  isLifetimeSale,
   className,
 }: {
   type: string;
+  isLifetimeSale?: boolean;
   className?: string;
 }) {
+  const lifetime = isLifetimeCommission(type, isLifetimeSale);
+
   return (
-    <AffiliateBadge variant={commissionTypeVariant(type)} className={className}>
-      {formatCommissionType(type)}
+    <AffiliateBadge
+      variant={commissionTypeVariant(type, lifetime)}
+      className={className}
+    >
+      {formatCommissionType(type, { isLifetimeSale: lifetime })}
     </AffiliateBadge>
   );
 }

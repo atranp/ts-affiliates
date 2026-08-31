@@ -26,6 +26,7 @@ export type LedgerQueryOptions = {
   limit?: number;
   status?: string;
   type?: string;
+  directKind?: string;
   sourceAffiliateId?: string;
   teamId?: string;
   q?: string;
@@ -46,6 +47,7 @@ function buildLedgerUrl(options: LedgerQueryOptions): string {
   if (options.limit) params.set("limit", String(options.limit));
   if (options.status) params.set("status", options.status);
   if (options.type) params.set("type", options.type);
+  if (options.directKind) params.set("directKind", options.directKind);
   if (options.q) params.set("q", options.q);
   if (options.sourceAffiliateId) {
     params.set("sourceAffiliateId", options.sourceAffiliateId);
@@ -82,7 +84,36 @@ export function useLedger(options: LedgerQueryOptions = {}) {
 export type LedgerStatusTab = "all" | "unpaid" | "paid" | "pending";
 
 /** Affiliate-facing entry type filter (maps to ledger API types). */
-export type LedgerTypeFilter = "all" | "direct" | "team";
+export type LedgerTypeFilter = "all" | "direct" | "lifetime" | "team";
+
+export function resolveLedgerTypeFilter(
+  typeParam: string | null,
+  statusParam: string | null
+): LedgerTypeFilter {
+  if (
+    typeParam === "direct" ||
+    typeParam === "lifetime" ||
+    typeParam === "team"
+  ) {
+    return typeParam;
+  }
+  if (statusParam === "overrides") return "team";
+  return "all";
+}
+
+export function ledgerTypeFilterToApi(filter: LedgerTypeFilter): {
+  type?: string;
+  directKind?: string;
+} {
+  if (filter === "direct") {
+    return { type: "DIRECT", directKind: "standard" };
+  }
+  if (filter === "lifetime") {
+    return { type: "DIRECT", directKind: "lifetime" };
+  }
+  if (filter === "team") return { type: "OVERRIDE" };
+  return {};
+}
 
 export function resolveLedgerStatusTab(
   value: string | null
@@ -92,29 +123,19 @@ export function resolveLedgerStatusTab(
   return tabs.find((tab) => tab === value) ?? "all";
 }
 
-export function resolveLedgerTypeFilter(
-  typeParam: string | null,
-  statusParam: string | null
-): LedgerTypeFilter {
-  if (typeParam === "direct" || typeParam === "team") return typeParam;
-  if (statusParam === "overrides") return "team";
-  return "all";
-}
-
-export function ledgerTypeFilterToApi(
-  filter: LedgerTypeFilter
-): string | undefined {
-  if (filter === "direct") return "DIRECT";
-  if (filter === "team") return "OVERRIDE";
-  return undefined;
-}
-
 /** Keep displayed rows aligned with the active type filter during stale fetches. */
 export function filterLedgerEntriesByType<
-  T extends { type: string },
+  T extends { type: string; isLifetimeSale?: boolean },
 >(entries: T[], typeFilter: LedgerTypeFilter): T[] {
   if (typeFilter === "direct") {
-    return entries.filter((entry) => entry.type === "DIRECT");
+    return entries.filter(
+      (entry) => entry.type === "DIRECT" && !entry.isLifetimeSale
+    );
+  }
+  if (typeFilter === "lifetime") {
+    return entries.filter(
+      (entry) => entry.type === "DIRECT" && entry.isLifetimeSale
+    );
   }
   if (typeFilter === "team") {
     return entries.filter((entry) => entry.type === "OVERRIDE");

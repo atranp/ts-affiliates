@@ -14,6 +14,16 @@ import { requireAffiliateAuth } from "@/lib/mock/require-affiliate-auth";
 
 const VALID_STATUSES = new Set<string>(Object.values(CommissionStatus));
 const VALID_TYPES = new Set<string>(Object.values(LedgerEntryType));
+const VALID_DIRECT_KINDS = new Set(["lifetime", "standard"]);
+
+function parseDirectKind(
+  value: string | null
+): "lifetime" | "standard" | undefined {
+  if (value && VALID_DIRECT_KINDS.has(value)) {
+    return value as "lifetime" | "standard";
+  }
+  return undefined;
+}
 
 function csvResponse(entries: ExportableEntry[], periodLabel: string) {
   return new NextResponse(ledgerToCsv(entries), {
@@ -53,6 +63,7 @@ export async function GET(request: Request) {
     const { entries } = mockLedgerResponse({
       status: statusParam ?? undefined,
       type: typeParam ?? undefined,
+      directKind: parseDirectKind(searchParams.get("directKind")),
       sourceAffiliateId: searchParams.get("sourceAffiliateId") ?? undefined,
       q: searchParams.get("q") ?? undefined,
       limit: EXPORT_ROW_LIMIT,
@@ -91,6 +102,7 @@ export async function GET(request: Request) {
       typeParam && VALID_TYPES.has(typeParam)
         ? (typeParam as LedgerEntryType)
         : undefined,
+    directKind: parseDirectKind(searchParams.get("directKind")),
     sourceAffiliateId: searchParams.get("sourceAffiliateId") ?? undefined,
     teamId: searchParams.get("teamId") ?? undefined,
     q: searchParams.get("q") ?? undefined,

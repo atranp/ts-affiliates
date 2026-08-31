@@ -61,6 +61,11 @@ const TYPE_OPTIONS: Array<{
     countKey: 'direct',
   },
   {
+    key: 'lifetime',
+    label: AFFILIATE_COPY.commissions.typeLifetime,
+    countKey: 'lifetime',
+  },
+  {
     key: 'team',
     label: AFFILIATE_COPY.commissions.typeTeam,
     countKey: 'overrides',

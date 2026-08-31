@@ -54,6 +54,8 @@
     --badge-direct-fg: 208 64% 38%;
     --badge-team-bg: 258 48% 94%;
     --badge-team-fg: 258 34% 42%;
+    --badge-lifetime-bg: 270 55% 95%;
+    --badge-lifetime-fg: 270 45% 42%;
     --badge-paid-bg: 152 48% 93%;
     --badge-paid-fg: 152 52% 30%;
     --badge-unpaid-bg: 215 32% 93%;
@@ -404,6 +406,11 @@
   .ts-affiliate-badge-team {
     background: hsl(var(--badge-team-bg));
     color: hsl(var(--badge-team-fg));
+  }
+
+  .ts-affiliate-badge-lifetime {
+    background: hsl(var(--badge-lifetime-bg));
+    color: hsl(var(--badge-lifetime-fg));
   }
 
   /* Payment status — semantic pills */

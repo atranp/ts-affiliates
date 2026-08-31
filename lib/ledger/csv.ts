@@ -1,5 +1,5 @@
 import { LedgerEntryType } from "@prisma/client";
-import { formatCommissionStatus } from "@/lib/affiliate/copy";
+import { AFFILIATE_COPY, formatCommissionStatus } from "@/lib/affiliate/copy";
 import { formatStoreDateInput } from "@/lib/payouts/store-dates";
 import { toNumber } from "@/lib/utils";
 
@@ -24,6 +24,7 @@ export type ExportableEntry = {
   sourceAffiliate?: { displayName: string | null; email: string } | null;
   payoutBatch?: { label: string } | null;
   trackedByClick?: boolean | null;
+  isLifetimeSale?: boolean;
 };
 
 const COLUMNS = [
@@ -57,6 +58,9 @@ function cell(value: string | number | null | undefined): string {
 
 function trackedLabel(entry: ExportableEntry): string {
   if (entry.type !== LedgerEntryType.DIRECT) return "";
+  if (entry.isLifetimeSale) {
+    return AFFILIATE_COPY.commissions.tracked.repeatCustomer;
+  }
   if (entry.trackedByClick === null || entry.trackedByClick === undefined) {
     return "";
   }
@@ -67,7 +71,11 @@ export function ledgerToCsv(entries: ExportableEntry[]): string {
   const rows = entries.map((entry) =>
     [
       formatStoreDateInput(entry.occurredAt),
-      entry.type === LedgerEntryType.OVERRIDE ? "Team earning" : "Direct sale",
+      entry.isLifetimeSale
+        ? AFFILIATE_COPY.commissions.typeLifetime
+        : entry.type === LedgerEntryType.OVERRIDE
+          ? "Team earning"
+          : "Direct sale",
       entry.description ??
         entry.sourceAffiliate?.displayName ??
         entry.sourceAffiliate?.email ??

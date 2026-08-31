@@ -1,4 +1,4 @@
-import { Link2, Link2Off } from "lucide-react";
+import { Link2, Link2Off, UserRound } from "lucide-react";
 import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
 import { cn } from "@/lib/utils";
 
@@ -10,12 +10,31 @@ import { cn } from "@/lib/utils";
  */
 export function TrackedByBadge({
   tracked,
+  isLifetimeSale = false,
   className,
 }: {
   tracked: boolean | null | undefined;
+  isLifetimeSale?: boolean;
   className?: string;
 }) {
   if (tracked === null || tracked === undefined) return null;
+
+  if (isLifetimeSale) {
+    const copy = AFFILIATE_COPY.commissions.tracked;
+    return (
+      <span
+        title={copy.repeatCustomerHint}
+        className={cn(
+          "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium",
+          "bg-primary/10 text-primary",
+          className
+        )}
+      >
+        <UserRound className="h-3 w-3" aria-hidden />
+        {copy.repeatCustomer}
+      </span>
+    );
+  }
 
   const copy = AFFILIATE_COPY.commissions.tracked;
   const Icon = tracked ? Link2 : Link2Off;

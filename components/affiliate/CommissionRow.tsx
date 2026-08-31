@@ -40,6 +40,7 @@ type CommissionRowProps = {
   type: string;
   payoutWeek?: string | null;
   trackedByClick?: boolean | null;
+  isLifetimeSale?: boolean;
   onClick?: () => void;
   className?: string;
   /** Card = standalone bordered row; flat = divider row inside a panel */
@@ -55,11 +56,12 @@ export function CommissionRow({
   type,
   payoutWeek = null,
   trackedByClick = null,
+  isLifetimeSale = false,
   onClick,
   className,
   layout = 'card',
 }: CommissionRowProps) {
-  const variant = commissionTypeVariant(type);
+  const variant = commissionTypeVariant(type, isLifetimeSale);
   const metaLine = [
     formatSaleDate(occurredAt),
     orderRevenue ? `${formatCurrency(orderRevenue)} sale` : null,
@@ -87,9 +89,12 @@ export function CommissionRow({
           <p className="ts-row-title truncate leading-snug">{details}</p>
           <div className="flex flex-wrap items-center gap-1.5">
             <span className={affiliateBadgeClass(variant)}>
-              {formatCommissionType(type)}
+              {formatCommissionType(type, { isLifetimeSale })}
             </span>
-            <TrackedByBadge tracked={trackedByClick} />
+            <TrackedByBadge
+              tracked={trackedByClick}
+              isLifetimeSale={isLifetimeSale}
+            />
           </div>
           {metaLine ? (
             <p className="ts-row-meta truncate">{metaLine}</p>
@@ -109,9 +114,12 @@ export function CommissionRow({
           <p className="ts-row-title truncate leading-snug">{details}</p>
           <div className="flex flex-wrap items-center gap-1.5">
             <span className={affiliateBadgeClass(variant)}>
-              {formatCommissionType(type)}
+              {formatCommissionType(type, { isLifetimeSale })}
             </span>
-            <TrackedByBadge tracked={trackedByClick} />
+            <TrackedByBadge
+              tracked={trackedByClick}
+              isLifetimeSale={isLifetimeSale}
+            />
           </div>
           {metaLine ? (
             <p className="ts-row-meta truncate">{metaLine}</p>

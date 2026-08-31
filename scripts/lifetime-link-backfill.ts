@@ -60,7 +60,18 @@ const SOCKET =
 const DATABASE = process.env.WP_MYSQL_DATABASE ?? "local";
 const USER = process.env.WP_MYSQL_USER ?? "root";
 const PASSWORD = process.env.WP_MYSQL_PASSWORD ?? "root";
+const HOST = process.env.WP_MYSQL_HOST ?? null;
 const PREFIX = process.env.WP_TABLE_PREFIX ?? "zww_";
+
+function mysqlBaseArgs(): string[] {
+  const args = ["-u", USER, `-p${PASSWORD}`, "-N", DATABASE];
+  if (HOST) {
+    args.splice(0, 0, "-h", HOST);
+  } else {
+    args.splice(2, 0, "-S", SOCKET);
+  }
+  return args;
+}
 
 /**
  * Commission types that establish ownership of a customer.
@@ -128,7 +139,7 @@ function fail(...lines: string[]): never {
 function query(sql: string): string[][] {
   const out = execFileSync(
     MYSQL,
-    ["-u", USER, `-p${PASSWORD}`, "-S", SOCKET, "-N", DATABASE, "-e", sql],
+    [...mysqlBaseArgs(), "-e", sql],
     { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }
   );
   return out
@@ -402,7 +413,7 @@ function main() {
 
   execFileSync(
     MYSQL,
-    ["-u", USER, `-p${PASSWORD}`, "-S", SOCKET, DATABASE, "-e", sql],
+    [...mysqlBaseArgs(), "-e", sql],
     { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }
   );
 

@@ -24,6 +24,8 @@ export type LedgerEntry = {
    * earnings, where the traffic belonged to someone else.
    */
   trackedByClick?: boolean | null;
+  /** SliceWP `lifetime_sale` — shown as a repeat customer, never "lifetime". */
+  isLifetimeSale?: boolean;
 };
 
 export type LedgerData = {
@@ -67,7 +69,9 @@ export type LedgerData = {
     paid: number;
     pending: number;
     overrides: number;
+    /** Direct sales excluding repeat-customer (lifetime) rows. */
     direct: number;
+    lifetime: number;
   };
   overrideSummary: {
     unpaidTotal: number;

@@ -14,6 +14,8 @@ import {
   type LedgerSortKey,
   type SortDirection,
 } from "@/lib/ledger/sort";
+import { SLICEWP_LIFETIME_SALE_TYPE } from "@/lib/affiliate/lifetime";
+import { enrichLedgerAttribution } from "@/lib/ledger/attribution";
 
 export type TeamBonusSummary = {
   sourceAffiliateId: string;
@@ -33,10 +35,14 @@ export type TeamBonusSummary = {
   } | null;
 };
 
+/** Narrows DIRECT rows by SliceWP commission type (lifetime vs everything else). */
+export type LedgerDirectKind = "lifetime" | "standard";
+
 export type LedgerFilters = {
   affiliateId: string;
   status?: CommissionStatus;
   type?: LedgerEntryType;
+  directKind?: LedgerDirectKind;
   sourceAffiliateId?: string;
   teamId?: string;
   q?: string;
@@ -64,13 +70,29 @@ function buildWhere(filters: LedgerFilters): Prisma.LedgerEntryWhereInput {
   const where: Prisma.LedgerEntryWhereInput = {
     affiliateId: filters.affiliateId,
     ...(filters.status ? { status: filters.status } : {}),
-    ...(filters.type ? { type: filters.type } : {}),
     ...(filters.sourceAffiliateId
       ? { sourceAffiliateId: filters.sourceAffiliateId }
       : {}),
     ...(filters.teamId ? { dealRule: { teamId: filters.teamId } } : {}),
     ...(occurredAt ? { occurredAt } : {}),
   };
+
+  if (filters.directKind === "lifetime") {
+    where.type = LedgerEntryType.DIRECT;
+    where.sourceCommission = { type: SLICEWP_LIFETIME_SALE_TYPE };
+  } else if (filters.directKind === "standard") {
+    where.type = LedgerEntryType.DIRECT;
+    where.OR = [
+      { sourceCommissionId: null },
+      {
+        sourceCommission: {
+          type: { not: SLICEWP_LIFETIME_SALE_TYPE },
+        },
+      },
+    ];
+  } else if (filters.type) {
+    where.type = filters.type;
+  }
 
   if (filters.q) {
     const qNum = Number(filters.q);
@@ -140,7 +162,21 @@ function summaryFromGroups(
   return summary;
 }
 
-function tabCountsFromGroups(groups: LedgerGroupRow[]) {
+async function countLifetimeEntries(
+  affiliateId: string,
+  occurredAt?: Prisma.DateTimeFilter
+) {
+  return prisma.ledgerEntry.count({
+    where: {
+      affiliateId,
+      type: LedgerEntryType.DIRECT,
+      sourceCommission: { type: SLICEWP_LIFETIME_SALE_TYPE },
+      ...(occurredAt ? { occurredAt } : {}),
+    },
+  });
+}
+
+function tabCountsFromGroups(groups: LedgerGroupRow[], lifetimeCount = 0) {
   const counts = {
     all: 0,
     unpaid: 0,
@@ -148,6 +184,7 @@ function tabCountsFromGroups(groups: LedgerGroupRow[]) {
     pending: 0,
     overrides: 0,
     direct: 0,
+    lifetime: lifetimeCount,
   };
 
   for (const row of groups) {
@@ -159,6 +196,8 @@ function tabCountsFromGroups(groups: LedgerGroupRow[]) {
     if (row.type === LedgerEntryType.OVERRIDE) counts.overrides += count;
     if (row.type === LedgerEntryType.DIRECT) counts.direct += count;
   }
+
+  counts.direct = Math.max(0, counts.direct - lifetimeCount);
 
   return counts;
 }
@@ -242,55 +281,12 @@ export async function getPaginatedLedgerEntries(filters: LedgerFilters) {
   });
 
   return {
-    entries: await withClickAttribution(entries, filters.affiliateId),
+    entries: await enrichLedgerAttribution(entries, filters.affiliateId),
     page,
     limit,
     total,
     totalPages: Math.max(1, Math.ceil(total / limit)),
   };
-}
-
-type AttributableEntry = {
-  type: LedgerEntryType;
-  slicewpCommissionId: number | null;
-};
-
-/**
- * Marks each direct sale with whether a click of this affiliate's is on file
- * for it. One extra query per page, bounded by the page size.
- *
- * Overrides are left null rather than false: a team bonus is earned on someone
- * else's sale, so "no click recorded" would be describing the wrong person's
- * traffic.
- */
-async function withClickAttribution<T extends AttributableEntry>(
-  entries: T[],
-  affiliateId: string
-): Promise<Array<T & { trackedByClick: boolean | null }>> {
-  const ids = entries
-    .filter((entry) => entry.type === LedgerEntryType.DIRECT)
-    .map((entry) => entry.slicewpCommissionId)
-    .filter((id): id is number => id !== null);
-
-  const tracked =
-    ids.length > 0
-      ? await prisma.visit.findMany({
-          where: { affiliateId, slicewpCommissionId: { in: ids } },
-          select: { slicewpCommissionId: true },
-          distinct: ["slicewpCommissionId"],
-        })
-      : [];
-
-  const trackedIds = new Set(tracked.map((visit) => visit.slicewpCommissionId));
-
-  return entries.map((entry) => ({
-    ...entry,
-    trackedByClick:
-      entry.type !== LedgerEntryType.DIRECT
-        ? null
-        : entry.slicewpCommissionId !== null &&
-          trackedIds.has(entry.slicewpCommissionId),
-  }));
 }
 
 /**
@@ -316,30 +312,7 @@ export async function getLedgerExportRows(filters: LedgerFilters) {
     take: EXPORT_ROW_LIMIT,
   });
 
-  /**
-   * Every converting click at once, rather than an `IN` list built from up to
-   * five thousand exported rows. Only visits that produced a commission carry
-   * an id at all, so this set stays in the hundreds even for the busiest
-   * affiliate in the account.
-   */
-  const converted = await prisma.visit.findMany({
-    where: { affiliateId: filters.affiliateId, slicewpCommissionId: { not: null } },
-    select: { slicewpCommissionId: true },
-    distinct: ["slicewpCommissionId"],
-  });
-
-  const trackedIds = new Set(
-    converted.map((visit) => visit.slicewpCommissionId)
-  );
-
-  return entries.map((entry) => ({
-    ...entry,
-    trackedByClick:
-      entry.type !== LedgerEntryType.DIRECT
-        ? null
-        : entry.slicewpCommissionId !== null &&
-          trackedIds.has(entry.slicewpCommissionId),
-  }));
+  return enrichLedgerAttribution(entries, filters.affiliateId);
 }
 
 /**
@@ -365,14 +338,14 @@ export async function getLedgerResponse(filters: LedgerFilters) {
   const pageData = await getPaginatedLedgerEntries(filters);
   const filtered = await filteredTotals(filters);
 
+  const occurredAt = periodWhere(filters.range ?? null);
+
   const groups = await prisma.ledgerEntry.groupBy({
     by: ["type", "status", "sourceAffiliateId"],
     where: { affiliateId: filters.affiliateId },
     _sum: { amount: true },
     _count: { _all: true },
   });
-
-  const occurredAt = periodWhere(filters.range ?? null);
 
   /**
    * Tab counts and the filtered summary follow the chosen period, so "Unpaid ·
@@ -387,6 +360,11 @@ export async function getLedgerResponse(filters: LedgerFilters) {
         _count: { _all: true },
       })
     : groups;
+
+  const lifetimeTabCount = await countLifetimeEntries(
+    filters.affiliateId,
+    occurredAt ?? undefined
+  );
 
   const summary = summaryFromGroups(scopedGroups, {
     type: filters.type,
@@ -491,6 +469,6 @@ export async function getLedgerResponse(filters: LedgerFilters) {
     overrideAccountSummary,
     teamBonuses,
     sourceAffiliates,
-    tabCounts: tabCountsFromGroups(scopedGroups),
+    tabCounts: tabCountsFromGroups(scopedGroups, lifetimeTabCount),
   };
 }

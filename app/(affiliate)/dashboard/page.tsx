@@ -230,11 +230,12 @@ function DashboardPageContent() {
    */
   const exportHref = (() => {
     const params = new URLSearchParams();
-    const apiType = ledgerTypeFilterToApi(typeFilter);
+    const typeQuery = ledgerTypeFilterToApi(typeFilter);
 
     if (tabFilters.status) params.set('status', tabFilters.status);
     if (tabFilters.type) params.set('type', tabFilters.type);
-    if (apiType) params.set('type', apiType);
+    if (typeQuery.type) params.set('type', typeQuery.type);
+    if (typeQuery.directKind) params.set('directKind', typeQuery.directKind);
     if (tabFilters.sourceAffiliateId) {
       params.set('sourceAffiliateId', tabFilters.sourceAffiliateId);
     }
@@ -252,7 +253,7 @@ function DashboardPageContent() {
 
   const { data, error, isLoading, refetch, isFetching } = useLedger({
     ...tabFilters,
-    type: ledgerTypeFilterToApi(typeFilter),
+    ...ledgerTypeFilterToApi(typeFilter),
     q: urlQuery,
     teamId: teamFilter !== 'all' ? teamFilter : undefined,
     ...periodParams,
@@ -377,7 +378,9 @@ function DashboardPageContent() {
     setParams({
       type: value === 'all' ? null : value,
       status: statusParam === 'overrides' ? null : statusParam,
-      ...(value === 'direct' ? { team: null, member: null } : {}),
+      ...(value === 'direct' || value === 'lifetime'
+        ? { team: null, member: null }
+        : {}),
       page: null,
     });
   }

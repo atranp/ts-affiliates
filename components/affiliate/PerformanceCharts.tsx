@@ -317,8 +317,9 @@ export function AttributionBars({
           <span className="font-semibold text-brand-dark">
             You are paid the same either way.
           </span>{" "}
-          Sales with no click usually came from a discount code, or from a
-          browser that dropped the referral before checkout.
+          Sales with no click usually came from a discount code, a browser that
+          dropped the referral before checkout, or a customer you referred on an
+          earlier order.
         </p>
       ) : null}
     </div>
