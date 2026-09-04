@@ -201,7 +201,28 @@ function DetailBody({ detail }: { detail: CommissionDetailResponse }) {
         <DetailSection title={copy.orderTitle}>
           <dl className="ts-detail-fact-list">
             <DetailFact label="Order" value={`#${order.id}`} />
-            <DetailFact label="Sale total" value={formatCurrency(order.total)} />
+            <DetailFact
+              label={copy.orderCommissionBase}
+              value={formatCurrency(order.commissionBase)}
+            />
+            {order.shipping !== null ? (
+              <DetailFact
+                label={copy.orderShipping}
+                value={formatCurrency(order.shipping)}
+              />
+            ) : null}
+            {order.tax !== null ? (
+              <DetailFact
+                label={copy.orderTax}
+                value={formatCurrency(order.tax)}
+              />
+            ) : null}
+            {order.orderTotal !== null ? (
+              <DetailFact
+                label={copy.orderTotal}
+                value={formatCurrency(order.orderTotal)}
+              />
+            ) : null}
             <DetailFact label="Date" value={order.date} />
             {order.coupons.length > 0 ? (
               <DetailFact

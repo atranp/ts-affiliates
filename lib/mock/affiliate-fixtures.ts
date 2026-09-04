@@ -25,6 +25,28 @@ const now = new Date();
 const daysAgo = (n: number) =>
   new Date(now.getTime() - n * 86_400_000).toISOString();
 
+function mockOrderDetail(
+  id: number,
+  commissionBase: string,
+  date: string,
+  coupons: string[] = [],
+  shipping = "12.00",
+  tax = "8.50"
+) {
+  const orderTotal = (
+    Number(commissionBase) + Number(shipping) + Number(tax)
+  ).toFixed(2);
+  return {
+    id,
+    commissionBase,
+    shipping,
+    tax,
+    orderTotal,
+    date,
+    coupons,
+  };
+}
+
 const MOCK_TEAM_ID = "mock-team-downline";
 
 const blairId = "mock-member-blair";
@@ -932,12 +954,7 @@ const MOCK_COMMISSION_DETAILS: Record<string, CommissionDetailResponse> = {
         "Returning customer linked to you. No affiliate link or coupon on this order.",
       detail: null,
     },
-    order: {
-      id: 8306,
-      total: "260.00",
-      date: "Aug 2, 2026",
-      coupons: [],
-    },
+    order: mockOrderDetail(8306, "260.00", "Aug 2, 2026"),
     customer: {
       label: "Linked customer · order 2 of 5",
       orderIndex: 2,
@@ -982,12 +999,7 @@ const MOCK_COMMISSION_DETAILS: Record<string, CommissionDetailResponse> = {
         "Your link was clicked and was the last referral at checkout.",
       detail: null,
     },
-    order: {
-      id: 8201,
-      total: "180.00",
-      date: "Jul 1, 2026",
-      coupons: [],
-    },
+    order: mockOrderDetail(8201, "180.00", "Jul 1, 2026"),
     customer: {
       label: "New customer",
       orderIndex: null,
@@ -1032,12 +1044,7 @@ const MOCK_COMMISSION_DETAILS: Record<string, CommissionDetailResponse> = {
       headline: "Team bonus from Marina Hales's sale on order #8190.",
       detail: null,
     },
-    order: {
-      id: 8190,
-      total: "80.00",
-      date: "Aug 30, 2026",
-      coupons: [],
-    },
+    order: mockOrderDetail(8190, "80.00", "Aug 30, 2026"),
     customer: null,
     journey: [],
     payout: {
@@ -1067,12 +1074,7 @@ const MOCK_COMMISSION_DETAILS: Record<string, CommissionDetailResponse> = {
         "Your coupon BLAIR-9562 was used. Coupon attribution beats link attribution.",
       detail: null,
     },
-    order: {
-      id: 8188,
-      total: "420.00",
-      date: "Aug 29, 2026",
-      coupons: ["BLAIR-9562"],
-    },
+    order: mockOrderDetail(8188, "420.00", "Aug 29, 2026", ["BLAIR-9562"], "15.00", "35.00"),
     customer: {
       label: "New customer",
       orderIndex: null,
@@ -1123,12 +1125,7 @@ const MOCK_COMMISSION_DETAILS: Record<string, CommissionDetailResponse> = {
         "Your referral was stored on this order. No new click was recorded.",
       detail: null,
     },
-    order: {
-      id: 8100,
-      total: "150.00",
-      date: "Jul 4, 2026",
-      coupons: [],
-    },
+    order: mockOrderDetail(8100, "150.00", "Jul 4, 2026"),
     customer: {
       label: "New customer",
       orderIndex: null,
@@ -1198,12 +1195,11 @@ function buildMockCommissionDetailFallback(
         detail: null,
       },
       order: entry.wooOrderId
-        ? {
-            id: entry.wooOrderId,
-            total: entry.orderRevenue ?? "0",
-            date: formatAppDate(entry.occurredAt),
-            coupons: [],
-          }
+        ? mockOrderDetail(
+            entry.wooOrderId,
+            entry.orderRevenue ?? "0",
+            formatAppDate(entry.occurredAt)
+          )
         : null,
       customer: null,
       journey: [],
@@ -1244,12 +1240,11 @@ function buildMockCommissionDetailFallback(
     },
     why: { rule, headline, detail: null },
     order: entry.wooOrderId
-      ? {
-          id: entry.wooOrderId,
-          total: entry.orderRevenue ?? "0",
-          date: formatAppDate(entry.occurredAt),
-          coupons: [],
-        }
+      ? mockOrderDetail(
+          entry.wooOrderId,
+          entry.orderRevenue ?? "0",
+          formatAppDate(entry.occurredAt)
+        )
       : null,
     customer: isLifetimeSale
       ? {

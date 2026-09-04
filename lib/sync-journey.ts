@@ -119,6 +119,37 @@ export function visitAndCustomerFromRemote(remote: {
   };
 }
 
+function decimalOrNull(value: string | undefined): number | null {
+  if (value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function orderTotalsFromJourneyOrder(
+  order: CommissionJourneyPayload["order"]
+): {
+  orderSubtotal: number | null;
+  orderShipping: number | null;
+  orderTax: number | null;
+  orderTotal: number | null;
+} {
+  if (!order) {
+    return {
+      orderSubtotal: null,
+      orderShipping: null,
+      orderTax: null,
+      orderTotal: null,
+    };
+  }
+
+  return {
+    orderSubtotal: decimalOrNull(order.subtotal),
+    orderShipping: decimalOrNull(order.shippingTotal),
+    orderTax: decimalOrNull(order.taxTotal),
+    orderTotal: decimalOrNull(order.total),
+  };
+}
+
 export async function mapWithConcurrency<T, R>(
   items: T[],
   concurrency: number,
@@ -185,14 +216,17 @@ export async function applyJourneyToCommission(
   );
 
   if (payload.order) {
+    const orderTotals = orderTotalsFromJourneyOrder(payload.order);
     await prisma.orderAttribution.upsert({
       where: { wooOrderId: payload.order.wooOrderId },
       create: {
         wooOrderId: payload.order.wooOrderId,
         ...orderAttribution,
+        ...orderTotals,
       },
       update: {
         ...orderAttribution,
+        ...orderTotals,
         syncedAt: new Date(),
       },
     });

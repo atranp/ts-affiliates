@@ -267,6 +267,10 @@ export const AFFILIATE_COPY = {
     detail: {
       whyTitle: 'Why you earned this',
       orderTitle: 'Order',
+      orderCommissionBase: 'Commission base (excl. shipping & tax)',
+      orderShipping: 'Shipping',
+      orderTax: 'Tax',
+      orderTotal: 'Order total',
       customerTitle: 'Customer',
       journeyTitle: 'Journey',
       payoutTitle: 'Payout',
@@ -278,8 +282,6 @@ export const AFFILIATE_COPY = {
       openHint: 'View order and attribution details',
       noJourney: 'Team bonuses do not include an attribution journey.',
       emptyOverrideCustomer: 'Customer details apply to the recruit’s direct sale.',
-      bestEffortHint:
-        'Best available attribution data — this order predates full audit logging.',
       why: {
         coupon: (code: string) =>
           `Your coupon ${code} was used. Coupon attribution beats link attribution.`,
@@ -292,7 +294,8 @@ export const AFFILIATE_COPY = {
           'Returning customer linked to you. No affiliate link or coupon on this order.',
         override: (recruitName: string, orderId: number) =>
           `Team bonus from ${recruitName}'s sale on order #${orderId}.`,
-        none: 'No affiliate attribution applied to this order.',
+        none:
+          'You were credited for this order. No coupon, link, or lifetime rule applied.',
       },
       customer: {
         linked: (orderIndex: number, totalOrders: number) =>

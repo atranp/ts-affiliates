@@ -265,6 +265,10 @@ model OrderAttribution {
   couponCodes                String[]
   sessionEntryHost           String?
   checkoutChannel            String?
+  orderSubtotal              Decimal? @db.Decimal(12, 2)
+  orderShipping              Decimal? @db.Decimal(12, 2)
+  orderTax                   Decimal? @db.Decimal(12, 2)
+  orderTotal                 Decimal? @db.Decimal(12, 2)
   attributionAudit           Json?
   syncedAt                   DateTime @default(now())
   updatedAt                  DateTime @updatedAt

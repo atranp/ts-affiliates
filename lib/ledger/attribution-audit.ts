@@ -75,7 +75,12 @@ export type CommissionJourneyCommission = {
 
 export type CommissionJourneyOrder = {
   wooOrderId: number;
+  /** Customer-paid order total. */
   total: string;
+  /** Product subtotal before shipping and tax. */
+  subtotal?: string;
+  shippingTotal?: string;
+  taxTotal?: string;
   dateCreated: string;
   coupons: string[];
   status: string;
