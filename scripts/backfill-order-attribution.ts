@@ -25,7 +25,8 @@ if (process.env.BACKFILL_DATABASE_URL) {
  *   npx tsx scripts/backfill-order-attribution.ts --apply --limit=50
  *   npx tsx scripts/backfill-order-attribution.ts --apply --affiliate-id=126
  *   npx tsx scripts/backfill-order-attribution.ts --apply --since=2026-08-18
- *   npx tsx scripts/backfill-order-attribution.ts --apply --out=docs/reports/journey-disagreements.csv
+ *   npx tsx scripts/backfill-order-attribution.ts --apply --missing-customer-id
+ *   npx tsx scripts/backfill-order-attribution.ts --apply --since=2020-01-01 --missing-customer-id
  */
 
 import { writeFileSync } from "fs";
@@ -51,7 +52,7 @@ type Args = {
   out: string;
   concurrency: number;
   delayMs: number;
-  mode: "missing-rule" | "unattempted";
+  mode: "missing-rule" | "unattempted" | "missing-customer-id";
 };
 
 function parseArgs(): Args {
@@ -116,7 +117,11 @@ function parseArgs(): Args {
     out: get("out") ?? defaultOut,
     concurrency,
     delayMs,
-    mode: raw.includes("--only-unattempted") ? "unattempted" : "missing-rule",
+    mode: raw.includes("--only-unattempted")
+      ? "unattempted"
+      : raw.includes("--missing-customer-id")
+        ? "missing-customer-id"
+        : "missing-rule",
   };
 }
 

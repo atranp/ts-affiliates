@@ -38,7 +38,7 @@ export type JourneyPendingFilter = {
    * - `unattempted` — skip rows already touched (incl. syncedWithoutAudit)
    * - `sync` — same as post-sync enrich (missing rule OR null audit)
    */
-  mode?: "missing-rule" | "unattempted" | "sync";
+  mode?: "missing-rule" | "unattempted" | "sync" | "missing-customer-id";
 };
 
 export function journeyPendingWhere(
@@ -50,14 +50,19 @@ export function journeyPendingWhere(
   const where: Prisma.CommissionWhereInput = {
     wooOrderId: { not: null },
     origin: "woo",
-    dateCreated: { gte: since },
     NOT: { type: { equals: "inherit", mode: "insensitive" } },
   };
+
+  if (mode !== "missing-customer-id") {
+    where.dateCreated = { gte: since };
+  }
 
   if (mode === "missing-rule") {
     where.winningRule = null;
   } else if (mode === "unattempted") {
     where.attributionAudit = { equals: Prisma.DbNull };
+  } else if (mode === "missing-customer-id") {
+    where.customerSlicewpId = null;
   } else {
     where.OR = [
       { winningRule: null },

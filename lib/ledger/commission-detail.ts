@@ -3,6 +3,9 @@ import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
 import { isLifetimeSaleType } from "@/lib/affiliate/lifetime";
 import {
   type AttributionAudit,
+  type CommissionJourneyCustomer,
+  type CommissionJourneyOrder,
+  type CommissionJourneyPayload,
   commissionCookieNoClickHeadline,
   commissionOverrideWhyHeadline,
   commissionWhyHeadline,
@@ -82,6 +85,7 @@ type LoadedOrderAttribution = {
   referrerVisitSlicewpId: number | null;
   couponCodes: string[];
   sessionEntryHost: string | null;
+  orderSubtotal: number | null;
   orderShipping: number | null;
   orderTax: number | null;
   orderTotal: number | null;
@@ -228,6 +232,18 @@ function buildCustomer(ctx: DetailBuildContext): CommissionDetailCustomer | null
     };
   }
 
+  if (isLifetimeSale && firstOrderId && firstLinkedAt) {
+    const index = customerOrderIndex ?? 1;
+    const total = customerTotalOrders ?? 1;
+    return {
+      label: copy.linked(index, total),
+      orderIndex: index,
+      totalOrders: total,
+      firstOrderId,
+      firstLinkedAt,
+    };
+  }
+
   if (isLifetimeSale) {
     return {
       label: copy.linked(1, 1),
@@ -256,9 +272,12 @@ function buildOrder(ctx: DetailBuildContext): CommissionDetailOrder | null {
     ctx.orderAttribution?.couponCodes ??
     [];
 
+  const commissionBase =
+    ctx.orderAttribution?.orderSubtotal ?? ctx.entry.orderRevenue;
+
   return {
     id: orderId,
-    commissionBase: money(ctx.entry.orderRevenue),
+    commissionBase: money(commissionBase),
     shipping:
       ctx.orderAttribution?.orderShipping != null
         ? money(ctx.orderAttribution.orderShipping)
@@ -414,64 +433,21 @@ export function buildCommissionDetailResponse(
   };
 }
 
-async function loadOrderAttribution(
-  wooOrderId: number,
-  slicewpCommissionId: number | null
-): Promise<LoadedOrderAttribution | null> {
-  let row = await prisma.orderAttribution.findUnique({
-    where: { wooOrderId },
-    select: {
-      referrerVisitSlicewpId: true,
-      couponCodes: true,
-      sessionEntryHost: true,
-      orderShipping: true,
-      orderTax: true,
-      orderTotal: true,
-    },
-  });
-
-  if (
-    slicewpCommissionId !== null &&
-    (row?.orderTotal == null || row.orderShipping == null || row.orderTax == null)
-  ) {
-    try {
-      const journey = await fetchCommissionJourney(slicewpCommissionId, {
-        lite: true,
-      });
-      if (journey.order) {
-        const totals = orderTotalsFromJourneyOrder(journey.order);
-        row = await prisma.orderAttribution.upsert({
-          where: { wooOrderId },
-          create: {
-            wooOrderId,
-            couponCodes: journey.order.coupons,
-            referrerAffiliateSlicewpId: null,
-            referrerVisitSlicewpId: null,
-            sessionEntryHost: null,
-            ...totals,
-          },
-          update: totals,
-          select: {
-            referrerVisitSlicewpId: true,
-            couponCodes: true,
-            sessionEntryHost: true,
-            orderShipping: true,
-            orderTax: true,
-            orderTotal: true,
-          },
-        });
-      }
-    } catch {
-      // Drawer still works with commission base only.
-    }
-  }
-
-  if (!row) return null;
-
+function orderAttributionFromRow(row: {
+  referrerVisitSlicewpId: number | null;
+  couponCodes: string[];
+  sessionEntryHost: string | null;
+  orderSubtotal: { toString(): string } | null;
+  orderShipping: { toString(): string } | null;
+  orderTax: { toString(): string } | null;
+  orderTotal: { toString(): string } | null;
+}): LoadedOrderAttribution {
   return {
     referrerVisitSlicewpId: row.referrerVisitSlicewpId,
     couponCodes: row.couponCodes,
     sessionEntryHost: row.sessionEntryHost,
+    orderSubtotal:
+      row.orderSubtotal === null ? null : toNumber(row.orderSubtotal),
     orderShipping:
       row.orderShipping === null ? null : toNumber(row.orderShipping),
     orderTax: row.orderTax === null ? null : toNumber(row.orderTax),
@@ -479,17 +455,110 @@ async function loadOrderAttribution(
   };
 }
 
-async function loadCustomerHistory(
-  affiliateId: string,
-  customerSlicewpId: number | null,
-  wooOrderId: number | null
-): Promise<{
+const ORDER_ATTRIBUTION_SELECT = {
+  referrerVisitSlicewpId: true,
+  couponCodes: true,
+  sessionEntryHost: true,
+  orderSubtotal: true,
+  orderShipping: true,
+  orderTax: true,
+  orderTotal: true,
+} as const;
+
+function orderAttributionNeedsRefresh(
+  row: {
+    orderSubtotal: unknown;
+    orderShipping: unknown;
+    orderTax: unknown;
+    orderTotal: unknown;
+  } | null
+): boolean {
+  return (
+    row?.orderSubtotal == null ||
+    row.orderTotal == null ||
+    row.orderShipping == null ||
+    row.orderTax == null
+  );
+}
+
+async function persistOrderAttributionTotals(
+  wooOrderId: number,
+  journeyOrder: CommissionJourneyOrder
+): Promise<LoadedOrderAttribution | null> {
+  const totals = orderTotalsFromJourneyOrder(journeyOrder);
+  const row = await prisma.orderAttribution.upsert({
+    where: { wooOrderId },
+    create: {
+      wooOrderId,
+      couponCodes: journeyOrder.coupons,
+      referrerAffiliateSlicewpId: null,
+      referrerVisitSlicewpId: null,
+      sessionEntryHost: null,
+      ...totals,
+    },
+    update: totals,
+    select: ORDER_ATTRIBUTION_SELECT,
+  });
+
+  return orderAttributionFromRow(row);
+}
+
+async function loadOrderAttribution(
+  wooOrderId: number,
+  journeyOrder: CommissionJourneyOrder | null | undefined
+): Promise<LoadedOrderAttribution | null> {
+  const row = await prisma.orderAttribution.findUnique({
+    where: { wooOrderId },
+    select: ORDER_ATTRIBUTION_SELECT,
+  });
+
+  if (journeyOrder && orderAttributionNeedsRefresh(row)) {
+    try {
+      return await persistOrderAttributionTotals(wooOrderId, journeyOrder);
+    } catch {
+      // Drawer still works with commission base only.
+    }
+  }
+
+  if (!row) return null;
+
+  return orderAttributionFromRow(row);
+}
+
+export async function resolveCustomerHistory(params: {
+  affiliateId: string;
+  customerSlicewpId: number | null;
+  wooOrderId: number | null;
+  journeyCustomer: CommissionJourneyCustomer | null | undefined;
+}): Promise<{
   orderIndex: number | null;
   totalOrders: number | null;
   firstOrderId: number | null;
   firstLinkedAt: string | null;
 }> {
-  if (customerSlicewpId === null || wooOrderId === null) {
+  const { affiliateId, customerSlicewpId, wooOrderId, journeyCustomer } =
+    params;
+
+  if (wooOrderId === null) {
+    return {
+      orderIndex: null,
+      totalOrders: null,
+      firstOrderId: null,
+      firstLinkedAt: null,
+    };
+  }
+
+  const effectiveCustomerId =
+    customerSlicewpId ?? journeyCustomer?.slicewpId ?? null;
+
+  const firstOrderId = journeyCustomer?.firstOrderId ?? null;
+  const firstLinkedAt = journeyCustomer?.firstCommissionDate ?? null;
+  const totalOrdersFromBridge =
+    journeyCustomer && journeyCustomer.orderCount > 0
+      ? journeyCustomer.orderCount
+      : null;
+
+  if (effectiveCustomerId === null && firstOrderId === null) {
     return {
       orderIndex: null,
       totalOrders: null,
@@ -501,31 +570,35 @@ async function loadCustomerHistory(
   const rows = await prisma.commission.findMany({
     where: {
       affiliateId,
-      customerSlicewpId,
       wooOrderId: { not: null },
+      OR: [
+        ...(effectiveCustomerId !== null
+          ? [{ customerSlicewpId: effectiveCustomerId }]
+          : []),
+        ...(firstOrderId !== null ? [{ wooOrderId: firstOrderId }] : []),
+      ],
     },
     orderBy: { dateCreated: "asc" },
-    select: { wooOrderId: true, dateCreated: true },
+    select: { wooOrderId: true },
   });
 
-  if (rows.length === 0) {
-    return {
-      orderIndex: null,
-      totalOrders: null,
-      firstOrderId: null,
-      firstLinkedAt: null,
-    };
-  }
+  const seen = new Set<number>();
+  const orderedOrderIds = rows
+    .map((row) => row.wooOrderId)
+    .filter((id): id is number => {
+      if (id === null || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
 
-  const first = rows[0];
   const orderIndex =
-    rows.findIndex((row) => row.wooOrderId === wooOrderId) + 1;
+    orderedOrderIds.findIndex((id) => id === wooOrderId) + 1;
 
   return {
     orderIndex: orderIndex > 0 ? orderIndex : null,
-    totalOrders: rows.length,
-    firstOrderId: first.wooOrderId,
-    firstLinkedAt: iso(first.dateCreated),
+    totalOrders: totalOrdersFromBridge ?? (orderedOrderIds.length || null),
+    firstOrderId,
+    firstLinkedAt,
   };
 }
 
@@ -557,8 +630,20 @@ export async function getCommissionDetailForEntry(
         })
       : null;
 
-  const visitSlicewpId = commission?.visitSlicewpId ?? null;
-  const visit =
+  let journey: CommissionJourneyPayload | null = null;
+  if (entry.slicewpCommissionId !== null) {
+    try {
+      journey = await fetchCommissionJourney(entry.slicewpCommissionId, {
+        lite: true,
+      });
+    } catch {
+      // Detail still works from synced Supabase rows.
+    }
+  }
+
+  const visitSlicewpId =
+    commission?.visitSlicewpId ?? journey?.commission.visitId ?? null;
+  let visit =
     visitSlicewpId !== null
       ? await prisma.visit.findFirst({
           where: { affiliateId, slicewpId: visitSlicewpId },
@@ -582,12 +667,17 @@ export async function getCommissionDetailForEntry(
           })
         : null;
 
+  if (!visit && journey?.visit) {
+    visit = {
+      occurredAt: new Date(journey.visit.occurredAt),
+      landingUrl: journey.visit.landingUrl,
+      referrerUrl: journey.visit.referrerUrl,
+    };
+  }
+
   const orderAttribution =
     entry.wooOrderId !== null
-      ? await loadOrderAttribution(
-          entry.wooOrderId,
-          entry.slicewpCommissionId
-        )
+      ? await loadOrderAttribution(entry.wooOrderId, journey?.order)
       : null;
 
   const audit = parseAttributionAudit(commission?.attributionAudit);
@@ -615,11 +705,15 @@ export async function getCommissionDetailForEntry(
   });
 
   const { orderIndex, totalOrders, firstOrderId, firstLinkedAt } =
-    await loadCustomerHistory(
+    await resolveCustomerHistory({
       affiliateId,
-      commission?.customerSlicewpId ?? null,
-      entry.wooOrderId
-    );
+      customerSlicewpId:
+        commission?.customerSlicewpId ??
+        journey?.commission.customerId ??
+        null,
+      wooOrderId: entry.wooOrderId,
+      journeyCustomer: journey?.customer,
+    });
 
   return buildCommissionDetailResponse({
     entry,
