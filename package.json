@@ -38,6 +38,7 @@
     "db:seed": "prisma db seed",
     "reconcile-overrides": "tsx scripts/reconcile-override-status.ts",
     "backfill-ledger-dates": "tsx scripts/backfill-ledger-occurred-at.ts",
+    "backfill-order-attribution": "tsx scripts/backfill-order-attribution.ts",
     "prune-inherited-direct": "tsx scripts/prune-inherited-direct.ts",
     "normalize-payout-weeks": "tsx scripts/normalize-payout-weeks.ts",
     "postinstall": "prisma generate"

@@ -24,8 +24,8 @@ export function TrackedByBadge({
     return (
       <span
         title={copy.linkedCustomerHint}
-        className={cn(
-          "ts-affiliate-badge ts-affiliate-badge-lifetime inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium",
+      className={cn(
+          "ts-affiliate-badge ts-affiliate-badge-lifetime inline-flex h-6 max-w-full items-center gap-1 truncate px-2.5 text-[10px] font-medium leading-none",
           className
         )}
       >
@@ -42,7 +42,7 @@ export function TrackedByBadge({
     <span
       title={tracked ? copy.linkedHint : copy.unlinkedHint}
       className={cn(
-        "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium",
+        "inline-flex h-6 max-w-full items-center gap-1 truncate rounded-full px-2.5 text-[10px] font-medium leading-none",
         tracked
           ? "bg-primary/10 text-primary"
           : "bg-muted text-muted-foreground",

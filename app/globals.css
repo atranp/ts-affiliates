@@ -202,6 +202,28 @@
     @apply flex w-full rounded-xl border border-border/45 bg-card px-4 py-3.5 text-left transition-all hover:border-border/80 hover:shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
   }
 
+  /** Mobile commission list — spaced cards instead of hairline dividers */
+  .ts-commission-mobile-list {
+    @apply flex flex-col gap-2 bg-muted/20 p-2.5 sm:gap-2 sm:p-3 md:hidden;
+  }
+
+  .ts-commission-mobile-row {
+    @apply flex w-full rounded-lg border border-border/55 bg-card px-3 py-2.5 text-left shadow-xs transition-all sm:px-3.5;
+  }
+
+  .ts-commission-mobile-row:hover {
+    @apply border-border/80 bg-muted/15;
+  }
+
+  .ts-commission-mobile-row:active {
+    @apply bg-muted/25;
+  }
+
+  button.ts-commission-mobile-row:focus-visible,
+  a.ts-commission-mobile-row:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2;
+  }
+
   /** Flat rows inside a card — hairline gaps or dividers, no per-row chrome */
   .ts-divider-list {
     @apply flex flex-col;
@@ -212,7 +234,7 @@
   }
 
   .ts-divider-row {
-    @apply flex w-full flex-col items-stretch bg-card px-4 py-2.5 text-left transition-colors sm:px-5;
+    @apply flex w-full flex-col items-stretch bg-card px-4 py-3 text-left transition-colors sm:px-5 sm:py-2.5;
   }
 
   .ts-divider-list:not(.ts-divider-list-inset) .ts-divider-row {
@@ -394,7 +416,7 @@
   }
 
   .ts-affiliate-badge {
-    @apply inline-flex max-w-full items-center gap-1 rounded-full border-0 px-2.5 py-1 text-xs font-medium leading-none tracking-normal;
+    @apply inline-flex h-6 max-w-full items-center gap-1 truncate rounded-full border-0 px-2.5 text-[10px] font-medium leading-none tracking-normal;
   }
 
   /* Entry type — soft categorical pills */
@@ -674,6 +696,64 @@
 
   .ts-table-body-scroll {
     @apply min-h-0 flex-1 basis-0 overflow-y-auto overscroll-contain;
+  }
+
+  .ts-table-body-fetching {
+    @apply pointer-events-none opacity-60 transition-opacity duration-200;
+  }
+
+  .ts-commission-chevron {
+    @apply h-4 w-4 shrink-0 text-muted-foreground/45 transition-colors;
+  }
+
+  button:hover .ts-commission-chevron,
+  tr:hover .ts-commission-chevron,
+  tr:focus-visible .ts-commission-chevron {
+    @apply text-primary;
+  }
+
+  .ts-detail-section {
+    @apply rounded-xl border border-border/60 bg-card px-4 py-3.5 sm:px-4 sm:py-4;
+  }
+
+  .ts-detail-section-title {
+    @apply text-[11px] font-semibold uppercase tracking-wider text-muted-foreground;
+  }
+
+  .ts-detail-callout {
+    @apply rounded-xl border border-primary/15 bg-primary-soft/40 px-4 py-3.5;
+  }
+
+  .ts-detail-callout-text {
+    @apply text-sm leading-relaxed text-brand-dark;
+  }
+
+  .ts-detail-fact-list {
+    @apply space-y-2.5;
+  }
+
+  .ts-detail-fact {
+    @apply flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4;
+  }
+
+  .ts-detail-fact-label {
+    @apply text-xs text-muted-foreground;
+  }
+
+  .ts-detail-fact-value {
+    @apply text-sm font-medium text-brand-dark sm:text-right;
+  }
+
+  .ts-journey-list {
+    @apply relative ml-1 space-y-0 border-l-2 border-border/70 pl-5;
+  }
+
+  .ts-journey-step {
+    @apply relative pb-5 last:pb-0;
+  }
+
+  .ts-journey-dot {
+    @apply absolute -left-[calc(1.25rem+1px)] top-0.5 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-card shadow-xs;
   }
 
   .ts-workspace {

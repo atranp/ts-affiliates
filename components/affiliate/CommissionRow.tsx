@@ -1,17 +1,13 @@
 'use client';
 
-import {
-  affiliateBadgeClass,
-  commissionTypeVariant,
-} from '@/components/affiliate/AffiliateBadge';
+import { ChevronRight } from 'lucide-react';
 import { AffiliateAmountCell } from '@/components/affiliate/primitives';
-import { TrackedByBadge } from '@/components/affiliate/TrackedByBadge';
 import {
   formatCommissionStatus,
   formatCommissionType,
 } from '@/lib/affiliate/copy';
 import { formatAppDate } from '@/lib/timezone';
-import { cn, formatCurrency, formatSaleDate } from '@/lib/utils';
+import { cn, formatSaleDate } from '@/lib/utils';
 
 export function commissionAmountTone(
   status: string,
@@ -31,6 +27,15 @@ function formatPaidDate(iso: string | null) {
   });
 }
 
+function trackingLabel(
+  trackedByClick: boolean | null | undefined,
+  isLifetimeSale: boolean,
+): string | null {
+  if (isLifetimeSale) return 'Linked customer';
+  if (trackedByClick === null || trackedByClick === undefined) return null;
+  return trackedByClick ? 'Link click' : 'No click';
+}
+
 type CommissionRowProps = {
   details: string;
   occurredAt: string;
@@ -43,14 +48,80 @@ type CommissionRowProps = {
   isLifetimeSale?: boolean;
   onClick?: () => void;
   className?: string;
-  /** Card = standalone bordered row; flat = divider row inside a panel */
-  layout?: 'card' | 'flat';
+  layout?: 'card' | 'flat' | 'mobile';
 };
+
+function buildSubline({
+  type,
+  isLifetimeSale,
+  trackedByClick,
+  occurredAt,
+  status,
+  payoutWeek,
+}: Pick<
+  CommissionRowProps,
+  'type' | 'isLifetimeSale' | 'trackedByClick' | 'occurredAt' | 'status' | 'payoutWeek'
+>) {
+  const paidDate = status === 'PAID' ? formatPaidDate(payoutWeek ?? null) : null;
+  const statusLabel = paidDate
+    ? `${formatCommissionStatus(status)} · ${paidDate}`
+    : formatCommissionStatus(status);
+
+  return [
+    formatCommissionType(type, { isLifetimeSale }),
+    trackingLabel(trackedByClick, isLifetimeSale ?? false),
+    formatSaleDate(occurredAt),
+    statusLabel,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
+
+function CommissionRowContent({
+  details,
+  occurredAt,
+  amount,
+  status,
+  type,
+  payoutWeek,
+  trackedByClick,
+  isLifetimeSale,
+  onClick,
+}: Omit<CommissionRowProps, 'layout' | 'className' | 'orderRevenue'>) {
+  const subline = buildSubline({
+    type,
+    isLifetimeSale,
+    trackedByClick,
+    occurredAt,
+    status,
+    payoutWeek,
+  });
+
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <div className="min-w-0 flex-1 overflow-hidden">
+        <p className="ts-row-title truncate leading-5 text-brand-dark">
+          {details}
+        </p>
+        <p className="ts-row-meta mt-0.5 truncate leading-4">{subline}</p>
+      </div>
+
+      <div className="flex shrink-0 items-center gap-1">
+        <AffiliateAmountCell
+          amount={amount}
+          tone={commissionAmountTone(status)}
+        />
+        {onClick ? (
+          <ChevronRight className="ts-commission-chevron shrink-0" aria-hidden />
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 export function CommissionRow({
   details,
   occurredAt,
-  orderRevenue,
   amount,
   status,
   type,
@@ -61,86 +132,27 @@ export function CommissionRow({
   className,
   layout = 'card',
 }: CommissionRowProps) {
-  const variant = commissionTypeVariant(type, isLifetimeSale);
-  const metaLine = [
-    formatSaleDate(occurredAt),
-    orderRevenue ? `${formatCurrency(orderRevenue)} sale` : null,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-  const paidDate = status === 'PAID' ? formatPaidDate(payoutWeek) : null;
-
-  const statusLine = (
-    <>
-      {formatCommissionStatus(status)}
-      {paidDate ? (
-        <>
-          <span className="text-muted-foreground/50"> · </span>
-          <span className="font-normal">{paidDate}</span>
-        </>
-      ) : null}
-    </>
-  );
-
-  const content =
-    layout === 'flat' ? (
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1 space-y-1">
-          <p className="ts-row-title truncate leading-snug">{details}</p>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className={affiliateBadgeClass(variant)}>
-              {formatCommissionType(type, { isLifetimeSale })}
-            </span>
-            <TrackedByBadge
-              tracked={trackedByClick}
-              isLifetimeSale={isLifetimeSale}
-            />
-          </div>
-          {metaLine ? (
-            <p className="ts-row-meta truncate">{metaLine}</p>
-          ) : null}
-        </div>
-        <div className="flex shrink-0 flex-col items-end gap-0.5">
-          <AffiliateAmountCell
-            amount={amount}
-            tone={commissionAmountTone(status)}
-          />
-          <p className="ts-row-meta leading-none">{statusLine}</p>
-        </div>
-      </div>
-    ) : (
-      <div className="flex min-w-0 items-start justify-between gap-4">
-        <div className="min-w-0 flex-1 space-y-1.5">
-          <p className="ts-row-title truncate leading-snug">{details}</p>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className={affiliateBadgeClass(variant)}>
-              {formatCommissionType(type, { isLifetimeSale })}
-            </span>
-            <TrackedByBadge
-              tracked={trackedByClick}
-              isLifetimeSale={isLifetimeSale}
-            />
-          </div>
-          {metaLine ? (
-            <p className="ts-row-meta truncate">{metaLine}</p>
-          ) : null}
-        </div>
-        <div className="shrink-0 space-y-1 text-right">
-          <AffiliateAmountCell
-            amount={amount}
-            tone={commissionAmountTone(status)}
-          />
-          <p className="ts-row-meta font-medium leading-snug">{statusLine}</p>
-        </div>
-      </div>
-    );
-
   const rowClass = cn(
     'min-w-0 max-w-full',
-    layout === 'flat'
-      ? 'ts-divider-row'
-      : 'ts-list-row',
+    layout === 'flat' && 'ts-divider-row',
+    layout === 'mobile' && 'ts-commission-mobile-row',
+    layout === 'card' && 'ts-list-row',
+    onClick && 'cursor-pointer',
     className,
+  );
+
+  const content = (
+    <CommissionRowContent
+      details={details}
+      occurredAt={occurredAt}
+      amount={amount}
+      status={status}
+      type={type}
+      payoutWeek={payoutWeek}
+      trackedByClick={trackedByClick}
+      isLifetimeSale={isLifetimeSale}
+      onClick={onClick}
+    />
   );
 
   if (onClick) {

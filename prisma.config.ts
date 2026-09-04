@@ -5,6 +5,13 @@ import { defineConfig, env } from "prisma/config";
 config({ path: ".env" });
 config({ path: ".env.local", override: true });
 
+/** Lets scripts target prod without editing .env.local. */
+if (process.env.BACKFILL_DATABASE_URL) {
+  process.env.DATABASE_URL = process.env.BACKFILL_DATABASE_URL;
+  process.env.DIRECT_URL =
+    process.env.BACKFILL_DIRECT_URL ?? process.env.BACKFILL_DATABASE_URL;
+}
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {

@@ -1,4 +1,5 @@
 import { getSettings } from "./settings";
+import type { CommissionJourneyPayload } from "./ledger/attribution-audit";
 import {
   appendWpAuthParams,
   normalizeStoreUrl,
@@ -62,6 +63,14 @@ export class BridgeUnavailableError extends Error {
   constructor(path: string) {
     super(`The SliceWP bridge plugin is not installed on this store (${path}).`);
     this.name = "BridgeUnavailableError";
+  }
+}
+
+/** Raised when a commission id does not exist on the store. */
+export class CommissionNotFoundError extends Error {
+  constructor(slicewpCommissionId: number) {
+    super(`SliceWP commission ${slicewpCommissionId} was not found.`);
+    this.name = "CommissionNotFoundError";
   }
 }
 
@@ -341,6 +350,64 @@ export async function generateAffiliateLink(
   );
 
   return response.referral_url;
+}
+
+/**
+ * Read-only commission journey for sync and the affiliate detail drawer.
+ *
+ * Distinguishes a missing commission (404 + invalid_commission_id) from a
+ * missing bridge route (404 without that code).
+ */
+export async function fetchCommissionJourney(
+  slicewpCommissionId: number,
+  options: { lite?: boolean } = {}
+): Promise<CommissionJourneyPayload> {
+  const settings = await getSettings();
+
+  const key = sanitizeCredential(settings.slicewpConsumerKey);
+  const secret = sanitizeCredential(settings.slicewpConsumerSecret);
+
+  if (!key || !secret) {
+    throw new Error(
+      "SliceWP credentials are missing. Add them in Admin → Integrations."
+    );
+  }
+
+  const baseUrl = normalizeStoreUrl(settings.wcStoreUrl);
+  const search = appendWpAuthParams(new URLSearchParams(), key, secret);
+  if (options.lite) {
+    search.set("lite", "1");
+  }
+
+  const response = await fetch(
+    `${baseUrl}/wp-json/slicewp-ts/v1/commissions/${slicewpCommissionId}/journey?${search.toString()}`,
+    {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    }
+  );
+
+  if (response.status === 404) {
+    const body = (await response.json().catch(() => null)) as {
+      code?: unknown;
+    } | null;
+
+    if (body?.code === "invalid_commission_id") {
+      throw new CommissionNotFoundError(slicewpCommissionId);
+    }
+
+    throw new BridgeUnavailableError(
+      `/commissions/${slicewpCommissionId}/journey`
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `SliceWP bridge error: ${response.status} — ${await readApiError(response)}`
+    );
+  }
+
+  return response.json() as Promise<CommissionJourneyPayload>;
 }
 
 export type AffiliateSettingsWrite = {

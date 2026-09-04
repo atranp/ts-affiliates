@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import {
   CommissionsHomeTable,
   CommissionsHomeTableSkeleton,
 } from "@/components/affiliate/CommissionsHomeTable";
+import { CommissionDetailDrawer } from "@/components/affiliate/CommissionDetailDrawer";
 import {
   AffiliateEmptyState,
   AffiliateHomeCard,
@@ -22,6 +24,7 @@ export function CommissionsHomePreview({
   enabled = true,
   onViewCommissions,
 }: CommissionsHomePreviewProps) {
+  const [detailEntryId, setDetailEntryId] = useState<string | null>(null);
   const { data, isLoading } = useLedger({
     limit: PREVIEW_LIMIT,
     page: 1,
@@ -47,6 +50,7 @@ export function CommissionsHomePreview({
   const { entries } = data;
 
   return (
+    <>
     <AffiliateHomeCard
       className="flex min-h-0 flex-col"
       title={AFFILIATE_COPY.home.commissionsTitle}
@@ -57,7 +61,7 @@ export function CommissionsHomePreview({
       {entries.length > 0 ? (
         <CommissionsHomeTable
           entries={entries}
-          onRowClick={onViewCommissions}
+          onEntryClick={setDetailEntryId}
         />
       ) : (
         <div className="p-4 sm:p-5">
@@ -67,5 +71,10 @@ export function CommissionsHomePreview({
         </div>
       )}
     </AffiliateHomeCard>
+    <CommissionDetailDrawer
+      entryId={detailEntryId}
+      onClose={() => setDetailEntryId(null)}
+    />
+    </>
   );
 }

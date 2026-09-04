@@ -106,6 +106,8 @@ export interface SliceWPCommission {
   origin?: string;
   status?: string;
   parent_id?: number | string;
+  visit_id?: number | string;
+  customer_id?: number | string;
   /** The payment that settled this commission, or 0 while still outstanding. */
   payment_id?: number | string;
   date_created?: string;

@@ -1,4 +1,11 @@
 import type { LedgerData, LedgerEntry } from "@/lib/ledger/types";
+import type { CommissionDetailResponse } from "@/lib/ledger/commission-detail";
+import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
+import {
+  commissionOverrideWhyHeadline,
+  commissionWhyHeadline,
+} from "@/lib/ledger/attribution-audit";
+import { formatAppDate } from "@/lib/timezone";
 import type { ResolvedPeriod } from "@/lib/affiliate/period";
 import type { LedgerSortKey, SortDirection } from "@/lib/ledger/sort";
 import { defaultSortDirection, sortLedgerEntries } from "@/lib/ledger/sort";
@@ -480,12 +487,28 @@ export function mockLedgerResponse(options: {
   const total = sorted.length;
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const start = (page - 1) * limit;
-  // Roughly seven in ten direct sales carry a click, matching what the mirror
-  // actually looks like, so the attribution panel is never a solid single bar.
-  const entries = sorted.slice(start, start + limit).map((entry, index) => ({
-    ...entry,
-    trackedByClick: entry.type === "DIRECT" ? index % 10 < 7 : null,
-  }));
+  const entries = sorted.slice(start, start + limit).map((entry) => {
+    if (entry.type !== "DIRECT") {
+      return { ...entry, trackedByClick: null };
+    }
+
+    if (entry.isLifetimeSale) {
+      return { ...entry, trackedByClick: false };
+    }
+
+    // Varied attribution for the detail drawer workstream: click, cookie-only, no click.
+    if (entry.id === "le-4") {
+      return { ...entry, trackedByClick: true };
+    }
+    if (entry.id === "le-5") {
+      return { ...entry, trackedByClick: false };
+    }
+
+    return {
+      ...entry,
+      trackedByClick: entry.wooOrderId !== null && entry.wooOrderId % 3 !== 0,
+    };
+  });
 
   return {
     entries,
@@ -885,4 +908,432 @@ export function mockSaveAffiliateSettings(edit: {
     ok: true,
     result: { ...mockAffiliateSettings(), mirrored: true },
   };
+}
+
+const MOCK_COMMISSION_DETAILS: Record<string, CommissionDetailResponse> = {
+  "le-2": {
+    entry: {
+      id: "le-2",
+      type: "DIRECT",
+      amount: "26.00",
+      status: "UNPAID",
+      description: "Order #8306",
+      wooOrderId: 8306,
+      orderRevenue: "260.00",
+      occurredAt: daysAgo(2),
+      payoutWeek: null,
+      paidAt: null,
+      trackedByClick: false,
+      isLifetimeSale: true,
+    },
+    why: {
+      rule: "lifetime",
+      headline:
+        "Returning customer linked to you. No affiliate link or coupon on this order.",
+      detail: null,
+    },
+    order: {
+      id: 8306,
+      total: "260.00",
+      date: "Aug 2, 2026",
+      coupons: [],
+    },
+    customer: {
+      label: "Linked customer · order 2 of 5",
+      orderIndex: 2,
+      totalOrders: 5,
+      firstOrderId: 8100,
+      firstLinkedAt: daysAgo(90),
+    },
+    journey: [
+      {
+        kind: "customer_linked",
+        label: "First linked · Jun 6, 2026 · Order #8100",
+        at: daysAgo(90),
+        meta: { orderId: "8100" },
+      },
+      { kind: "order", label: "Order placed", at: daysAgo(2) },
+      { kind: "commission", label: "Commission recorded", at: daysAgo(2) },
+    ],
+    payout: {
+      status: "Pending payout",
+      batchLabel: null,
+      paidAt: null,
+    },
+  },
+  "le-4": {
+    entry: {
+      id: "le-4",
+      type: "DIRECT",
+      amount: "18.00",
+      status: "PAID",
+      description: "Order #8201",
+      wooOrderId: 8201,
+      orderRevenue: "180.00",
+      occurredAt: daysAgo(35),
+      payoutWeek: daysAgo(30),
+      paidAt: daysAgo(28),
+      trackedByClick: true,
+      isLifetimeSale: false,
+    },
+    why: {
+      rule: "link",
+      headline:
+        "Your link was clicked and was the last referral at checkout.",
+      detail: null,
+    },
+    order: {
+      id: 8201,
+      total: "180.00",
+      date: "Jul 1, 2026",
+      coupons: [],
+    },
+    customer: {
+      label: "New customer",
+      orderIndex: null,
+      totalOrders: null,
+      firstOrderId: null,
+      firstLinkedAt: null,
+    },
+    journey: [
+      {
+        kind: "click",
+        label: "Link clicked",
+        at: daysAgo(36),
+        meta: { landing: "/products/true30" },
+      },
+      { kind: "order", label: "Order placed", at: daysAgo(35) },
+      { kind: "commission", label: "Commission recorded", at: daysAgo(35) },
+      { kind: "payout", label: "Paid out", at: daysAgo(28) },
+    ],
+    payout: {
+      status: "Paid Aug 7, 2026",
+      batchLabel: "January payout",
+      paidAt: daysAgo(28),
+    },
+  },
+  "le-5": {
+    entry: {
+      id: "le-5",
+      type: "OVERRIDE",
+      amount: "8.00",
+      status: "PENDING",
+      description: "Marina Hales · Order #8190",
+      wooOrderId: 8190,
+      orderRevenue: "80.00",
+      occurredAt: daysAgo(5),
+      payoutWeek: null,
+      paidAt: null,
+      trackedByClick: null,
+      isLifetimeSale: false,
+    },
+    why: {
+      rule: "override",
+      headline: "Team bonus from Marina Hales's sale on order #8190.",
+      detail: null,
+    },
+    order: {
+      id: 8190,
+      total: "80.00",
+      date: "Aug 30, 2026",
+      coupons: [],
+    },
+    customer: null,
+    journey: [],
+    payout: {
+      status: "Awaiting milestone",
+      batchLabel: null,
+      paidAt: null,
+    },
+  },
+  "le-6": {
+    entry: {
+      id: "le-6",
+      type: "DIRECT",
+      amount: "42.00",
+      status: "UNPAID",
+      description: "Order #8188",
+      wooOrderId: 8188,
+      orderRevenue: "420.00",
+      occurredAt: daysAgo(6),
+      payoutWeek: null,
+      paidAt: null,
+      trackedByClick: true,
+      isLifetimeSale: false,
+    },
+    why: {
+      rule: "coupon",
+      headline:
+        "Your coupon BLAIR-9562 was used. Coupon attribution beats link attribution.",
+      detail: null,
+    },
+    order: {
+      id: 8188,
+      total: "420.00",
+      date: "Aug 29, 2026",
+      coupons: ["BLAIR-9562"],
+    },
+    customer: {
+      label: "New customer",
+      orderIndex: null,
+      totalOrders: null,
+      firstOrderId: null,
+      firstLinkedAt: null,
+    },
+    journey: [
+      {
+        kind: "click",
+        label: "Link clicked",
+        at: daysAgo(7),
+        meta: { landing: "/shop" },
+      },
+      {
+        kind: "coupon",
+        label: "Coupon used",
+        at: daysAgo(6),
+        meta: { code: "BLAIR-9562" },
+      },
+      { kind: "order", label: "Order placed", at: daysAgo(6) },
+      { kind: "commission", label: "Commission recorded", at: daysAgo(6) },
+    ],
+    payout: {
+      status: "Pending payout",
+      batchLabel: null,
+      paidAt: null,
+    },
+  },
+  "le-8": {
+    entry: {
+      id: "le-8",
+      type: "DIRECT",
+      amount: "15.00",
+      status: "PAID",
+      description: "Order #8100",
+      wooOrderId: 8100,
+      orderRevenue: "150.00",
+      occurredAt: daysAgo(62),
+      payoutWeek: daysAgo(60),
+      paidAt: daysAgo(58),
+      trackedByClick: false,
+      isLifetimeSale: false,
+    },
+    why: {
+      rule: "link",
+      headline:
+        "Your referral was stored on this order. No new click was recorded.",
+      detail: null,
+    },
+    order: {
+      id: 8100,
+      total: "150.00",
+      date: "Jul 4, 2026",
+      coupons: [],
+    },
+    customer: {
+      label: "New customer",
+      orderIndex: null,
+      totalOrders: null,
+      firstOrderId: null,
+      firstLinkedAt: null,
+    },
+    journey: [
+      {
+        kind: "cookie",
+        label: "Referral stored on order",
+        at: daysAgo(62),
+      },
+      { kind: "order", label: "Order placed", at: daysAgo(62) },
+      { kind: "commission", label: "Commission recorded", at: daysAgo(62) },
+      { kind: "payout", label: "Paid out", at: daysAgo(58) },
+    ],
+    payout: {
+      status: "Paid Jul 8, 2026",
+      batchLabel: "December payout",
+      paidAt: daysAgo(58),
+    },
+  },
+};
+
+function mockTrackedByClick(entry: LedgerEntry): boolean | null {
+  if (entry.type !== "DIRECT") return null;
+  if (entry.isLifetimeSale) return false;
+  if (entry.id === "le-4" || entry.id === "le-6") return true;
+  if (entry.id === "le-8") return false;
+  return entry.wooOrderId !== null && entry.wooOrderId % 3 !== 0;
+}
+
+function buildMockCommissionDetailFallback(
+  entry: LedgerEntry
+): CommissionDetailResponse {
+  const copy = AFFILIATE_COPY.commissions.detail;
+  const trackedByClick = mockTrackedByClick(entry);
+  const isLifetimeSale = !!entry.isLifetimeSale;
+  const recruitName =
+    entry.sourceAffiliate?.displayName ??
+    entry.sourceAffiliate?.email ??
+    "Team member";
+
+  if (entry.type === "OVERRIDE") {
+    return {
+      entry: {
+        id: entry.id,
+        type: entry.type,
+        amount: entry.amount,
+        status: entry.status,
+        description: entry.description,
+        wooOrderId: entry.wooOrderId,
+        orderRevenue: entry.orderRevenue,
+        occurredAt: entry.occurredAt,
+        payoutWeek: entry.payoutWeek,
+        paidAt: entry.paidAt,
+        trackedByClick: null,
+        isLifetimeSale: false,
+      },
+      why: {
+        rule: "override",
+        headline: commissionOverrideWhyHeadline(
+          recruitName,
+          entry.wooOrderId ?? 0
+        ),
+        detail: null,
+      },
+      order: entry.wooOrderId
+        ? {
+            id: entry.wooOrderId,
+            total: entry.orderRevenue ?? "0",
+            date: formatAppDate(entry.occurredAt),
+            coupons: [],
+          }
+        : null,
+      customer: null,
+      journey: [],
+      payout: {
+        status:
+          entry.status === "PAID"
+            ? copy.payout.paid(formatAppDate(entry.paidAt ?? entry.occurredAt))
+            : entry.status === "PENDING"
+              ? copy.payout.awaitingMilestone
+              : copy.payout.pending,
+        batchLabel: entry.payoutBatch?.label ?? null,
+        paidAt: entry.paidAt,
+      },
+    };
+  }
+
+  const rule = isLifetimeSale ? "lifetime" : trackedByClick ? "link" : "none";
+  const headline = isLifetimeSale
+    ? commissionWhyHeadline("lifetime")
+    : trackedByClick
+      ? commissionWhyHeadline("link", { hasVisitRow: true })
+      : commissionWhyHeadline("none");
+
+  return {
+    entry: {
+      id: entry.id,
+      type: entry.type,
+      amount: entry.amount,
+      status: entry.status,
+      description: entry.description,
+      wooOrderId: entry.wooOrderId,
+      orderRevenue: entry.orderRevenue,
+      occurredAt: entry.occurredAt,
+      payoutWeek: entry.payoutWeek,
+      paidAt: entry.paidAt,
+      trackedByClick,
+      isLifetimeSale,
+    },
+    why: { rule, headline, detail: null },
+    order: entry.wooOrderId
+      ? {
+          id: entry.wooOrderId,
+          total: entry.orderRevenue ?? "0",
+          date: formatAppDate(entry.occurredAt),
+          coupons: [],
+        }
+      : null,
+    customer: isLifetimeSale
+      ? {
+          label: copy.customer.linked(1, 1),
+          orderIndex: 1,
+          totalOrders: 1,
+          firstOrderId: entry.wooOrderId,
+          firstLinkedAt: entry.occurredAt,
+        }
+      : {
+          label: copy.customer.newCustomer,
+          orderIndex: null,
+          totalOrders: null,
+          firstOrderId: null,
+          firstLinkedAt: null,
+        },
+    journey: [
+      ...(isLifetimeSale && entry.wooOrderId
+        ? [
+            {
+              kind: "customer_linked" as const,
+              label: copy.journey.firstLinked(
+                formatAppDate(entry.occurredAt),
+                entry.wooOrderId
+              ),
+              at: entry.occurredAt,
+              meta: { orderId: String(entry.wooOrderId) },
+            },
+          ]
+        : []),
+      ...(trackedByClick
+        ? [
+            {
+              kind: "click" as const,
+              label: copy.journey.click,
+              at: entry.occurredAt,
+              meta: { landing: "/shop" },
+            },
+          ]
+        : []),
+      {
+        kind: "order" as const,
+        label: copy.journey.order,
+        at: entry.occurredAt,
+        meta: entry.wooOrderId
+          ? { orderId: String(entry.wooOrderId) }
+          : undefined,
+      },
+      {
+        kind: "commission" as const,
+        label: copy.journey.commission,
+        at: entry.occurredAt,
+      },
+      ...(entry.paidAt
+        ? [
+            {
+              kind: "payout" as const,
+              label: copy.journey.payout,
+              at: entry.paidAt,
+            },
+          ]
+        : []),
+    ],
+    payout: {
+      status:
+        entry.status === "PAID"
+          ? copy.payout.paid(formatAppDate(entry.paidAt ?? entry.occurredAt))
+          : entry.status === "PENDING"
+            ? copy.payout.awaitingMilestone
+            : copy.payout.pending,
+      batchLabel: entry.payoutBatch?.label ?? null,
+      paidAt: entry.paidAt,
+    },
+  };
+}
+
+export function mockCommissionDetailResponse(
+  entryId: string
+): CommissionDetailResponse | null {
+  const curated = MOCK_COMMISSION_DETAILS[entryId];
+  if (curated) return curated;
+
+  const entry = ALL_ENTRIES.find((row) => row.id === entryId);
+  if (!entry) return null;
+
+  return buildMockCommissionDetailFallback(entry);
 }

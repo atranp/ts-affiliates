@@ -1,7 +1,8 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,10 @@ export function Sheet({
   footer,
   className,
 }: SheetProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
     if (!open) return;
     function onKeyDown(event: KeyboardEvent) {
@@ -37,10 +42,10 @@ export function Sheet({
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-[100]">
+  return createPortal(
+    <div className="fixed inset-0 z-[200]">
       <button
         type="button"
         className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
@@ -49,15 +54,19 @@ export function Sheet({
       />
       <div
         className={cn(
-          "absolute inset-y-0 right-0 flex w-full max-w-lg flex-col border-l border-border bg-card shadow-xl animate-in slide-in-from-right duration-200",
+          "absolute inset-y-0 right-0 flex h-full w-full max-w-lg flex-col border-l border-border bg-card shadow-xl animate-in slide-in-from-right duration-200 sm:max-w-md lg:max-w-lg",
           className
         )}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
-          <div className="min-w-0">
-            <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-border px-4 py-4 sm:px-5">
+          <div className="min-w-0 flex-1 pr-2">
+            <h2 className="text-base font-semibold leading-snug tracking-tight sm:text-lg">
+              {title}
+            </h2>
             {description && (
-              <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                {description}
+              </p>
             )}
           </div>
           <Button
@@ -70,11 +79,16 @@ export function Sheet({
             <X className="h-4 w-4" />
           </Button>
         </div>
-        <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-5 sm:py-5">
+          {children}
+        </div>
         {footer && (
-          <div className="border-t border-border px-5 py-4">{footer}</div>
+          <div className="shrink-0 border-t border-border px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-5">
+            {footer}
+          </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

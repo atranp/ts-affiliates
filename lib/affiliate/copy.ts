@@ -203,6 +203,7 @@ export const AFFILIATE_COPY = {
     description: 'Every sale and team earning tied to your account.',
     empty: 'No commissions yet.',
     noMatches: 'No commissions match these filters.',
+    noMatchesHint: 'Try clearing filters or broadening your search.',
     searchPlaceholder: 'Search order or description…',
     allTeams: 'All teams',
     allMembers: 'All team members',
@@ -248,6 +249,8 @@ export const AFFILIATE_COPY = {
       status: 'Status',
     },
     exportCsv: 'Export CSV',
+    tapForDetails: 'Tap a row for order and attribution details',
+    desktopDetailHint: 'Select a row to view details',
     tracked: {
       linked: 'Link click',
       linkedHint: 'We matched this sale to a click on your link.',
@@ -259,6 +262,65 @@ export const AFFILIATE_COPY = {
       linkedCustomerHint:
         'You referred this customer on an earlier order — no link or coupon was needed on this one.',
       unlinkedHint: 'Order was not traced to a click',
+    },
+    /** Commission detail drawer — see docs/COMMISSION-JOURNEY-PLAN.md */
+    detail: {
+      whyTitle: 'Why you earned this',
+      orderTitle: 'Order',
+      customerTitle: 'Customer',
+      journeyTitle: 'Journey',
+      payoutTitle: 'Payout',
+      loading: 'Loading details…',
+      error: 'Could not load commission details.',
+      errorHint: 'Check your connection and try again.',
+      retry: 'Try again',
+      close: 'Close',
+      openHint: 'View order and attribution details',
+      noJourney: 'Team bonuses do not include an attribution journey.',
+      emptyOverrideCustomer: 'Customer details apply to the recruit’s direct sale.',
+      bestEffortHint:
+        'Best available attribution data — this order predates full audit logging.',
+      why: {
+        coupon: (code: string) =>
+          `Your coupon ${code} was used. Coupon attribution beats link attribution.`,
+        link: 'Your link was the last referral at checkout.',
+        linkWithVisit:
+          'Your link was clicked and was the last referral at checkout.',
+        cookieNoClick:
+          'Your referral was stored on this order. No new click was recorded.',
+        lifetime:
+          'Returning customer linked to you. No affiliate link or coupon on this order.',
+        override: (recruitName: string, orderId: number) =>
+          `Team bonus from ${recruitName}'s sale on order #${orderId}.`,
+        none: 'No affiliate attribution applied to this order.',
+      },
+      customer: {
+        linked: (orderIndex: number, totalOrders: number) =>
+          `Linked customer · order ${orderIndex} of ${totalOrders}`,
+        newCustomer: 'New customer',
+        firstLinked: (orderId: number) =>
+          `First linked on order #${orderId}`,
+        firstLinkedOn: (date: string, orderId: number) =>
+          `First linked · ${date} · Order #${orderId}`,
+      },
+      journey: {
+        click: 'Link clicked',
+        cookie: 'Referral stored on order',
+        coupon: 'Coupon used',
+        order: 'Order placed',
+        commission: 'Commission recorded',
+        payout: 'Paid out',
+        customerLinked: 'Customer linked',
+        firstLinked: (date: string, orderId: number) =>
+          `First linked · ${date} · Order #${orderId}`,
+        email: 'Returned via email',
+      },
+      payout: {
+        pending: 'Pending payout',
+        awaitingMilestone: 'Awaiting milestone',
+        paid: (date: string) => `Paid ${date}`,
+        batch: (label: string) => `Included in ${label}`,
+      },
     },
   },
   payouts: {

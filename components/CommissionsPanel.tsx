@@ -1,8 +1,9 @@
-'use client';
+"use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Download, Search, X } from 'lucide-react';
 import { AffiliateStatCard } from '@/components/affiliate/AffiliateStatCard';
+import { CommissionDetailDrawer } from '@/components/affiliate/CommissionDetailDrawer';
 import { LedgerFilterSelect } from '@/components/affiliate/LedgerFilterSelect';
 import { LedgerTable } from '@/components/LedgerTable';
 import { AFFILIATE_COPY } from '@/lib/affiliate/copy';
@@ -171,6 +172,7 @@ export function CommissionsPanel({
   fillHeight = false,
   className,
 }: CommissionsPanelProps) {
+  const [detailEntryId, setDetailEntryId] = useState<string | null>(null);
   const { accountSummary, overrideAccountSummary, tabCounts } = data;
   const showTeamEarningsStat =
     overrideAccountSummary.unpaidTotal > 0 ||
@@ -251,6 +253,7 @@ export function CommissionsPanel({
   }, [mobileSortValue, sortKey, sortDir]);
 
   return (
+    <>
     <div
       className={cn(
         'flex min-h-0 min-w-0 max-w-full flex-col gap-4 sm:gap-5',
@@ -430,31 +433,49 @@ export function CommissionsPanel({
         </div>
 
         <div className="ts-table-summary">
-          <p className="ts-row-meta flex w-full min-w-0 items-center justify-between gap-2">
-            <span className="min-w-0 truncate">
-              {data.filtered.count.toLocaleString()}{' '}
-              {data.filtered.count === 1 ? 'entry' : 'entries'}
-              {isFetching && (
-                <span className="text-muted-foreground/70"> · updating…</span>
-              )}
-            </span>
+          <div className="flex w-full min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+            <p className="ts-row-meta flex min-w-0 items-center gap-2">
+              <span className="min-w-0 truncate">
+                {data.filtered.count.toLocaleString()}{' '}
+                {data.filtered.count === 1 ? 'entry' : 'entries'}
+              </span>
+              {isFetching ? (
+                <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                  Updating
+                </span>
+              ) : null}
+            </p>
             <span className="ts-amount shrink-0 whitespace-nowrap text-primary">
               {formatCurrency(data.filtered.amount)}
             </span>
+          </div>
+          <p className="ts-row-meta mt-1 md:hidden">
+            {AFFILIATE_COPY.commissions.tapForDetails}
+          </p>
+          <p className="ts-row-meta mt-1 hidden md:block">
+            {AFFILIATE_COPY.commissions.desktopDetailHint}
           </p>
         </div>
 
         {displayEntries.length === 0 && filtersActive ? (
           <div
             className={cn(
-              'space-y-3 px-4 py-10 text-center',
+              'flex flex-col items-center gap-3 px-4 py-12 text-center sm:px-5',
               fillHeight &&
-                'flex min-h-0 flex-1 flex-col items-center justify-center',
+                'min-h-0 flex-1 justify-center',
             )}
           >
-            <p className="text-sm text-muted-foreground">
-              {AFFILIATE_COPY.commissions.noMatches}
-            </p>
+            <div className="rounded-full bg-muted/60 p-3">
+              <Search className="h-5 w-5 text-muted-foreground" aria-hidden />
+            </div>
+            <div className="max-w-sm space-y-1">
+              <p className="text-sm font-medium text-brand-dark">
+                {AFFILIATE_COPY.commissions.noMatches}
+              </p>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                {AFFILIATE_COPY.commissions.noMatchesHint}
+              </p>
+            </div>
             <Button variant="outline" size="sm" onClick={onClearFilters}>
               {AFFILIATE_COPY.commissions.clearFilters}
             </Button>
@@ -474,6 +495,8 @@ export function CommissionsPanel({
               sortKey={sortKey}
               sortDir={sortDir}
               onSort={onSort}
+              onEntryClick={setDetailEntryId}
+              isFetching={isFetching}
             />
           </div>
         )}
@@ -505,5 +528,10 @@ export function CommissionsPanel({
         )}
       </div>
     </div>
+    <CommissionDetailDrawer
+      entryId={detailEntryId}
+      onClose={() => setDetailEntryId(null)}
+    />
+    </>
   );
 }

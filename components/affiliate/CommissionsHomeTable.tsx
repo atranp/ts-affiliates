@@ -19,7 +19,7 @@ const cols = AFFILIATE_COPY.home.commissionsColumns;
 
 type CommissionsHomeTableProps = {
   entries: LedgerEntry[];
-  onRowClick?: () => void;
+  onEntryClick?: (entryId: string) => void;
 };
 
 function entryDetails(entry: LedgerEntry) {
@@ -93,7 +93,7 @@ export function CommissionsHomeTableSkeleton() {
 
 export function CommissionsHomeTable({
   entries,
-  onRowClick,
+  onEntryClick,
 }: CommissionsHomeTableProps) {
   const thClass =
     "ts-table-header h-9 whitespace-nowrap bg-muted/30 px-3 text-[11px] first:pl-4 sm:px-4 sm:first:pl-5";
@@ -127,26 +127,27 @@ export function CommissionsHomeTable({
           const details = entryDetails(entry);
           const dateLabel = formatSaleDate(entry.occurredAt);
           const rowLabel = `View commission: ${details}`;
+          const clickable = !!onEntryClick;
 
           return (
             <TableRow
               key={entry.id}
-              tabIndex={onRowClick ? 0 : undefined}
-              aria-label={onRowClick ? rowLabel : undefined}
-              onClick={onRowClick}
+              tabIndex={clickable ? 0 : undefined}
+              aria-label={clickable ? rowLabel : undefined}
+              onClick={clickable ? () => onEntryClick(entry.id) : undefined}
               onKeyDown={
-                onRowClick
+                clickable
                   ? (event) => {
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
-                        onRowClick();
+                        onEntryClick(entry.id);
                       }
                     }
                   : undefined
               }
               className={cn(
                 "border-border/60 align-top",
-                onRowClick &&
+                clickable &&
                   "cursor-pointer hover:bg-muted/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
               )}
             >

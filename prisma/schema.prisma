@@ -244,10 +244,32 @@ model Commission {
   type            String?
   origin          String?
   parentSlicewpId Int?
+  visitSlicewpId    Int?
+  customerSlicewpId Int?
+  winningRule       String?
+  attributionAudit  Json?
   dateCreated     DateTime
   syncedAt        DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   ledgerEntries   LedgerEntry[]
+
+  @@index([customerSlicewpId])
+}
+
+/// Woo order attribution snapshot — one row per order, shared by line commissions.
+model OrderAttribution {
+  id                         String   @id @default(cuid())
+  wooOrderId                 Int      @unique
+  referrerAffiliateSlicewpId Int?
+  referrerVisitSlicewpId     Int?
+  couponCodes                String[]
+  sessionEntryHost           String?
+  checkoutChannel            String?
+  attributionAudit           Json?
+  syncedAt                   DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  @@index([wooOrderId])
 }
 
 model Team {

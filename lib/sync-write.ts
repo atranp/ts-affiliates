@@ -20,6 +20,8 @@ export type CommissionUpsertRow = {
   type: string | null;
   origin: string | null;
   parentSlicewpId: number | null;
+  visitSlicewpId: number | null;
+  customerSlicewpId: number | null;
   dateCreated: Date;
 };
 
@@ -49,6 +51,8 @@ export async function bulkUpsertCommissions(
       ${row.type},
       ${row.origin},
       ${row.parentSlicewpId}::integer,
+      ${row.visitSlicewpId}::integer,
+      ${row.customerSlicewpId}::integer,
       ${row.dateCreated}::timestamptz,
       ${syncedAt}::timestamptz,
       ${syncedAt}::timestamptz
@@ -58,22 +62,24 @@ export async function bulkUpsertCommissions(
   return prisma.$queryRaw<Commission[]>`
     INSERT INTO "Commission" (
       "id", "slicewpId", "affiliateId", "wooOrderId", "amount", "orderRevenue",
-      "status", "type", "origin", "parentSlicewpId", "dateCreated",
-      "syncedAt", "updatedAt"
+      "status", "type", "origin", "parentSlicewpId", "visitSlicewpId",
+      "customerSlicewpId", "dateCreated", "syncedAt", "updatedAt"
     )
     VALUES ${Prisma.join(values)}
     ON CONFLICT ("slicewpId") DO UPDATE SET
-      "affiliateId"     = EXCLUDED."affiliateId",
-      "wooOrderId"      = EXCLUDED."wooOrderId",
-      "amount"          = EXCLUDED."amount",
-      "orderRevenue"    = EXCLUDED."orderRevenue",
-      "status"          = EXCLUDED."status",
-      "type"            = EXCLUDED."type",
-      "origin"          = EXCLUDED."origin",
-      "parentSlicewpId" = EXCLUDED."parentSlicewpId",
-      "dateCreated"     = EXCLUDED."dateCreated",
-      "syncedAt"        = EXCLUDED."syncedAt",
-      "updatedAt"       = EXCLUDED."updatedAt"
+      "affiliateId"       = EXCLUDED."affiliateId",
+      "wooOrderId"        = EXCLUDED."wooOrderId",
+      "amount"            = EXCLUDED."amount",
+      "orderRevenue"      = EXCLUDED."orderRevenue",
+      "status"            = EXCLUDED."status",
+      "type"              = EXCLUDED."type",
+      "origin"            = EXCLUDED."origin",
+      "parentSlicewpId"   = EXCLUDED."parentSlicewpId",
+      "visitSlicewpId"    = EXCLUDED."visitSlicewpId",
+      "customerSlicewpId" = EXCLUDED."customerSlicewpId",
+      "dateCreated"       = EXCLUDED."dateCreated",
+      "syncedAt"          = EXCLUDED."syncedAt",
+      "updatedAt"         = EXCLUDED."updatedAt"
     RETURNING *
   `;
 }

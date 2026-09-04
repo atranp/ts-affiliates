@@ -1,9 +1,8 @@
 "use client";
 
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, ReceiptText } from "lucide-react";
 import { CommissionRow, commissionAmountTone } from "@/components/affiliate/CommissionRow";
 import { CommissionTypeBadge } from "@/components/affiliate/AffiliateBadge";
-import { TrackedByBadge } from "@/components/affiliate/TrackedByBadge";
 import {
   formatCommissionStatus,
   AFFILIATE_COPY,
@@ -134,6 +133,8 @@ export function LedgerTable({
   sortKey,
   sortDir,
   onSort,
+  onEntryClick,
+  isFetching = false,
 }: {
   entries: LedgerEntry[];
   showDetails?: boolean;
@@ -142,22 +143,37 @@ export function LedgerTable({
   sortKey?: LedgerSortKey;
   sortDir?: SortDirection;
   onSort?: (key: LedgerSortKey) => void;
+  onEntryClick?: (entryId: string) => void;
+  isFetching?: boolean;
 }) {
   if (entries.length === 0) {
     return (
-      <p
+      <div
         className={cn(
-          "ts-empty-inline py-8",
-          fillHeight && "flex min-h-0 flex-1 items-center justify-center"
+          "px-4 py-10 sm:px-5",
+          fillHeight && "flex min-h-0 flex-1 items-center justify-center",
         )}
       >
-        {affiliateView ? AFFILIATE_COPY.commissions.empty : "No entries yet."}
-      </p>
+        <div className="ts-empty-inline mx-auto max-w-md text-center">
+          <span className="mb-3 inline-flex rounded-full bg-muted/60 p-2.5">
+            <ReceiptText
+              className="h-5 w-5 text-muted-foreground"
+              aria-hidden
+            />
+          </span>
+          <p className="leading-relaxed">
+            {affiliateView
+              ? AFFILIATE_COPY.commissions.empty
+              : "No entries yet."}
+          </p>
+        </div>
+      </div>
     );
   }
 
   const cols = affiliateView ? AFFILIATE_COPY.commissions.columns : null;
   const sortable = affiliateView && !!onSort && !!sortKey && !!sortDir;
+  const clickable = affiliateView && !!onEntryClick;
   const thClass = affiliateView
     ? "ts-table-header sticky top-0 z-10 h-9 whitespace-nowrap bg-muted/30 px-3 text-[11px] backdrop-blur-sm first:pl-4 sm:px-4 sm:first:pl-5"
     : "ts-table-header sticky top-0 z-10 h-11 bg-muted/95 px-4 backdrop-blur-sm";
@@ -202,7 +218,7 @@ export function LedgerTable({
   const cards = affiliateView ? (
     <ul
       className={cn(
-        "ts-divider-list md:hidden",
+        "ts-commission-mobile-list",
         fillHeight && "min-h-0",
       )}
     >
@@ -217,7 +233,7 @@ export function LedgerTable({
         return (
           <li key={entry.id}>
             <CommissionRow
-              layout="flat"
+              layout="mobile"
               details={details}
               occurredAt={entry.occurredAt}
               orderRevenue={entry.orderRevenue}
@@ -227,6 +243,9 @@ export function LedgerTable({
               payoutWeek={entry.payoutWeek}
               trackedByClick={entry.trackedByClick}
               isLifetimeSale={entry.isLifetimeSale}
+              onClick={
+                onEntryClick ? () => onEntryClick(entry.id) : undefined
+              }
             />
           </li>
         );
@@ -270,12 +289,26 @@ export function LedgerTable({
 
   const table = (
     <Table
-      className={cn(affiliateView && "table-fixed")}
+      className={cn(
+        affiliateView && "table-fixed",
+        isFetching && "ts-table-body-fetching",
+      )}
       containerClassName={cn(
         affiliateView && "min-w-0 overflow-x-hidden",
         affiliateView && fillHeight && "ts-table-body-scroll",
       )}
     >
+      {affiliateView ? (
+        <colgroup>
+          <col className="w-[16%]" />
+          <col className="w-[14%]" />
+          <col className="w-[30%]" />
+          <col className="w-[13%]" />
+          <col className="w-[13%]" />
+          <col className="w-[12%]" />
+          {clickable ? <col className="w-[2%]" /> : null}
+        </colgroup>
+      ) : null}
       <TableHeader>
         <TableRow
           className={cn(
@@ -303,13 +336,54 @@ export function LedgerTable({
             "left",
             affiliateView ? "last:pr-4 sm:last:pr-5" : "last:pr-5",
           )}
+          {clickable ? (
+            <TableHead
+              className={cn(thClass, "w-8 px-0 text-right last:pr-3 sm:last:pr-4")}
+              aria-hidden
+            >
+              <span className="sr-only">Open details</span>
+            </TableHead>
+          ) : null}
         </TableRow>
       </TableHeader>
       <TableBody>
         {entries.map((entry) => {
           const status = entry.status;
+          const clickableRow = affiliateView && !!onEntryClick;
+          const details =
+            entry.description ??
+            entry.sourceAffiliate?.displayName ??
+            entry.sourceAffiliate?.email ??
+            "—";
+
           return (
-            <TableRow key={entry.id} className={rowClass}>
+            <TableRow
+              key={entry.id}
+              tabIndex={clickableRow ? 0 : undefined}
+              aria-label={
+                clickableRow
+                  ? `${AFFILIATE_COPY.commissions.detail.openHint}: ${details}`
+                  : undefined
+              }
+              onClick={
+                clickableRow ? () => onEntryClick!(entry.id) : undefined
+              }
+              onKeyDown={
+                clickableRow
+                  ? (event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onEntryClick!(entry.id);
+                      }
+                    }
+                  : undefined
+              }
+              className={cn(
+                rowClass,
+                clickableRow &&
+                  "cursor-pointer hover:bg-muted/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+              )}
+            >
               <TableCell
                 className={cn(
                   tdClass,
@@ -333,21 +407,31 @@ export function LedgerTable({
                 )}
               </TableCell>
               {showDetails ? (
-                <TableCell className={cn(tdClass, "max-w-sm")}>
-                  <p className="ts-row-title">
+                <TableCell className={cn(tdClass, "min-w-0 align-middle")}>
+                  <p className="ts-row-title truncate leading-5">
                     {entry.description ??
                       entry.sourceAffiliate?.displayName ??
                       entry.sourceAffiliate?.email ??
                       "—"}
                   </p>
-                  {(affiliateView && entry.trackedByClick !== null) ||
-                  entry.isLifetimeSale ? (
-                    <TrackedByBadge
-                      tracked={entry.trackedByClick ?? false}
-                      isLifetimeSale={entry.isLifetimeSale}
-                      className="mt-1"
-                    />
-                  ) : null}
+                  <p className="ts-row-meta mt-0.5 truncate leading-4">
+                    {[
+                      entry.type === "OVERRIDE"
+                        ? "Team earnings"
+                        : entry.isLifetimeSale
+                          ? "Lifetime sale"
+                          : "Direct sale",
+                      entry.isLifetimeSale
+                        ? "Linked customer"
+                        : entry.trackedByClick === true
+                          ? "Link click"
+                          : entry.trackedByClick === false
+                            ? "No click"
+                            : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
                   {entry.sourceAffiliate && !affiliateView && (
                     <p className="ts-row-meta mt-0.5">
                       Source:{" "}
@@ -395,20 +479,20 @@ export function LedgerTable({
               <TableCell
                 className={cn(
                   tdClass,
-                  affiliateView && "last:pr-4 sm:last:pr-5",
+                  affiliateView && "align-middle last:pr-4 sm:last:pr-5",
                 )}
               >
                 {affiliateView ? (
-                  <span className="ts-row-meta inline-flex flex-wrap items-baseline gap-x-1.5 font-medium">
+                  <span className="ts-row-meta truncate font-medium leading-4">
                     {formatCommissionStatus(status)}
-                    {status === "PAID" && entry.payoutWeek && (
+                    {status === "PAID" && entry.payoutWeek ? (
                       <>
-                        <span className="text-muted-foreground/50">·</span>
+                        <span className="text-muted-foreground/50"> · </span>
                         <span className="font-normal">
                           {formatPayoutWeek(entry.payoutWeek)}
                         </span>
                       </>
-                    )}
+                    ) : null}
                   </span>
                 ) : (
                   <Badge variant={statusVariant(status)}>
@@ -416,6 +500,19 @@ export function LedgerTable({
                   </Badge>
                 )}
               </TableCell>
+              {clickableRow ? (
+                <TableCell
+                  className={cn(
+                    tdClass,
+                    "w-8 px-0 text-right align-middle last:pr-3 sm:last:pr-4",
+                  )}
+                >
+                  <ChevronRight
+                    className="ts-commission-chevron ml-auto"
+                    aria-hidden
+                  />
+                </TableCell>
+              ) : null}
             </TableRow>
           );
         })}

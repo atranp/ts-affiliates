@@ -40,6 +40,10 @@ import {
   syncCreatives,
   syncVisits,
 } from "./sync-parity";
+import {
+  enrichCommissionJourneyAfterSync,
+  visitAndCustomerFromRemote,
+} from "./sync-journey";
 import { toNumber } from "./utils";
 
 export type SyncResult = {
@@ -266,6 +270,9 @@ function buildCommissionData(
       ? toNumber(remote.reference_amount)
       : null;
 
+  const { visitSlicewpId, customerSlicewpId } =
+    visitAndCustomerFromRemote(remote);
+
   return {
     slicewpId,
     affiliateId,
@@ -276,6 +283,8 @@ function buildCommissionData(
     type: remote.type ?? null,
     origin: remote.origin ?? null,
     parentSlicewpId: remote.parent_id ? Number(remote.parent_id) : null,
+    visitSlicewpId,
+    customerSlicewpId,
     dateCreated: remote.date_created
       ? new Date(remote.date_created)
       : new Date(),
@@ -387,6 +396,8 @@ export async function syncCommissionsFromSliceWP(): Promise<number> {
 
   const count = await persistRemoteCommissions(remoteCommissions);
 
+  const journey = await enrichCommissionJourneyAfterSync();
+
   const syncedAt = new Date();
   await prisma.settings.upsert({
     where: { id: "default" },
@@ -399,7 +410,13 @@ export async function syncCommissionsFromSliceWP(): Promise<number> {
       type: "commissions",
       status: "success",
       message: `Synced ${count} commissions`,
-      metadata: { count, fetched: remoteCommissions.length },
+      metadata: {
+        count,
+        fetched: remoteCommissions.length,
+        journeyEnriched: journey.enriched,
+        journeyPending: journey.pendingRemaining,
+        journeyBridgeAvailable: journey.bridgeAvailable,
+      },
     },
   });
 
