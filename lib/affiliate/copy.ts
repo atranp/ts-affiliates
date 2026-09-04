@@ -119,6 +119,9 @@ export const AFFILIATE_COPY = {
   },
   performance: {
     earnings: 'Earnings',
+    revenueGenerated: 'Sales generated',
+    /** Short for the home stat card footer — must fit one line on desktop. */
+    revenueGeneratedHint: 'Order value from your referred sales',
     earningsTrendTitle: 'Earnings',
     earningsTrendDescription: 'What you earned each day',
     readyForPayout: 'Ready for payout',
@@ -250,14 +253,12 @@ export const AFFILIATE_COPY = {
       linkedHint: 'We matched this sale to a click on your link.',
       unlinked: 'No click',
       /**
-       * Repeat-customer sales (SliceWP `lifetime_sale`) — same pay, no link on
-       * this order. Wording deliberately avoids "lifetime".
+       * Lifetime-linked customer sales — paid without a new link on this order.
        */
-      repeatCustomer: 'Repeat customer',
-      repeatCustomerHint:
+      linkedCustomer: 'Linked customer',
+      linkedCustomerHint:
         'You referred this customer on an earlier order — no link or coupon was needed on this one.',
-      unlinkedHint:
-        'No click on file for this sale — usually a discount code, or a browser that dropped the referral. You are paid either way.',
+      unlinkedHint: 'Order was not traced to a click',
     },
   },
   payouts: {

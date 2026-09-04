@@ -23,15 +23,14 @@ export function TrackedByBadge({
     const copy = AFFILIATE_COPY.commissions.tracked;
     return (
       <span
-        title={copy.repeatCustomerHint}
+        title={copy.linkedCustomerHint}
         className={cn(
-          "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium",
-          "bg-primary/10 text-primary",
+          "ts-affiliate-badge ts-affiliate-badge-lifetime inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium",
           className
         )}
       >
         <UserRound className="h-3 w-3" aria-hidden />
-        {copy.repeatCustomer}
+        {copy.linkedCustomer}
       </span>
     );
   }

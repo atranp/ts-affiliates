@@ -19,6 +19,8 @@ import type { PeriodRange } from "@/lib/affiliate/period";
 
 export type PerformanceTotals = {
   earnings: number;
+  /** Sum of referred order value (SliceWP reference_amount) on direct sales. */
+  revenue: number;
   clicks: number;
   sales: number;
   /**
@@ -34,6 +36,7 @@ export type PerformancePoint = {
   /** `YYYY-MM-DD` in store time. */
   date: string;
   earnings: number;
+  revenue: number;
   clicks: number;
   sales: number;
 };
@@ -67,6 +70,7 @@ export type AffiliatePerformance = {
 type LedgerDayRow = {
   day: string;
   earnings: Prisma.Decimal | null;
+  revenue: Prisma.Decimal | null;
   sales: bigint;
   tracked: bigint;
 };
@@ -112,6 +116,7 @@ async function ledgerByDay(
     SELECT
       ${STORE_DAY} AS day,
       COALESCE(SUM(le."amount"), 0) AS earnings,
+      COALESCE(SUM(le."orderRevenue") FILTER (WHERE le."type" = 'DIRECT'), 0) AS revenue,
       COUNT(*) FILTER (WHERE le."type" = 'DIRECT') AS sales,
       COUNT(*) FILTER (WHERE le."type" = 'DIRECT' AND v.hit IS NOT NULL) AS tracked
     FROM "LedgerEntry" le
@@ -153,7 +158,7 @@ function mergeDaily(
   const at = (date: string): PerformancePoint => {
     const existing = byDate.get(date);
     if (existing) return existing;
-    const created = { date, earnings: 0, clicks: 0, sales: 0 };
+    const created = { date, earnings: 0, revenue: 0, clicks: 0, sales: 0 };
     byDate.set(date, created);
     return created;
   };
@@ -161,6 +166,7 @@ function mergeDaily(
   for (const row of ledger) {
     const point = at(row.day);
     point.earnings = toNumber(row.earnings);
+    point.revenue = toNumber(row.revenue);
     point.sales = Number(row.sales);
   }
 
@@ -204,7 +210,7 @@ function padDaily(
     const date = format.format(cursor);
     if (filled.at(-1)?.date === date) continue;
     filled.push(
-      byDate.get(date) ?? { date, earnings: 0, clicks: 0, sales: 0 }
+      byDate.get(date) ?? { date, earnings: 0, revenue: 0, clicks: 0, sales: 0 }
     );
   }
 
@@ -216,11 +222,13 @@ function totalsFrom(
   attribution: SalesAttribution
 ): PerformanceTotals {
   const earnings = daily.reduce((sum, point) => sum + point.earnings, 0);
+  const revenue = daily.reduce((sum, point) => sum + point.revenue, 0);
   const clicks = daily.reduce((sum, point) => sum + point.clicks, 0);
   const sales = daily.reduce((sum, point) => sum + point.sales, 0);
 
   return {
     earnings: Math.round(earnings * 100) / 100,
+    revenue: Math.round(revenue * 100) / 100,
     clicks,
     sales,
     conversionRate: clicks > 0 ? (attribution.tracked / clicks) * 100 : null,

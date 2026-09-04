@@ -1,0 +1,4 @@
+period,start_pt,end_pt,server_landings_human,server_landings_bot,slicewp_visits,matched_landings,missed_landings,capture_rate,fbclid_landings,ttclid_landings,unique_ips
+Aug 31 PRE-fix (midnight–7:22 PM PT),2026-08-31 00:00,2026-08-31 19:22,12,2,11,8,4,67%,3,5,10
+Aug 31 POST-fix (7:22 PM–midnight PT),2026-08-31 19:22,2026-09-01 00:00,0,0,0,0,0,n/a,0,0,0
+Sep 1 full day PT (logs partial — see notes),2026-09-01 00:00,2026-09-02 00:00,0,0,3,0,0,n/a,0,0,0

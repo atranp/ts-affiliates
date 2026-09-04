@@ -1,0 +1,6 @@
+period,hours,start_pt,end_pt,log_landings_human,log_landings_bot,slicewp_visits,matched_10m_ip,unmatched_landings,capture_rate_matched,visits_per_landing,landings_per_hour,visits_per_hour
+Aug 25 – fix (pre),163.4,2026-08-25 00:00,2026-08-31 19:22,7615,2366,5574,5081,2534,66.7%,73.2%,46.6,34.1
+Aug31 pre-fix slice,19.4,2026-08-31 00:00,2026-08-31 19:22,737,235,609,490,247,66.5%,82.6%,38.0,31.4
+Aug31 post-fix (logs),2.1,2026-08-31 19:22,2026-08-31 21:29,59,11,98,36,23,61.0%,166.1%,28.0,46.5
+"Fix – Sep 2 (post, DB)",28.6,2026-08-31 19:22,2026-09-02 00:00,59,11,193,36,23,61.0%,327.1%,2.1,6.7
+Sep1 PT (DB; logs N/A),24.0,2026-09-01 00:00,2026-09-02 00:00,0,0,47,0,0,n/a,n/a,0.0,2.0

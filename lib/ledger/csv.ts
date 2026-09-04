@@ -59,7 +59,7 @@ function cell(value: string | number | null | undefined): string {
 function trackedLabel(entry: ExportableEntry): string {
   if (entry.type !== LedgerEntryType.DIRECT) return "";
   if (entry.isLifetimeSale) {
-    return AFFILIATE_COPY.commissions.tracked.repeatCustomer;
+    return AFFILIATE_COPY.commissions.tracked.linkedCustomer;
   }
   if (entry.trackedByClick === null || entry.trackedByClick === undefined) {
     return "";

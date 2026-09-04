@@ -282,7 +282,7 @@ function DashboardPageContent() {
    * rather than measured — an unbounded period, or a baseline of zero.
    */
   function periodDelta(
-    key: 'earnings' | 'clicks' | 'sales' | 'conversionRate',
+    key: 'earnings' | 'revenue' | 'clicks' | 'sales' | 'conversionRate',
   ): number | null {
     const current = performance?.current[key];
     const previous = performance?.previous?.[key];
@@ -475,6 +475,13 @@ function DashboardPageContent() {
                 value={performance?.current.earnings ?? 0}
                 tone="primary"
                 delta={periodDelta('earnings')}
+              />
+              <AffiliateStatCard
+                compact
+                label={AFFILIATE_COPY.performance.revenueGenerated}
+                hint={AFFILIATE_COPY.performance.revenueGeneratedHint}
+                value={performance?.current.revenue ?? 0}
+                delta={periodDelta('revenue')}
               />
               <AffiliateStatCard
                 compact

@@ -54,8 +54,8 @@
     --badge-direct-fg: 208 64% 38%;
     --badge-team-bg: 258 48% 94%;
     --badge-team-fg: 258 34% 42%;
-    --badge-lifetime-bg: 270 55% 95%;
-    --badge-lifetime-fg: 270 45% 42%;
+    --badge-lifetime-bg: 172 52% 93%;
+    --badge-lifetime-fg: 172 48% 28%;
     --badge-paid-bg: 152 48% 93%;
     --badge-paid-fg: 152 52% 30%;
     --badge-unpaid-bg: 215 32% 93%;
@@ -241,9 +241,9 @@
     @apply grid min-w-0 max-w-full grid-cols-1 gap-3 lg:grid-cols-3 lg:gap-4;
   }
 
-  /* Five headline metrics: paired on a phone, one row on a laptop. */
+  /* Headline metrics: paired on a phone, one row on a laptop. */
   .ts-home-stat-grid-wide {
-    @apply grid min-w-0 max-w-full grid-cols-2 gap-3 lg:grid-cols-5 lg:gap-4;
+    @apply grid min-w-0 max-w-full grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6 lg:gap-4;
   }
 
   .ts-home-split {

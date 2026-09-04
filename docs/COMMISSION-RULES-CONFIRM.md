@@ -58,6 +58,18 @@ When two rules could apply, **higher number wins:**
 
 - [ ] **“First referred by”** means: first **paid** order with that affiliate’s link **on or after 8/17** / first paid order **ever** / other: _______________
 
+### Cookie vs lifetime (rate + type) — ✅ Gavin 2026-09-01
+
+**Attribution** (who gets paid) — unchanged priority above.
+
+**Rate and type:**
+
+- [x] **Referral cookie or affiliate coupon at checkout** → full **sale rate** (e.g. Blair 30%) for the whole cookie window, **including repeat orders with no new link click**. SliceWP type: **Sale**. Gavin: *"follow the cookie rule."*
+- [x] **No link, no cookie** — customer already linked to Blair / Trin / Emmie → **lifetime rate** (e.g. 10%). SliceWP type: **Sale (lifetime)** (`lifetime_sale`).
+- [ ] **No retroactive backfill** of older commission rows unless explicitly decided.
+
+**Plain language for B/T/E:** full pay whenever the 30-day cookie (or their coupon) is still active; lifetime rate only on return orders with **no** referral cookie and **no** coupon.
+
 ---
 
 ## Edge cases — yes / no / other

@@ -717,11 +717,13 @@ export function mockAffiliatePerformance(period: ResolvedPeriod) {
     const seed = Math.floor(day.getTime() / DAY);
     const clicks = 34 + Math.round(22 * Math.sin(seed / 3.1)) + (seed % 5) * 4;
     const sales = seed % 4 === 0 ? 0 : seed % 7 === 0 ? 3 : 1;
+    const earnings = Math.round(sales * 28.4 * 100) / 100;
     return {
       date: day.toISOString().slice(0, 10),
       clicks,
       sales,
-      earnings: Math.round(sales * 28.4 * 100) / 100,
+      earnings,
+      revenue: Math.round(sales * 94.5 * 100) / 100,
     };
   });
 
@@ -729,6 +731,8 @@ export function mockAffiliatePerformance(period: ResolvedPeriod) {
   const clicks = daily.reduce((sum, point) => sum + point.clicks, 0);
   const earnings =
     Math.round(daily.reduce((sum, point) => sum + point.earnings, 0) * 100) / 100;
+  const revenue =
+    Math.round(daily.reduce((sum, point) => sum + point.revenue, 0) * 100) / 100;
   const tracked = Math.round(sales * 0.71);
 
   const byDayOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
@@ -746,6 +750,7 @@ export function mockAffiliatePerformance(period: ResolvedPeriod) {
   return {
     current: {
       earnings,
+      revenue,
       clicks,
       sales,
       conversionRate: clicks > 0 ? (tracked / clicks) * 100 : null,
@@ -753,6 +758,7 @@ export function mockAffiliatePerformance(period: ResolvedPeriod) {
     previous: period.previous
       ? {
           earnings: Math.round(earnings * 0.84 * 100) / 100,
+          revenue: Math.round(revenue * 0.84 * 100) / 100,
           clicks: Math.round(clicks * 0.76),
           sales: Math.round(sales * 1.1),
           conversionRate:

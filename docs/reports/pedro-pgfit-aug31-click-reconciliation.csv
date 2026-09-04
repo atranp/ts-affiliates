@@ -1,0 +1,26 @@
+layer,source,metric,count,notes
+meta_ads_reported,Facebook Ads Manager (Pedro screenshot),link_clicks,115,"Paid traffic campaign; Meta counts outbound link taps — not confirmed page loads on true-sciences.com"
+meta_ads_reported,Facebook Ads Manager,amount_spent_usd,10.38,
+meta_ads_reported,Facebook Ads Manager,reach,1608,
+meta_ads_reported,Facebook Ads Manager,impressions,1807,
+server_access_log,SiteGround GET /aff/PGFit/ 200 human Aug31 PT,raw_landings,12,"Ground truth: requests that actually hit Pedro affiliate URL"
+server_access_log,Through 6:35 PM PT (Pedro complaint time),raw_landings,11,
+server_access_log,With fbclid (Meta click ID in URL),raw_landings,3,"Same single iPhone IP (23.251.65.179) — 3 repeat taps"
+server_access_log,With ttclid (TikTok click ID),raw_landings,5,Organic/paid TikTok in-app browser
+server_access_log,No click ID (direct/unknown referrer),raw_landings,4,
+server_access_log,Bot GET 200 (HeadlessChrome + facebookexternalhit),raw_landings,2,Counted in logs but not human
+server_access_log,Unique human IPs,unique_ips,10,
+slicewp_db,SliceWP visits affiliate_id=84 Aug31 PT,registered_visits,12,
+slicewp_db,Referrer facebook.com,registered_visits,3,Matches Meta fbclid landings exactly
+slicewp_db,Referrer tiktok.com,registered_visits,6,Includes 1 visit with no matching access-log GET (IP 35.215.126.215 curl bot)
+slicewp_db,Empty referrer,registered_visits,3,
+tracking_gap,Meta 115 clicks → server fbclid landings,drop,112,"97.4% of Meta-reported clicks never loaded /aff/PGFit/ on our server"
+tracking_gap,Server human landings → SliceWP visits,missed,3,"50.215.108.185 page loaded assets but no /ts-visit.php beacon; 31.59.113.26 single GET bounce; 66.249.92.45 GET vs .44 beacon IP mismatch"
+tracking_gap,Server human landings → SliceWP visits,capture_rate,75%,"9/12 matched; 3 landings missed visit row (pre server-side fix deployed 7:22 PM PT)"
+
+post_fix,Aug 31 PRE-fix capture (JS beacon only),matched_rate,67%,"8/12 human landings matched visit within 10m/IP; 4 misses: JS beacon never fired or IP mismatch"
+post_fix,Server-side fix deployed,deploy_time,2026-08-31 19:22:34 PT,mu-plugin true-sciences-slicewp-server-visit.php
+post_fix,Deploy verification curl test,visit_id,135369,GET /aff/PGFit/?ts_srv_test=1 at fix second; CDN SKIP_CACHE_SET_COOKIE
+post_fix,Sep 1 PT visits (DB),registered_visits,3,"Logs not yet rotated for Sep 1 PT window — DB-only evidence"
+post_fix,Sep 1 visit 135530,source,Facebook l.facebook.com,"Real fbclid landing — visit row created (server-side path)"
+post_fix,Sep 1 visits 135518-135519,source,curl QA,"/shop/aff/PGFit/ and /product/.../aff/PGFit/ — server-side registers non-root affiliate paths"

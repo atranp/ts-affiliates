@@ -1,0 +1,17 @@
+Pedro / PGFit (#84) — Aug 31 2026 Pacific (America/Los_Angeles)
+
+SliceWP visits (DB): 12
+Access log GET /aff/PGFit: total=15 human_200=13 bot_200=2
+Human GET unique IPs: 10
+Human GET with ttclid: 5
+Human GETs matched to SliceWP visit (10m/IP): 9
+Human GETs NOT matched (missed visits): 4
+POST /ts-visit.php beacons: 10
+SliceWP visits with no log match: 2
+
+HTTP status (all GET clicks): {'200': 15}
+Human GET sources: {'tiktok': 5, 'direct_or_unknown': 5, 'facebook': 3}
+CDN cache (human GET): {'MISS': 10, 'HIT': 3}
+
+Interpretation: TikTok dashboard 'clicks' >> log landings when users tap but never load the page
+(in-app browser blocked, bounce before request, or click counted without navigation).
