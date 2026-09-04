@@ -158,7 +158,6 @@ function serializeEntry(ctx: DetailBuildContext): CommissionDetailEntry {
 
 function buildWhy(ctx: DetailBuildContext): CommissionDetailWhy {
   const { entry, audit, trackedByClick, isLifetimeSale, visit } = ctx;
-  const copy = AFFILIATE_COPY.commissions.detail;
 
   if (entry.type === LedgerEntryType.OVERRIDE) {
     const recruit =
