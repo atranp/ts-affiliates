@@ -126,17 +126,9 @@ export const AFFILIATE_COPY = {
     clicks: 'Clicks',
     sales: 'Sales',
     conversion: 'Conversion',
-    /**
-     * Sales with no click on file are left out of this rate on purpose, so the
-     * label has to say so — an unqualified "conversion" would read as though
-     * every sale had been counted.
-     */
-    conversionHint: 'Of tracked clicks',
     attributionTitle: 'How your sales reached us',
     salesFromClicks: 'Sales from clicks',
-    salesFromClicksHint: 'Traced to a click',
     untracedSales: 'Sales with no click',
-    untracedSalesHint: 'Discount codes, dropped referrals, or repeat customers you referred earlier — still paid to you',
     weekTitle: 'Your week at a glance',
     weekDescription: 'Clicks and sales by day',
     noComparison: 'No earlier period to compare',

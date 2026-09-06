@@ -109,7 +109,6 @@ export function StatsPanel({
         <AffiliateStatCard
           compact
           label={perf.salesFromClicks}
-          hint={perf.salesFromClicksHint}
           value={attribution ? countFormat(attribution.tracked) : "—"}
           tone="success"
           delta={change(
@@ -120,7 +119,6 @@ export function StatsPanel({
         <AffiliateStatCard
           compact
           label={perf.conversion}
-          hint={perf.conversionHint}
           value={
             current?.conversionRate === null ||
             current?.conversionRate === undefined
@@ -132,7 +130,6 @@ export function StatsPanel({
         <AffiliateStatCard
           compact
           label={perf.untracedSales}
-          hint={perf.untracedSalesHint}
           value={attribution ? countFormat(attribution.untracked) : "—"}
         />
       </div>
