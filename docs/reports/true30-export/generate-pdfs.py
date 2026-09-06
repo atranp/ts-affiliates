@@ -15,6 +15,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 h1 { font-size: 22px; margin: 0 0 6px; font-weight: 600; }
 .subtitle { color: #555; margin: 0 0 4px; font-size: 12px; }
 .note { color: #666; font-size: 10px; margin: 0 0 20px; max-width: 720px; }
+.intro { color: #222; font-size: 11px; margin: 0 0 10px; max-width: 720px; }
+.intro:last-of-type { margin-bottom: 20px; }
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 0 0 18px; }
 .stat { border: 1px solid #ddd; padding: 10px 12px; border-radius: 4px; }
 .stat-label { color: #666; font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -94,6 +96,21 @@ def render_appendix(report):
 """
 
 
+def intro_html(report):
+    order_count = next(
+        s["value"] for s in report["stats"] if s["label"] == "Affected orders"
+    )
+    commission = next(
+        s["value"] for s in report["stats"] if s["label"].startswith("Commission")
+    )
+    return f"""
+<p class="intro">We found the attribution issue with TRUE30 and corrected it.</p>
+<p class="intro">We audited every order placed with TRUE30 against your affiliate tracking and found {esc(order_count)} orders where your referral was present but the coupon configuration overrode the normal affiliate attribution. Those orders represent {esc(commission)} in commission, which we are crediting back to you.</p>
+<p class="intro">We&apos;ve also corrected the coupon setup so TRUE30 no longer overrides an existing affiliate referral going forward.</p>
+<p class="intro">We included the breakdown below so you can see exactly which orders were affected and how we calculated the adjustment.</p>
+"""
+
+
 def render(report):
     stats_html = "".join(
         f'<div class="stat"><div class="stat-label">{esc(s["label"])}</div><div class="stat-value">{esc(s["value"])}</div></div>'
@@ -115,9 +132,8 @@ def render(report):
             "Total",
             "Earned",
             report["rate_col"],
-            "Customer",
         ],
-        report["orders"],
+        [row[:-1] for row in report["orders"]],
         right_cols={4, 5, 6, 7},
     )
     appendix = render_appendix(report)
@@ -125,10 +141,9 @@ def render(report):
 <html lang="en"><head><meta charset="utf-8"><title>{esc(report["title"])}</title><style>{CSS}</style></head>
 <body>
 <h1>{esc(report["title"])}</h1>
-<p class="subtitle">true-sciences.com · true30 period Aug 21 – Sep 3, 2026 · All times Pacific (PT)</p>
-<p class="note">{esc(report["note"])}</p>
+<p class="subtitle">true-sciences.com · TRUE30 period Aug 21 – Sep 3, 2026 · All times Pacific (PT)</p>
+{intro_html(report)}
 <div class="stats">{stats_html}</div>
-<div class="callout"><div class="callout-title">Customer journey</div>{report["callout"]}</div>
 <h2>How commission is determined</h2>
 {rules}
 <h2>Customer journey</h2>
@@ -147,7 +162,6 @@ REPORTS = [
         "slug": "blair-true30-commission-review",
         "title": "Blair — true30 commission review",
         "rate_col": "At 30%",
-        "note": "Every order below used the true30 coupon (created Aug 21, 2026). Your referral was on each order but commission was not credited to you. Link-click dates can be earlier — those customers clicked your link before or after true30 launched, then came back and checked out with the code.",
         "stats": [
             {"label": "Affected orders", "value": "14"},
             {"label": "Returned later", "value": "13"},
@@ -212,7 +226,6 @@ REPORTS = [
         "slug": "trin-true30-commission-review",
         "title": "Trin — true30 commission review",
         "rate_col": "At 40%",
-        "note": "Every order below used the true30 coupon (created Aug 21, 2026). Your referral was on each order but commission was not credited to you. Link-click dates can be earlier — those customers clicked your link before or after true30 launched, then came back and checked out with the code.",
         "stats": [
             {"label": "Affected orders", "value": "7"},
             {"label": "Returned later", "value": "3"},
@@ -308,7 +321,6 @@ REPORTS = [
         "slug": "emmie-true30-commission-review",
         "title": "Emmie — true30 commission review",
         "rate_col": "At 30%",
-        "note": "Every order below used the true30 coupon (created Aug 21, 2026). Your referral was on each order but commission was not credited to you. Link-click dates can be earlier — those customers clicked your link before or after true30 launched, then came back and checked out with the code.",
         "stats": [
             {"label": "Affected orders", "value": "12"},
             {"label": "Returned later", "value": "12"},
