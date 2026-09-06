@@ -690,8 +690,9 @@
     @apply flex w-full items-center justify-between gap-3 rounded-xl border border-border/80 bg-card px-4 py-3.5 text-left shadow-xs transition-all hover:border-primary/20 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
   }
 
+  /* See components/ui/input.tsx: below 16px iOS Safari zooms on focus. */
   .ts-input {
-    @apply h-10 rounded-lg border-input bg-card text-sm shadow-xs focus-visible:ring-2;
+    @apply h-11 rounded-lg border-input bg-card text-base shadow-xs focus-visible:ring-2 sm:h-10 sm:text-sm;
   }
 
   .ts-table-wrap {

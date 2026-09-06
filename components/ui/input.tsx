@@ -9,7 +9,11 @@ const Input = React.forwardRef<
     <input
       type={type}
       className={cn(
-        "flex h-10 w-full rounded-lg border border-input bg-card px-3 py-1 text-sm text-foreground shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+        // 16px on a phone is not a style choice: iOS Safari zooms the page when
+        // a focused field is smaller, and the viewport sets no maximum-scale
+        // (deliberately — capping zoom breaks pinch for low-vision users). The
+        // taller mobile box also clears Apple's 44pt touch minimum.
+        "flex h-11 w-full rounded-lg border border-input bg-card px-3 py-1 text-base text-foreground shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:text-sm",
         className
       )}
       ref={ref}
