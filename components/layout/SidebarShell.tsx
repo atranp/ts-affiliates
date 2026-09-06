@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import { KeyRound, LogOut, Menu, X } from "lucide-react";
+import { BrandWordmark } from "@/components/layout/BrandMark";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/AuthProvider";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
@@ -128,9 +129,7 @@ function SidebarPanel({
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-2 border-b border-border/60 px-4 py-5">
         <Link href={homeHref} onClick={onNavigate} className="block min-w-0 flex-1">
-          <p className="truncate text-base font-bold tracking-tight text-brand-dark">
-            TRUE SCIENCES
-          </p>
+          <BrandWordmark variant="sidebar" />
           {portalLabel && (
             <p className="mt-0.5 truncate text-xs font-medium text-muted-foreground">
               {portalLabel}
@@ -277,9 +276,7 @@ export function SidebarShell({
               <Menu className="h-5 w-5" />
             </button>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-bold text-brand-dark">
-                TRUE SCIENCES
-              </p>
+              <BrandWordmark variant="mobile" />
               {portalLabel && (
                 <p className="truncate text-[11px] text-muted-foreground">
                   {portalLabel}

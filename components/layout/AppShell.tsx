@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { BrandWordmark } from "@/components/layout/BrandMark";
 import { ChevronDown, KeyRound, LogOut, Menu, X } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
@@ -52,9 +53,7 @@ export function AppShell({
           <Link href={homeHref} className="min-w-0 flex-1">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="truncate text-base font-bold leading-none tracking-tight text-brand-dark sm:text-lg">
-                  TRUE SCIENCES
-                </span>
+                <BrandWordmark variant="header" className="min-w-0 flex-1" />
                 {portalBadge && (
                   <span className="hidden rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary sm:inline">
                     {portalBadge}

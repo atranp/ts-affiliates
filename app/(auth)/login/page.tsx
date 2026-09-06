@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NEXT_PARAM, safeNextPath } from "@/lib/routes";
+import { BrandWordmark } from "@/components/layout/BrandMark";
 import { cn } from "@/lib/utils";
 
 const blockMessages: Record<string, string> = {
@@ -168,9 +169,7 @@ function LoginForm() {
       <main className="w-full max-w-md">
         <div className="ts-panel">
           <div className="ts-panel-header space-y-2 text-center">
-            <p className="text-xs font-semibold uppercase tracking-widest text-brand">
-              TRUE SCIENCES
-            </p>
+            <BrandWordmark variant="eyebrow" className="justify-center" />
             <h1
               id="login-heading"
               className="page-title text-xl sm:text-2xl"

@@ -384,6 +384,8 @@ Use **one throwaway test affiliate** on prod (not B/T/E) OR full local Mode C ru
 
 ## Milestone A5 — B/T/E pilot
 
+**Gate:** [BTE-ADMIN-QA.md](./BTE-ADMIN-QA.md) signed off by Anthony + Gavin **before** any B/T/E portal login or outbound PDF.
+
 **Goal:** Blair, Trin, Emmie live on platform with commission drawer verified.
 
 ### Pre-invite checklist (each affiliate)

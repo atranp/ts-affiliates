@@ -1,5 +1,6 @@
 "use client";
 
+import { BrandWordmark } from "@/components/layout/BrandMark";
 import { useAuth } from "@/components/AuthProvider";
 
 type OnboardingShellProps = {
@@ -16,9 +17,7 @@ export function OnboardingShell({ children }: OnboardingShellProps) {
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background pt-[max(0px,env(safe-area-inset-top))] pb-[max(0px,env(safe-area-inset-bottom))]">
       <header className="shrink-0 border-b border-border/60 bg-card/80 px-4 py-4 text-center backdrop-blur-sm sm:px-6">
-        <p className="text-xs font-semibold uppercase tracking-widest text-brand">
-          TRUE SCIENCES
-        </p>
+        <BrandWordmark variant="eyebrow" className="justify-center" />
         <p className="mt-0.5 text-sm font-medium text-muted-foreground">
           Ambassador Portal
         </p>
