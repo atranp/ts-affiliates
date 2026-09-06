@@ -120,13 +120,9 @@ export const AFFILIATE_COPY = {
   performance: {
     earnings: 'Earnings',
     revenueGenerated: 'Sales generated',
-    /** Short for the home stat card footer — must fit one line on desktop. */
-    revenueGeneratedHint: 'Order value from your referred sales',
     earningsTrendTitle: 'Earnings',
     earningsTrendDescription: 'What you earned each day',
     readyForPayout: 'Ready for payout',
-    /** Short by necessity: the card footer clamps this to one line on desktop. */
-    readyForPayoutHint: 'Your balance, not just this period',
     clicks: 'Clicks',
     sales: 'Sales',
     conversion: 'Conversion',

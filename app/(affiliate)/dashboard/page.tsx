@@ -479,7 +479,6 @@ function DashboardPageContent() {
               <AffiliateStatCard
                 compact
                 label={AFFILIATE_COPY.performance.revenueGenerated}
-                hint={AFFILIATE_COPY.performance.revenueGeneratedHint}
                 value={performance?.current.revenue ?? 0}
                 delta={periodDelta('revenue')}
               />
@@ -487,7 +486,6 @@ function DashboardPageContent() {
                 compact
                 actionArrow
                 label={AFFILIATE_COPY.performance.readyForPayout}
-                hint={AFFILIATE_COPY.performance.readyForPayoutHint}
                 value={data.accountSummary.unpaidTotal}
                 tone="success"
                 actionLabel={AFFILIATE_COPY.stats.owed.action}
@@ -508,7 +506,6 @@ function DashboardPageContent() {
               <AffiliateStatCard
                 compact
                 label={AFFILIATE_COPY.performance.conversion}
-                hint={AFFILIATE_COPY.performance.conversionHint}
                 value={rateOf(performance?.current.conversionRate)}
                 delta={periodDelta('conversionRate')}
               />
