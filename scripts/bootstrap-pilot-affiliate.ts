@@ -132,9 +132,10 @@ async function main() {
 
   for (const affiliate of affiliates) {
     const email = affiliate.email.trim().toLowerCase();
+    const displayName = affiliate.displayName?.trim() || email;
     const password = fixedPassword ?? tempPassword(16);
 
-    console.log(`── ${affiliate.displayName} <${email}> ──`);
+    console.log(`── ${displayName} <${email}> ──`);
 
     if (dryRun) {
       console.log(
@@ -167,7 +168,7 @@ async function main() {
       email,
       email_confirm: true,
       app_metadata: { role: Role.AFFILIATE },
-      user_metadata: { name: affiliate.displayName },
+      user_metadata: { name: displayName },
     };
 
     if (userId) {
@@ -213,7 +214,7 @@ async function main() {
       where: { id: userId },
       update: {
         email,
-        name: affiliate.displayName,
+        name: displayName,
         role: Role.AFFILIATE,
         affiliateId: affiliate.id,
         mustChangePassword,
@@ -222,7 +223,7 @@ async function main() {
       create: {
         id: userId,
         email,
-        name: affiliate.displayName,
+        name: displayName,
         role: Role.AFFILIATE,
         affiliateId: affiliate.id,
         mustChangePassword,
@@ -233,7 +234,7 @@ async function main() {
     await ensureAuthRoleConsistency(userId, Role.AFFILIATE);
 
     credentials.push({
-      name: affiliate.displayName,
+      name: displayName,
       email,
       password,
       affiliateId: affiliate.id,
