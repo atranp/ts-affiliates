@@ -87,13 +87,19 @@ async function findAuthUserIdByEmail(
 
 async function main() {
   const { dryRun, admins } = parseArgs();
-  const { isProductionDatabase } = await import("../lib/env-guard");
+  const { isProductionDatabase, assertAuthMatchesDatabase } = await import(
+    "../lib/env-guard"
+  );
 
   if (!isProductionDatabase()) {
     throw new Error(
       "DATABASE_URL does not look like production. Set BACKFILL_DATABASE_URL or point .env.local at prod deliberately."
     );
   }
+
+  // Profile rows go through Prisma, auth users through Supabase. Those read
+  // different env vars and can silently target different projects.
+  assertAuthMatchesDatabase();
 
   if (dryRun) {
     console.log("DRY RUN — pass --apply to mint links.\n");

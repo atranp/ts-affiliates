@@ -45,6 +45,47 @@ export function isProductionDatabase(): boolean {
   return connection.includes(PRODUCTION_SUPABASE_REF);
 }
 
+/** Postgres and Auth are separate URLs that normally name the same project. */
+function targetsProduction(value: string | undefined): boolean {
+  return (value ?? "").includes(PRODUCTION_SUPABASE_REF);
+}
+
+/**
+ * Call before any script that writes rows *and* mints logins.
+ *
+ * `DATABASE_URL` and `NEXT_PUBLIC_SUPABASE_URL` are set independently, so a
+ * script run with only the database pointed at production writes its Profile
+ * rows to the live mirror while creating the matching auth users in whatever
+ * Supabase `.env.local` happens to name. The result is a profile in production
+ * carrying a user id that exists nowhere, and an affiliate who cannot sign in —
+ * a state no single-target guard notices, because each half is individually
+ * legitimate.
+ *
+ * Deliberately not overridable: `ALLOW_PRODUCTION_WRITES` means "I really do
+ * mean production", never "split my writes across two projects".
+ */
+export function assertAuthMatchesDatabase(): void {
+  const databaseIsProduction = targetsProduction(process.env.DATABASE_URL);
+  const authIsProduction = targetsProduction(
+    process.env.NEXT_PUBLIC_SUPABASE_URL
+  );
+
+  if (databaseIsProduction === authIsProduction) return;
+
+  const [writesTo, mintsIn] = databaseIsProduction
+    ? ["production", "a non-production Supabase"]
+    : ["a non-production database", "production Supabase"];
+
+  throw new Error(
+    [
+      `Refusing to run: DATABASE_URL and NEXT_PUBLIC_SUPABASE_URL name different projects.`,
+      `Rows would be written to ${writesTo} while logins are minted in ${mintsIn},`,
+      "leaving profiles whose user id does not exist and affiliates who cannot sign in.",
+      "Point both at the same Supabase project.",
+    ].join(" ")
+  );
+}
+
 function overrideAllowed(): boolean {
   return process.env.ALLOW_PRODUCTION_WRITES === "true";
 }

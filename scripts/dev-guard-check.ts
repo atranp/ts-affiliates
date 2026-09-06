@@ -24,6 +24,12 @@ type Case = {
   name: string;
   store: string;
   database: string;
+  /**
+   * Supabase Auth target. Defaults to `database`, because they normally name
+   * the same project — the split-brain cases below are the whole reason this
+   * is a separate field.
+   */
+  auth?: string;
   vercel: boolean;
   expect: "blocked" | "allowed";
 };
@@ -71,6 +77,30 @@ const CASES: Case[] = [
     vercel: false,
     expect: "allowed",
   },
+  {
+    name: "bootstrap logins with the production database but local auth",
+    store: LOCAL_STORE,
+    database: PROD_DB,
+    auth: LOCAL_DB,
+    vercel: false,
+    expect: "blocked",
+  },
+  {
+    name: "bootstrap logins with a local database but production auth",
+    store: LOCAL_STORE,
+    database: LOCAL_DB,
+    auth: PROD_DB,
+    vercel: false,
+    expect: "blocked",
+  },
+  {
+    name: "bootstrap logins with both pointed at production",
+    store: PROD_STORE,
+    database: PROD_DB,
+    auth: PROD_DB,
+    vercel: false,
+    expect: "allowed",
+  },
 ];
 
 async function main() {
@@ -89,7 +119,7 @@ async function main() {
 
   for (const testCase of CASES) {
     process.env.DATABASE_URL = testCase.database;
-    process.env.NEXT_PUBLIC_SUPABASE_URL = testCase.database;
+    process.env.NEXT_PUBLIC_SUPABASE_URL = testCase.auth ?? testCase.database;
 
     if (testCase.vercel) {
       process.env.VERCEL = "1";
@@ -100,7 +130,9 @@ async function main() {
     let blocked = false;
 
     try {
-      if (testCase.name.includes("auth")) {
+      if (testCase.name.includes("bootstrap")) {
+        guard.assertAuthMatchesDatabase();
+      } else if (testCase.name.includes("auth")) {
         guard.assertWritableAuth();
       } else if (testCase.name.includes("sync")) {
         guard.assertSyncTargetsAgree(testCase.store);

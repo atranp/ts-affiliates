@@ -70,11 +70,18 @@ async function findAuthUserIdByEmail(
 
 async function main() {
   const { dryRun, nameFilter, fixedPassword, mustChangePassword } = parseArgs();
-  const { isProductionDatabase } = await import("../lib/env-guard");
+  const { isProductionDatabase, assertAuthMatchesDatabase } = await import(
+    "../lib/env-guard"
+  );
 
   if (!isProductionDatabase()) {
     throw new Error("Refusing: DATABASE_URL is not production.");
   }
+
+  // This script writes Profile rows through Prisma and mints logins through
+  // Supabase Auth. Those read different env vars, so they can silently target
+  // different projects.
+  assertAuthMatchesDatabase();
 
   if (!dryRun) {
     process.env.ALLOW_PRODUCTION_WRITES = "true";
