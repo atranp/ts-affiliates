@@ -26,7 +26,23 @@ function record(name: string, ok: boolean, detail: string) {
   console.log(`${ok ? "pass" : "FAIL"}  ${name}\n      ${detail}`);
 }
 
+/** Stands in for the incoming request origin. */
 const ORIGIN = "http://localhost:3000";
+
+/**
+ * What the link is actually expected to use. `NEXT_PUBLIC_APP_URL` deliberately
+ * outranks the request origin so a forged `Host` cannot aim an invite
+ * elsewhere, so the assertion has to follow the same precedence.
+ */
+function expectedOrigin(): string {
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (configured) return configured.replace(/\/$/, "");
+
+  const productionDomain = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (productionDomain) return `https://${productionDomain}`;
+
+  return ORIGIN;
+}
 
 function anonClient() {
   return createClient(
@@ -109,10 +125,12 @@ async function main() {
     `${parsed.path} type=${parsed.type} next=${parsed.next}`
   );
 
+  const wantOrigin = expectedOrigin();
+
   record(
     "link origin honours the configured app URL",
-    invite.inviteLink!.startsWith(ORIGIN),
-    invite.inviteLink!.slice(0, 30)
+    invite.inviteLink!.startsWith(wantOrigin),
+    `want ${wantOrigin}, got ${new URL(invite.inviteLink!).origin}`
   );
 
   const profile = await prisma.profile.findUnique({

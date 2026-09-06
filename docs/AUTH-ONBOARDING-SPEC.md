@@ -386,14 +386,16 @@ Use **one throwaway test affiliate** on prod (not B/T/E) OR full local Mode C ru
 
 **Gate:** [BTE-ADMIN-QA.md](./BTE-ADMIN-QA.md) signed off by Anthony + Gavin **before** any B/T/E portal login or outbound PDF.
 
-**Goal:** Blair, Trin, Emmie live on platform with commission drawer verified.
+**Goal:** Blair, Trin, Emmie live on platform with commission drawer verified on **live** SliceWP data.
+
+**TRUE30 (locked):** PDF is payout-only credit — those 33 orders stay on `ads ads` in SliceWP and **do not** appear on B/T/E portal ledgers. Handoff copy in BTE-ADMIN-QA.
 
 ### Pre-invite checklist (each affiliate)
 
 - [ ] Affiliate row exists in prod Supabase with correct email
 - [ ] Status = ACTIVE
 - [ ] No existing `Profile` OR deliberate reset path chosen
-- [ ] TRUE30 PDF / comms sent separately (if applicable)
+- [ ] TRUE30 PDF sent with payout-only explanation (totals: Blair $404.04, Trin $282.09, Emmie $394.79)
 
 ### Invite procedure (prod)
 
