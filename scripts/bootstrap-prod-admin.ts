@@ -10,6 +10,17 @@ if (process.env.BACKFILL_DATABASE_URL) {
     process.env.BACKFILL_DIRECT_URL ?? process.env.BACKFILL_DATABASE_URL;
 }
 
+// `config({ override: true })` above reinstates whatever mode .env.local is in,
+// so the auth target has to be re-applied after it, exactly like the database
+// URL. Without this the script writes rows to one project and logins to another.
+if (process.env.BACKFILL_SUPABASE_URL) {
+  process.env.NEXT_PUBLIC_SUPABASE_URL = process.env.BACKFILL_SUPABASE_URL;
+}
+if (process.env.BACKFILL_SUPABASE_SERVICE_ROLE_KEY) {
+  process.env.SUPABASE_SERVICE_ROLE_KEY =
+    process.env.BACKFILL_SUPABASE_SERVICE_ROLE_KEY;
+}
+
 /**
  * Mint or refresh platform ADMIN logins on production Supabase.
  *

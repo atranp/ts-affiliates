@@ -126,7 +126,12 @@
   }
 
   .ts-home-stat-value {
-    @apply text-2xl font-bold tabular-nums tracking-tight sm:text-[1.75rem];
+    @apply font-bold tabular-nums tracking-tight;
+    /* Sized against the card rather than the viewport: a currency amount is one
+       unbreakable token, so in a narrow column it cannot wrap and the card's
+       `overflow: hidden` silently cuts it mid-figure — $131,580.54 rendering as
+       "$131,580.5" reads as a real, wrong number. */
+    font-size: clamp(1.125rem, 11cqi, 1.75rem);
   }
 
   .ts-row-title {
@@ -263,9 +268,11 @@
     @apply grid min-w-0 max-w-full grid-cols-1 gap-3 lg:grid-cols-3 lg:gap-4;
   }
 
-  /* Headline metrics: paired on a phone, one row on a laptop. */
+  /* Headline metrics: paired on a phone, one row on a wide laptop.
+     Six across only once the columns can actually hold a six-figure currency
+     value — at `xl` they cannot, and the card clips the figure mid-number. */
   .ts-home-stat-grid-wide {
-    @apply grid min-w-0 max-w-full grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6 lg:gap-4;
+    @apply grid min-w-0 max-w-full grid-cols-2 gap-3 lg:grid-cols-3 lg:gap-4 2xl:grid-cols-6;
   }
 
   .ts-home-split {
@@ -379,6 +386,7 @@
 
   .ts-stat-card-compact {
     @apply relative overflow-hidden pl-5 sm:pl-6;
+    container-type: inline-size;
   }
 
   .ts-stat-card-compact::before {
