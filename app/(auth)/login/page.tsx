@@ -280,7 +280,10 @@ function LoginForm() {
                 </>
               ) : (
                 <>
-                  Sign In to Ambassador Portal
+                  <span className="sm:hidden">Sign in</span>
+                  <span className="hidden sm:inline">
+                    Sign In to Ambassador Portal
+                  </span>
                   <ArrowRight className="h-4 w-4" aria-hidden />
                 </>
               )}

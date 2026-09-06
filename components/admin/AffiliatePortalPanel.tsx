@@ -239,6 +239,14 @@ export function AffiliatePortalPanel({
             )}
           </div>
 
+          {portal.hasAccess && (
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              To send a new sign-in link, use{" "}
+              <span className="font-medium text-foreground">Reset password</span>
+              . The current password stops working when you do.
+            </p>
+          )}
+
           {!portal.hasAccess && (
             <p className="text-xs text-muted-foreground leading-relaxed">
               Creates a login and a one-time link you can send to{" "}

@@ -1,9 +1,9 @@
-import { AffiliateShell } from "@/components/layout/AffiliateShell";
+import { AffiliateLayoutClient } from "@/components/layout/AffiliateLayoutClient";
 
 export default function AffiliateLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <AffiliateShell>{children}</AffiliateShell>;
+  return <AffiliateLayoutClient>{children}</AffiliateLayoutClient>;
 }

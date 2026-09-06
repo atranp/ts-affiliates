@@ -12,11 +12,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryProvider>
       <AuthProvider>
-        {isLogin ? (
-          <main className="min-h-screen px-4">{children}</main>
-        ) : (
-          children
-        )}
+        {isLogin ? <main className="min-h-screen">{children}</main> : children}
         <Toaster richColors closeButton position="top-right" />
       </AuthProvider>
     </QueryProvider>

@@ -1065,6 +1065,8 @@ portal until the `/affiliate-account/` redirect ships.
 
 **Goal:** Affiliates use the platform; WP affiliate area redirects.
 
+Auth UI, invite ops, QA matrix, and B/T/E pilot steps: [AUTH-ONBOARDING-SPEC.md](./AUTH-ONBOARDING-SPEC.md).
+
 ### Pre-flight audit (2026-08-30)
 
 `npx tsx scripts/m6-prod-audit.ts "<prod DIRECT_URL>"` — read-only.
