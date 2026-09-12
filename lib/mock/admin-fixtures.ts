@@ -105,7 +105,7 @@ const PRICING: {
     amount: 1_975.28,
     entryCount: 189,
     revenue: 19_749.73,
-    math: "$19,749.73 in sales × 10% each",
+    math: "$19,749.73 in commissionable sales × 10% each",
   },
   unattributed: { amount: 125.5, entryCount: 2 },
 };

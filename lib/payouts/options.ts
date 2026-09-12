@@ -1,5 +1,5 @@
 import { CommissionStatus, DealBasis, LedgerEntryType } from "@prisma/client";
-import { payoutMathTerm } from "@/lib/deal-rules";
+import { payoutDisplayTerm } from "@/lib/deal-rules";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, toNumber } from "@/lib/utils";
 import {
@@ -105,18 +105,11 @@ function describeMath(totals: Totals): string | null {
     const [percentRaw, basis] = term.split("|");
     const percent = Number(percentRaw);
 
-    // The payout spreadsheets recover the sale from what the recruit was paid
-    // rather than reading it off the order, so state the arithmetic they use.
-    if (percentRaw.startsWith("divisor:")) {
-      const divisor = percentRaw.slice("divisor:".length);
-      return `Their commission ÷ ${divisor} on ${formatCurrency(totals.revenue)} in sales`;
-    }
-
     if (basis === DealBasis.FIXED) {
       return `${formatCurrency(percent)} per sale × ${totals.entryCount.toLocaleString("en-US")}`;
     }
     if (basis === DealBasis.ORDER_REVENUE && totals.revenue > 0) {
-      return `${formatCurrency(totals.revenue)} in sales × ${trimRate(percent)} each`;
+      return `${formatCurrency(totals.revenue)} in commissionable sales × ${trimRate(percent)} each`;
     }
     if (basis === DealBasis.RECRUIT_COMMISSION) {
       return `${trimRate(percent)} of their commission on ${formatCurrency(totals.revenue)} in sales`;
@@ -238,7 +231,7 @@ export async function getPayoutOptions(input: {
     // Sales are quoted on the commissionable base so the rate shown beside them
     // is the rate that produced the amount.
     const revenue = toNumber(entry.commissionBase ?? entry.orderRevenue);
-    const term = payoutMathTerm(entry.dealRule);
+    const term = payoutDisplayTerm(entry.dealRule);
 
     if (entry.type === LedgerEntryType.DIRECT) {
       addTo(direct, amount, revenue, term);

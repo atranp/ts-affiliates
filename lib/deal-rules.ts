@@ -78,3 +78,25 @@ export function payoutMathTerm(
   if (divisor) return `divisor:${divisor}|${rule.basis}`;
   return `${toNumber(rule.ratePercent)}|${rule.basis}`;
 }
+
+/**
+ * How a team deal reads in the UI.
+ *
+ * Gavin's spreadsheets recover the sale from what the recruit was paid, but the
+ * deal itself is still described as a share of commissionable sales — order total
+ * less shipping and tax. The divisor stays in metadata for pricing; only the
+ * label changes.
+ */
+export function payoutDisplayTerm(
+  rule: Pick<DealRule, "ratePercent" | "basis" | "metadata"> | null
+): string | null {
+  if (!rule) return null;
+  if (getCommissionDivisor(rule)) {
+    return `${toNumber(rule.ratePercent)}|${DealBasis.ORDER_REVENUE}`;
+  }
+  return payoutMathTerm(rule);
+}
+
+export function teamDealRateLabel(ratePercent: string | number): string {
+  return `${toNumber(ratePercent)}% of commissionable sales`;
+}

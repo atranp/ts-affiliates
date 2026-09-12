@@ -97,7 +97,7 @@ function formatRuleSummary(rule: TeamRule, affiliateView: boolean) {
     }`;
   }
 
-  const parts = [`${rule.ratePercent}% team earnings`];
+  const parts = [`${rule.ratePercent}% of commissionable sales`];
   if (rule.milestoneRevenueThreshold) {
     parts.push(
       `${formatCurrency(Number(rule.milestoneRevenueThreshold))} sales milestone`

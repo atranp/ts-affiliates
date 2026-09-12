@@ -46,7 +46,7 @@ export function teamDealLabel(
   milestoneRevenueThreshold: string | null,
   formatAmount: (value: number) => string,
 ): string {
-  const rate = `${ratePercent}% of team earnings`;
+  const rate = `${ratePercent}% of commissionable sales`;
   if (!milestoneRevenueThreshold) return rate;
   return `${rate} once a member reaches ${formatAmount(
     Number(milestoneRevenueThreshold),

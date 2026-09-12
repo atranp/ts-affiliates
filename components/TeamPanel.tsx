@@ -91,7 +91,7 @@ export function TeamPanel({
               {member.dealRule && (
                 <p className="text-xs text-muted-foreground">
                   {affiliateView
-                    ? `${member.dealRule.ratePercent}% team earnings${
+                    ? `${member.dealRule.ratePercent}% of commissionable sales${
                         member.dealRule.milestoneRevenueThreshold
                           ? ` · ${formatCurrency(Number(member.dealRule.milestoneRevenueThreshold))} sales goal`
                           : ""
