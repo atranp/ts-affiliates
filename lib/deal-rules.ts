@@ -91,8 +91,11 @@ export function payoutDisplayTerm(
   rule: Pick<DealRule, "ratePercent" | "basis" | "metadata"> | null
 ): string | null {
   if (!rule) return null;
+  // TEAM_DEAL marks rules priced from the recruit's commission (Gavin's
+  // spreadsheet) so the payout line never reads as "sales × 10%" — that
+  // multiplication only checks out when every sale pays the recruit 30%.
   if (getCommissionDivisor(rule)) {
-    return `${toNumber(rule.ratePercent)}|${DealBasis.ORDER_REVENUE}`;
+    return `${toNumber(rule.ratePercent)}|TEAM_DEAL`;
   }
   return payoutMathTerm(rule);
 }

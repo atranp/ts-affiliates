@@ -16,6 +16,7 @@ function mapEntry(entry: {
   description: string | null;
   wooOrderId: number | null;
   orderRevenue: { toString(): string } | null;
+  commissionBase: { toString(): string } | null;
   occurredAt: Date;
   sourceAffiliate: {
     id: string;
@@ -31,7 +32,11 @@ function mapEntry(entry: {
     status: entry.status,
     description: entry.description,
     wooOrderId: entry.wooOrderId,
-    orderRevenue: entry.orderRevenue ? toNumber(entry.orderRevenue) : null,
+    orderRevenue: entry.commissionBase
+      ? toNumber(entry.commissionBase)
+      : entry.orderRevenue
+        ? toNumber(entry.orderRevenue)
+        : null,
     occurredAt: entry.occurredAt.toISOString(),
     sourceAffiliate: entry.sourceAffiliate,
     dealRule: entry.dealRule,

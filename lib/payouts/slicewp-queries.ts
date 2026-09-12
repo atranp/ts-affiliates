@@ -39,6 +39,25 @@ function isInherited(commission: Commission): boolean {
   return (commission.type ?? "").toLowerCase() === "inherit";
 }
 
+function commissionableSaleAmount(
+  commission: Pick<Commission, "orderRevenue" | "commissionBase">,
+  parent?: Pick<Commission, "orderRevenue" | "commissionBase">
+): number | null {
+  const ownBase = toNumber(commission.commissionBase);
+  if (ownBase > 0) return ownBase;
+
+  const ownGross = toNumber(commission.orderRevenue);
+  if (ownGross > 0) return ownGross;
+
+  if (!parent) return null;
+
+  const parentBase = toNumber(parent.commissionBase);
+  if (parentBase > 0) return parentBase;
+
+  const parentGross = toNumber(parent.orderRevenue);
+  return parentGross > 0 ? parentGross : null;
+}
+
 function toEntry(
   commission: CommissionWithAffiliate,
   parents: Map<number, CommissionWithAffiliate>
@@ -50,10 +69,7 @@ function toEntry(
     : undefined;
 
   const wooOrderId = commission.wooOrderId ?? parent?.wooOrderId ?? null;
-  // SliceWP reports 0 revenue on inherited rows so the sale is not counted
-  // twice, which leaves the parent as the only place to read the sale value.
-  const orderRevenue =
-    toNumber(commission.orderRevenue) || toNumber(parent?.orderRevenue) || null;
+  const orderRevenue = commissionableSaleAmount(commission, parent);
 
   return {
     id: commission.id,

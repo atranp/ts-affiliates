@@ -20,6 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
 import { cn, formatCurrency, formatSaleDate } from "@/lib/utils";
 import type { PayoutBatchDetail } from "@/lib/payouts/types";
 
@@ -162,7 +163,7 @@ export function PayoutBatchDetailView({
                   {recruit.sourceRevenue > 0 && (
                     <p className="text-xs text-muted-foreground">
                       {formatRate(recruit.overrideTotal, recruit.sourceRevenue)}{" "}
-                      of sales
+                      of commissionable sales
                     </p>
                   )}
                 </div>
@@ -186,7 +187,9 @@ export function PayoutBatchDetailView({
                     <TableHead>Type</TableHead>
                     <TableHead>Details</TableHead>
                     <TableHead>Order</TableHead>
-                    <TableHead className="text-right">Sale amount</TableHead>
+                    <TableHead className="text-right">
+                      {AFFILIATE_COPY.commissions.columns.sale}
+                    </TableHead>
                     <TableHead className="text-right">You earned</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -246,7 +249,7 @@ export function PayoutBatchDetailView({
                     }
                     valueHint={
                       entry.orderRevenue
-                        ? `${formatCurrency(entry.orderRevenue)} sale`
+                        ? `${formatCurrency(entry.orderRevenue)} commissionable sale`
                         : undefined
                     }
                   />

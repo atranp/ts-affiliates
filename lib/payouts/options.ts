@@ -108,6 +108,9 @@ function describeMath(totals: Totals): string | null {
     if (basis === DealBasis.FIXED) {
       return `${formatCurrency(percent)} per sale × ${totals.entryCount.toLocaleString("en-US")}`;
     }
+    if (basis === "TEAM_DEAL" && totals.revenue > 0) {
+      return `${formatCurrency(totals.revenue)} in commissionable sales · ${trimRate(percent)} team deal`;
+    }
     if (basis === DealBasis.ORDER_REVENUE && totals.revenue > 0) {
       return `${formatCurrency(totals.revenue)} in commissionable sales × ${trimRate(percent)} each`;
     }
@@ -120,7 +123,7 @@ function describeMath(totals: Totals): string | null {
 
   // Mixed terms, or direct commissions where the rate comes from SliceWP and
   // varies per order — an average is the only honest summary.
-  return `${formatCurrency(totals.revenue)} in sales × ~${trimRate((totals.amount / totals.revenue) * 100)} avg`;
+  return `${formatCurrency(totals.revenue)} in commissionable sales × ~${trimRate((totals.amount / totals.revenue) * 100)} avg`;
 }
 
 type OverrideRow = {

@@ -19,7 +19,7 @@ import type { PeriodRange } from "@/lib/affiliate/period";
 
 export type PerformanceTotals = {
   earnings: number;
-  /** Sum of referred order value (SliceWP reference_amount) on direct sales. */
+  /** Sum of commissionable sale value on direct sales (net of shipping & tax where known). */
   revenue: number;
   clicks: number;
   sales: number;

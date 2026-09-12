@@ -33,7 +33,7 @@ const COLUMNS = [
   "Type",
   "Details",
   "Order",
-  "Sale amount",
+  AFFILIATE_COPY.commissions.columns.sale,
   "Your earnings",
   "Status",
   "Tracked by",

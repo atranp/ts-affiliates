@@ -2,6 +2,12 @@
 
 import { isLifetimeSaleType } from "@/lib/affiliate/lifetime";
 
+/** Order value less shipping and tax — the base commission rates apply to. */
+export const COMMISSIONABLE_SALE_LABEL = "Commissionable sale";
+export const COMMISSIONABLE_SALES_LABEL = "Commissionable sales";
+export const COMMISSIONABLE_SALES_GENERATED_LABEL =
+  "Commissionable sales generated";
+
 export function formatCommissionStatus(status: string): string {
   switch (status) {
     case 'PAID':
@@ -50,7 +56,7 @@ export function teamDealLabel(
   if (!milestoneRevenueThreshold) return rate;
   return `${rate} once a member reaches ${formatAmount(
     Number(milestoneRevenueThreshold),
-  )} in sales`;
+  )} in commissionable sales`;
 }
 
 export const AFFILIATE_COPY = {
@@ -115,11 +121,11 @@ export const AFFILIATE_COPY = {
     },
     recentCommissions: 'Recent activity',
     viewAllCommissions: 'View all',
-    salesLabel: 'Sales',
+    salesLabel: COMMISSIONABLE_SALES_LABEL,
   },
   performance: {
     earnings: 'Earnings',
-    revenueGenerated: 'Sales generated',
+    revenueGenerated: COMMISSIONABLE_SALES_GENERATED_LABEL,
     earningsTrendTitle: 'Earnings',
     earningsTrendDescription: 'What you earned each day',
     readyForPayout: 'Ready for payout',
@@ -137,23 +143,23 @@ export const AFFILIATE_COPY = {
     title: 'Team',
     rosterTitle: 'Your Team Roster',
     rosterDescription:
-      'Track member sales, your team cut, and who\u2019s working toward their milestone.',
+      'Track member commissionable sales, your team cut, and who\u2019s working toward their milestone.',
     teamsSectionHint:
-      'Your earnings from each member\u2019s sales \u2014 not what they owe you.',
+      'Your earnings from each member\u2019s commissionable sales \u2014 not what they owe you.',
     teamCutUnpaid: 'Your team cut',
     teamCutLocked: 'Locked until goal',
-    theirSalesShort: 'team sales',
+    theirSalesShort: 'commissionable sales',
     goalReachedLine: 'Goal reached',
     empty: 'No team members yet.',
     loading: 'Loading team members...',
     viewCommissions: 'View commissions',
     viewUnpaid: 'View unpaid',
-    teamRevenue: 'Team sales',
+    teamRevenue: 'Commissionable team sales',
     payout: 'Unpaid',
     /** @deprecated Prefer teamCutUnpaid on member rows */
     awaitingMilestone: 'Awaiting milestone',
     paid: 'Paid',
-    salesGoal: 'Sales milestone',
+    salesGoal: 'Commissionable sales milestone',
     goalReached: 'Milestone reached',
     goalReachedShort: 'Reached',
     inactive: 'Inactive',
@@ -164,27 +170,28 @@ export const AFFILIATE_COPY = {
     noMatches: 'No team members match these filters.',
     allMembers: 'All',
     statsHints: {
-      payout: 'Your cut from members who reached their sales goal',
-      teamRevenue: 'Combined sales across your team',
-      awaitingMilestone: 'Unlocks when a member hits their sales milestone',
+      payout: 'Your cut from members who reached their commissionable sales goal',
+      teamRevenue: 'Combined commissionable sales across your team',
+      awaitingMilestone:
+        'Unlocks when a member hits their commissionable sales milestone',
       paid: 'Already included in a payout',
-      teamDeal: 'Your cut of team member sales',
+      teamDeal: 'Your cut of team member commissionable sales',
     },
     segments: {
       earning: 'Earning',
       ramping: 'Working toward goal',
-      inactive: 'No sales yet',
+      inactive: 'No commissionable sales yet',
     },
     columns: {
       member: 'Member',
-      sales: 'Their sales',
-      goal: 'Sales milestone',
+      sales: COMMISSIONABLE_SALES_LABEL,
+      goal: 'Commissionable sales milestone',
       payout: 'Your team cut',
       awaitingMilestone: 'Locked until goal',
     },
     filters: {
-      sortSalesHigh: 'Highest sales',
-      sortSalesLow: 'Lowest sales',
+      sortSalesHigh: 'Highest commissionable sales',
+      sortSalesLow: 'Lowest commissionable sales',
       sortGoalHigh: 'Closest to goal',
       sortGoalLow: 'Farthest from goal',
       sortUnpaidHigh: 'Highest team cut',
@@ -218,7 +225,7 @@ export const AFFILIATE_COPY = {
       sortOldest: 'Oldest first',
       sortAmountHigh: 'Highest earnings',
       sortAmountLow: 'Lowest earnings',
-      sortSaleHigh: 'Largest sale',
+      sortSaleHigh: 'Largest commissionable sale',
     },
     statsHints: {
       payout: 'Ready for your next payout run',
@@ -238,7 +245,7 @@ export const AFFILIATE_COPY = {
       date: 'Date',
       type: 'Type',
       details: 'Details',
-      sale: 'Sale amount',
+      sale: COMMISSIONABLE_SALE_LABEL,
       amount: 'Your earnings',
       payout: 'Payout date',
       status: 'Status',
@@ -262,7 +269,7 @@ export const AFFILIATE_COPY = {
     detail: {
       whyTitle: 'Why you earned this',
       orderTitle: 'Order',
-      orderCommissionBase: 'Commission base (excl. shipping & tax)',
+      orderCommissionBase: 'Commissionable sale (excl. shipping & tax)',
       orderShipping: 'Shipping',
       orderTax: 'Tax',
       orderTotal: 'Order total',

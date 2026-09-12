@@ -13,8 +13,9 @@ import {
   type SettleResult,
 } from "@/lib/payouts/settle";
 import { PAID_STATUS } from "@/lib/payouts/status";
+import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
 import { formatAppDateTime } from "@/lib/timezone";
-import { toNumber } from "@/lib/utils";
+import { commissionableSale, toNumber } from "@/lib/utils";
 
 export type { DirectPayoutRef };
 export { parseDirectPayoutRef, directPayoutRefKey };
@@ -297,7 +298,7 @@ export async function previewPayout(
     prisma.ledgerEntry.aggregate({
       where,
       _count: { _all: true },
-      _sum: { amount: true, orderRevenue: true },
+      _sum: { amount: true },
       _min: { occurredAt: true },
       _max: { occurredAt: true },
     }),
@@ -312,6 +313,7 @@ export async function previewPayout(
         description: true,
         wooOrderId: true,
         orderRevenue: true,
+        commissionBase: true,
         amount: true,
         sourceAffiliate: { select: { displayName: true, email: true } },
       },
@@ -319,6 +321,14 @@ export async function previewPayout(
   ]);
 
   const entryCount = totals._count._all;
+  const revenueRows = await prisma.ledgerEntry.findMany({
+    where,
+    select: { commissionBase: true, orderRevenue: true },
+  });
+  const revenueTotal = revenueRows.reduce(
+    (sum, row) => sum + toNumber(commissionableSale(row) ?? 0),
+    0
+  );
 
   return {
     affiliateId: selection.affiliateId,
@@ -328,7 +338,7 @@ export async function previewPayout(
     cutoff: selection.cutoff.toISOString(),
     entryCount,
     totalAmount: toNumber(totals._sum.amount),
-    revenueTotal: toNumber(totals._sum.orderRevenue),
+    revenueTotal: Math.round(revenueTotal * 100) / 100,
     oldestOccurredAt: totals._min.occurredAt?.toISOString() ?? null,
     newestOccurredAt: totals._max.occurredAt?.toISOString() ?? null,
     entries: entries.map((entry) => ({
@@ -338,7 +348,9 @@ export async function previewPayout(
       description: entry.description,
       wooOrderId: entry.wooOrderId,
       orderRevenue:
-        entry.orderRevenue == null ? null : toNumber(entry.orderRevenue),
+        commissionableSale(entry) == null
+          ? null
+          : toNumber(commissionableSale(entry)),
       amount: toNumber(entry.amount),
       sourceAffiliateName: entry.sourceAffiliate
         ? (entry.sourceAffiliate.displayName ?? entry.sourceAffiliate.email)
@@ -353,7 +365,7 @@ const CSV_COLUMNS = [
   "Type",
   "Member",
   "Order",
-  "Sale amount",
+  AFFILIATE_COPY.commissions.columns.sale,
   "Rate",
   "Earned",
   "Description",
@@ -382,6 +394,7 @@ export async function buildPayoutCsv(
         description: true,
         wooOrderId: true,
         orderRevenue: true,
+        commissionBase: true,
         amount: true,
         sourceAffiliate: { select: { displayName: true, email: true } },
       },
@@ -391,7 +404,9 @@ export async function buildPayoutCsv(
   const rows = entries.map((entry) => {
     const amount = toNumber(entry.amount);
     const revenue =
-      entry.orderRevenue == null ? null : toNumber(entry.orderRevenue);
+      commissionableSale(entry) == null
+        ? null
+        : toNumber(commissionableSale(entry));
     return [
       entry.occurredAt.toISOString().slice(0, 10),
       entry.type === LedgerEntryType.OVERRIDE ? "Team earnings" : "Direct",
