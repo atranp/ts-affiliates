@@ -68,7 +68,7 @@ async function main() {
   }
 
   console.log("Trin's override rows by source commission type:");
-  for (const [type, b] of byType) {
+  for (const [type, b] of Array.from(byType.entries())) {
     console.log(
       `  ${type.padEnd(12)} ${String(b.count).padStart(5)} rows  ` +
         `their commission $${b.commission.toFixed(2).padStart(11)}  ` +

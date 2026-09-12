@@ -6,18 +6,19 @@ config({ path: ".env" });
 config({ path: ".env.local", override: true });
 
 /**
- * Reprices unpaid team overrides off the commissionable base.
+ * Reprices unpaid team overrides to the arithmetic the payout spreadsheets use.
  *
- * The deal is a share of the recruit's sales; it was being taken from the gross
- * order total, which includes shipping and tax nobody earns a commission on.
- * Paid rows are left alone — they record money that already moved.
+ * A sponsor's cut is recovered from what the recruit was paid: assume the
+ * standard 30% rate, divide to get back to the sale, then take the sponsor's 10%
+ * of it — the recruit's commission divided by three. Paid rows are left alone;
+ * they record money that already moved.
  *
- * Recomputes commissionBase from whatever order totals are on file first, so
- * this is safe to re-run after a Woo totals backfill.
- *
- *   npx tsx scripts/reprice-team-overrides.ts            # dry run
+ *   npx tsx scripts/reprice-team-overrides.ts               # dry run
  *   npx tsx scripts/reprice-team-overrides.ts --apply
+ *   npx tsx scripts/reprice-team-overrides.ts --apply --basis-only
  */
+
+const COMMISSION_DIVISOR = 3;
 
 async function main() {
   const apply = process.argv.includes("--apply");
@@ -29,7 +30,9 @@ async function main() {
 
   const { Prisma } = await import("@prisma/client");
   const { prisma } = await import("../lib/prisma");
-  const { calculateOverrideAmount } = await import("../lib/deal-rules");
+  const { calculateOverrideAmount, getCommissionDivisor } = await import(
+    "../lib/deal-rules"
+  );
   const { toNumber } = await import("../lib/format");
   const { syncCommissionBases, syncLedgerCommissionBases } = await import(
     "../lib/sync-write"
@@ -71,14 +74,20 @@ async function main() {
   });
 
   for (const rule of rules) {
+    const divisor = getCommissionDivisor(rule);
     const needsBasisFix =
-      rule.basis !== DealBasis.ORDER_REVENUE || rule.metadata !== null;
+      rule.basis !== DealBasis.RECRUIT_COMMISSION ||
+      divisor !== COMMISSION_DIVISOR;
 
     console.log(`=== ${rule.name} ===`);
     console.log(
       `  basis ${rule.basis} @ ${rule.ratePercent.toString()}%${
         rule.metadata ? `  metadata ${JSON.stringify(rule.metadata)}` : ""
-      }${needsBasisFix ? "  → will reset to ORDER_REVENUE, no metadata" : ""}`
+      }${
+        needsBasisFix
+          ? `  → will set RECRUIT_COMMISSION ÷ ${COMMISSION_DIVISOR}`
+          : ""
+      }`
     );
 
     const rows = await prisma.ledgerEntry.findMany({
@@ -96,7 +105,11 @@ async function main() {
       },
     });
 
-    const priced = { basis: DealBasis.ORDER_REVENUE, ratePercent: rule.ratePercent };
+    const priced = {
+      basis: DealBasis.RECRUIT_COMMISSION,
+      ratePercent: rule.ratePercent,
+      metadata: { commissionDivisor: COMMISSION_DIVISOR },
+    };
 
     const updates: Array<{ id: string; amount: number }> = [];
     let oldTotal = 0;
@@ -118,23 +131,19 @@ async function main() {
 
     if (!apply) continue;
 
-    // The divisor convention is gone from the pricing code, so a rule left on
-    // RECRUIT_COMMISSION would pay a tenth of the commission rather than a
-    // third — worth correcting on its own, ahead of any repricing.
-    if (needsBasisFix && process.argv.includes("--basis-only")) {
-      await prisma.dealRule.update({
-        where: { id: rule.id },
-        data: { basis: DealBasis.ORDER_REVENUE, metadata: Prisma.DbNull },
-      });
-      console.log("  basis reset; amounts left alone (--basis-only)");
-      continue;
-    }
-
     if (needsBasisFix) {
       await prisma.dealRule.update({
         where: { id: rule.id },
-        data: { basis: DealBasis.ORDER_REVENUE, metadata: Prisma.DbNull },
+        data: {
+          basis: DealBasis.RECRUIT_COMMISSION,
+          metadata: { commissionDivisor: COMMISSION_DIVISOR },
+        },
       });
+    }
+
+    if (process.argv.includes("--basis-only")) {
+      console.log("  basis set; amounts left alone (--basis-only)");
+      continue;
     }
 
     const CHUNK = 500;

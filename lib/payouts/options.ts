@@ -101,8 +101,16 @@ function describeMath(totals: Totals): string | null {
   if (totals.entryCount === 0) return null;
 
   if (totals.terms.size === 1) {
-    const [percentRaw, basis] = Array.from(totals.terms)[0].split("|");
+    const term = Array.from(totals.terms)[0];
+    const [percentRaw, basis] = term.split("|");
     const percent = Number(percentRaw);
+
+    // The payout spreadsheets recover the sale from what the recruit was paid
+    // rather than reading it off the order, so state the arithmetic they use.
+    if (percentRaw.startsWith("divisor:")) {
+      const divisor = percentRaw.slice("divisor:".length);
+      return `Their commission ÷ ${divisor} on ${formatCurrency(totals.revenue)} in sales`;
+    }
 
     if (basis === DealBasis.FIXED) {
       return `${formatCurrency(percent)} per sale × ${totals.entryCount.toLocaleString("en-US")}`;
@@ -213,6 +221,7 @@ export async function getPayoutOptions(input: {
         select: {
           ratePercent: true,
           basis: true,
+          metadata: true,
           team: { select: { id: true, name: true } },
         },
       },
