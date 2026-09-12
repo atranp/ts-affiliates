@@ -1,7 +1,6 @@
 import {
   Commission,
   CommissionStatus,
-  DealBasis,
   DealRule,
   LedgerEntryType,
   Prisma,
@@ -19,6 +18,7 @@ import {
   bulkUpdateOverrideEntries,
   type OverrideUpdateRow,
 } from "./sync-write";
+import { calculateOverrideAmount } from "./deal-rules";
 import { toNumber } from "./utils";
 
 type OverrideTarget = {
@@ -380,10 +380,11 @@ async function createOverrideEntry(
 
   if (existing) {
     const status = resolveOverrideStatusOnSync(existing, data.status);
+    const preservePaidAmount = existing.status === CommissionStatus.PAID;
     await prisma.ledgerEntry.update({
       where: { id: existing.id },
       data: {
-        amount: data.amount,
+        ...(preservePaidAmount ? {} : { amount: data.amount }),
         status,
         description: data.description,
         orderRevenue: data.orderRevenue,
@@ -564,21 +565,6 @@ export async function deleteNonPaidOverridesForRule(
     },
   });
   return result.count;
-}
-
-function calculateOverrideAmount(rule: DealRule, commission: Commission): number {
-  const rate = toNumber(rule.ratePercent) / 100;
-
-  switch (rule.basis) {
-    case DealBasis.ORDER_REVENUE:
-      return toNumber(commission.orderRevenue) * rate;
-    case DealBasis.RECRUIT_COMMISSION:
-      return toNumber(commission.amount) * rate;
-    case DealBasis.FIXED:
-      return toNumber(rule.ratePercent);
-    default:
-      return 0;
-  }
 }
 
 export type LedgerSummary = {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { MilestoneProgress } from "@/components/affiliate/MilestoneProgress";
 import { apiFetch } from "@/lib/api-client";
 import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
+import { teamRuleRateLabelFromDivisor } from "@/lib/deal-rules";
 import type { TeamMember } from "@/lib/admin/team";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -91,12 +92,18 @@ export function TeamPanel({
               {member.dealRule && (
                 <p className="text-xs text-muted-foreground">
                   {affiliateView
-                    ? `${member.dealRule.ratePercent}% team earnings${
+                    ? `${teamRuleRateLabelFromDivisor(
+                        member.dealRule.ratePercent,
+                        member.dealRule.commissionDivisor
+                      )}${
                         member.dealRule.milestoneRevenueThreshold
                           ? ` · ${formatCurrency(Number(member.dealRule.milestoneRevenueThreshold))} sales goal`
                           : ""
                       }`
-                    : `Rule: ${member.dealRule.name} · ${member.dealRule.ratePercent}%${
+                    : `Rule: ${member.dealRule.name} · ${teamRuleRateLabelFromDivisor(
+                        member.dealRule.ratePercent,
+                        member.dealRule.commissionDivisor
+                      )}${
                         member.dealRule.milestoneRevenueThreshold
                           ? ` · Milestone ${formatCurrency(Number(member.dealRule.milestoneRevenueThreshold))}`
                           : ""

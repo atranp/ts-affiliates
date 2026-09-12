@@ -1,4 +1,5 @@
 import { CommissionStatus, DealBasis, LedgerEntryType } from "@prisma/client";
+import { payoutMathTerm } from "@/lib/deal-rules";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, toNumber } from "@/lib/utils";
 import {
@@ -100,7 +101,12 @@ function describeMath(totals: Totals): string | null {
   if (totals.entryCount === 0) return null;
 
   if (totals.terms.size === 1) {
-    const [percentRaw, basis] = Array.from(totals.terms)[0].split("|");
+    const term = Array.from(totals.terms)[0];
+    if (term.startsWith("commission-third|")) {
+      return `Their commission ÷ 3 on ${formatCurrency(totals.revenue)} in sales`;
+    }
+
+    const [percentRaw, basis] = term.split("|");
     const percent = Number(percentRaw);
 
     if (basis === DealBasis.FIXED) {
@@ -211,6 +217,7 @@ export async function getPayoutOptions(input: {
         select: {
           ratePercent: true,
           basis: true,
+          metadata: true,
           team: { select: { id: true, name: true } },
         },
       },
@@ -225,9 +232,7 @@ export async function getPayoutOptions(input: {
   for (const entry of entries) {
     const amount = toNumber(entry.amount);
     const revenue = toNumber(entry.orderRevenue);
-    const term = entry.dealRule
-      ? `${toNumber(entry.dealRule.ratePercent)}|${entry.dealRule.basis}`
-      : null;
+    const term = payoutMathTerm(entry.dealRule);
 
     if (entry.type === LedgerEntryType.DIRECT) {
       addTo(direct, amount, revenue, term);

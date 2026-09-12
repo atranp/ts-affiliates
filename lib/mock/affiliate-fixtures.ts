@@ -95,6 +95,7 @@ export const MOCK_TEAM_DETAIL: TeamDetail = {
       id: "mock-rule-1",
       name: "Team override",
       ratePercent: "10",
+      commissionDivisor: 3,
       milestoneRevenueThreshold: "5000",
       active: true,
       recruit: null,

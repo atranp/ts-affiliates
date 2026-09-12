@@ -5,6 +5,7 @@ export {
   formatCurrency,
   formatSaleDate,
   mapWithConcurrency,
+  roundCurrency,
   toNumber,
 } from "@/lib/format";
 

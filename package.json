@@ -41,6 +41,7 @@
     "backfill-order-attribution": "tsx scripts/backfill-order-attribution.ts",
     "prune-inherited-direct": "tsx scripts/prune-inherited-direct.ts",
     "prune-deleted-commissions": "tsx scripts/prune-deleted-commissions.ts",
+    "migrate-trin-commission-third": "tsx scripts/migrate-trin-commission-third.ts",
     "normalize-payout-weeks": "tsx scripts/normalize-payout-weeks.ts",
     "postinstall": "prisma generate"
   },

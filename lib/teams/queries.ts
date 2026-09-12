@@ -1,4 +1,5 @@
 import { CommissionStatus, LedgerEntryType, Prisma } from "@prisma/client";
+import { getCommissionDivisor } from "../deal-rules";
 import { getMilestoneProgress } from "../milestone";
 import { prisma } from "../prisma";
 import { countableRevenueWhere } from "../revenue";
@@ -9,6 +10,8 @@ export type TeamRuleSummary = {
   id: string;
   name: string;
   ratePercent: string;
+  /** When set, team cut = recruit commission ÷ this (Gavin ops math). */
+  commissionDivisor: number | null;
   milestoneRevenueThreshold: string | null;
   active: boolean;
   recruit: {
@@ -158,6 +161,7 @@ function mapRule(rule: {
   id: string;
   name: string;
   ratePercent: { toString(): string };
+  metadata: Prisma.JsonValue | null;
   milestoneRevenueThreshold: { toString(): string } | null;
   active: boolean;
   sourceAffiliate: {
@@ -170,6 +174,7 @@ function mapRule(rule: {
     id: rule.id,
     name: rule.name,
     ratePercent: rule.ratePercent.toString(),
+    commissionDivisor: getCommissionDivisor(rule),
     milestoneRevenueThreshold:
       rule.milestoneRevenueThreshold?.toString() ?? null,
     active: rule.active,

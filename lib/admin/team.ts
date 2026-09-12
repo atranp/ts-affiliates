@@ -4,6 +4,7 @@ import {
   getMilestoneProgress,
   getRecruitCumulativeRevenue,
 } from "../milestone";
+import { getCommissionDivisor } from "../deal-rules";
 import { countableRevenueWhere } from "../revenue";
 import { toNumber } from "../utils";
 
@@ -31,6 +32,7 @@ export type TeamMember = {
     id: string;
     name: string;
     ratePercent: string;
+    commissionDivisor: number | null;
     milestoneRevenueThreshold: string | null;
   } | null;
   stats: TeamMemberStats;
@@ -86,6 +88,7 @@ export async function getAffiliateTeam(
         id: rule.id,
         name: rule.name,
         ratePercent: rule.ratePercent.toString(),
+        commissionDivisor: getCommissionDivisor(rule),
         milestoneRevenueThreshold:
           rule.milestoneRevenueThreshold?.toString() ?? null,
       },

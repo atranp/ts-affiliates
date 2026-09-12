@@ -19,6 +19,11 @@ export function toNumber(value: unknown): number {
   return Number.isFinite(num) ? num : 0;
 }
 
+/** Round to cents the way ops spreadsheets do (half-up). */
+export function roundCurrency(amount: number): number {
+  return Math.round(amount * 100) / 100;
+}
+
 export async function mapWithConcurrency<T, R>(
   items: T[],
   concurrency: number,

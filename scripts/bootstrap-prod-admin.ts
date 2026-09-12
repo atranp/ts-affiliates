@@ -31,6 +31,11 @@ if (process.env.BACKFILL_SUPABASE_SERVICE_ROLE_KEY) {
  *   ALLOW_PRODUCTION_WRITES=true npx tsx scripts/bootstrap-prod-admin.ts --dry-run
  *   ALLOW_PRODUCTION_WRITES=true npx tsx scripts/bootstrap-prod-admin.ts --apply
  *   ALLOW_PRODUCTION_WRITES=true npx tsx scripts/bootstrap-prod-admin.ts --apply --email=g@x.com --name=Gavin
+ *   ALLOW_PRODUCTION_WRITES=true npx tsx scripts/with-prod-supabase.ts \
+ *     scripts/bootstrap-prod-admin.ts --apply --email=admin@true-sciences.com --password='…'
+ *
+ * With --password, sets a known login for internal beta QA (mustChangePassword=false,
+ * no invite link). Without it, mints one-time recovery links as before.
  *
  * Uses BACKFILL_DATABASE_URL / BACKFILL_DIRECT_URL when set (prod targeting).
  */
@@ -56,18 +61,24 @@ function parseArgs() {
   const dryRun = !apply;
   const emailArg = process.argv.find((arg) => arg.startsWith("--email="));
   const nameArg = process.argv.find((arg) => arg.startsWith("--name="));
+  const passwordArg = process.argv.find((arg) => arg.startsWith("--password="));
+  const fixedPassword = passwordArg?.split("=")[1];
 
-  const admins =
-    emailArg && nameArg
-      ? [
-          {
-            email: emailArg.split("=")[1]!.trim().toLowerCase(),
-            name: nameArg.split("=")[1]!.trim(),
-          },
-        ]
-      : DEFAULT_ADMINS.map((row) => ({ ...row }));
+  const admins = emailArg
+    ? [
+        {
+          email: emailArg.split("=")[1]!.trim().toLowerCase(),
+          name: nameArg?.split("=")[1]?.trim() || "Admin",
+        },
+      ]
+    : DEFAULT_ADMINS.map((row) => ({ ...row }));
 
-  return { dryRun, admins };
+  return {
+    dryRun,
+    admins,
+    fixedPassword,
+    mustChangePassword: !fixedPassword,
+  };
 }
 
 function unknowablePassword(length = 48): string {
@@ -97,7 +108,7 @@ async function findAuthUserIdByEmail(
 }
 
 async function main() {
-  const { dryRun, admins } = parseArgs();
+  const { dryRun, admins, fixedPassword, mustChangePassword } = parseArgs();
   const { isProductionDatabase, assertAuthMatchesDatabase } = await import(
     "../lib/env-guard"
   );
@@ -168,29 +179,30 @@ async function main() {
     }
 
     let userId = authUserId ?? null;
+    const password = fixedPassword ?? unknowablePassword();
+
+    const authPayload = {
+      password,
+      email: admin.email,
+      email_confirm: true,
+      app_metadata: { role: Role.ADMIN },
+      user_metadata: { name: admin.name },
+    };
 
     if (userId) {
-      const updated = await supabase.auth.admin.updateUserById(userId, {
-        password: unknowablePassword(),
-        email: admin.email,
-        email_confirm: true,
-        app_metadata: { role: Role.ADMIN },
-        user_metadata: { name: admin.name },
-      });
+      const updated = await supabase.auth.admin.updateUserById(userId, authPayload);
       if (updated.error) {
         throw new Error(
           `Could not update auth user ${userId}: ${updated.error.message}`
         );
       }
-      console.log(`  reused auth user ${userId} (password retired)`);
+      console.log(
+        `  reused auth user ${userId}${fixedPassword ? " (password set)" : " (password retired)"}`
+      );
     } else if (existingProfile) {
       const created = await supabase.auth.admin.createUser({
         id: existingProfile.id,
-        email: admin.email,
-        password: unknowablePassword(),
-        email_confirm: true,
-        app_metadata: { role: Role.ADMIN },
-        user_metadata: { name: admin.name },
+        ...authPayload,
       });
       if (created.error || !created.data.user) {
         throw new Error(
@@ -200,13 +212,7 @@ async function main() {
       userId = created.data.user.id;
       console.log(`  recreated auth user ${userId} for existing profile`);
     } else {
-      const created = await supabase.auth.admin.createUser({
-        email: admin.email,
-        password: unknowablePassword(),
-        email_confirm: true,
-        app_metadata: { role: Role.ADMIN },
-        user_metadata: { name: admin.name },
-      });
+      const created = await supabase.auth.admin.createUser(authPayload);
       if (created.error || !created.data.user) {
         throw new Error(
           `Could not create ${admin.email}: ${created.error?.message ?? "unknown"}`
@@ -222,7 +228,7 @@ async function main() {
         email: admin.email,
         name: admin.name,
         role: Role.ADMIN,
-        mustChangePassword: true,
+        mustChangePassword,
         portalDisabledAt: null,
         affiliateId: null,
       },
@@ -231,43 +237,50 @@ async function main() {
         email: admin.email,
         name: admin.name,
         role: Role.ADMIN,
-        mustChangePassword: true,
+        mustChangePassword,
       },
     });
 
     await ensureAuthRoleConsistency(userId, Role.ADMIN);
 
-    // User always exists in Auth by this point — invite links are pre-create only.
-    const linkKind = "recovery" as const;
-    const { data, error } = await supabase.auth.admin.generateLink({
-      type: linkKind,
-      email: admin.email,
-    });
+    console.log(`  profile upserted ADMIN mustChangePassword=${mustChangePassword}`);
 
-    if (error || !data.properties?.hashed_token) {
-      throw new Error(
-        `generateLink failed for ${admin.email}: ${error?.message ?? "no token"}`
-      );
+    if (fixedPassword) {
+      console.log(`  beta login: ${origin}/login`);
+      console.log(`  email:    ${admin.email}`);
+      console.log(`  password: ${fixedPassword}\n`);
+    } else {
+      // User always exists in Auth by this point — invite links are pre-create only.
+      const linkKind = "recovery" as const;
+      const { data, error } = await supabase.auth.admin.generateLink({
+        type: linkKind,
+        email: admin.email,
+      });
+
+      if (error || !data.properties?.hashed_token) {
+        throw new Error(
+          `generateLink failed for ${admin.email}: ${error?.message ?? "no token"}`
+        );
+      }
+
+      const inviteLink = buildPortalConfirmUrl({
+        origin,
+        tokenHash: data.properties.hashed_token,
+        kind: linkKind,
+        next: SET_PASSWORD_PATH,
+      });
+
+      const inviteMessage = buildPortalInviteMessage({
+        name: admin.name,
+        email: admin.email,
+        link: inviteLink,
+        kind: linkKind,
+      });
+
+      console.log(`  link (${PORTAL_LINK_TTL_HOURS}h wording):\n`);
+      console.log(inviteMessage);
+      console.log("");
     }
-
-    const inviteLink = buildPortalConfirmUrl({
-      origin,
-      tokenHash: data.properties.hashed_token,
-      kind: linkKind,
-      next: SET_PASSWORD_PATH,
-    });
-
-    const inviteMessage = buildPortalInviteMessage({
-      name: admin.name,
-      email: admin.email,
-      link: inviteLink,
-      kind: linkKind,
-    });
-
-    console.log(`  profile upserted ADMIN mustChangePassword=true`);
-    console.log(`  link (${PORTAL_LINK_TTL_HOURS}h wording):\n`);
-    console.log(inviteMessage);
-    console.log("");
   }
 
   await prisma.$disconnect();
