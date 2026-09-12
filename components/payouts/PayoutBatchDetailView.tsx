@@ -28,13 +28,6 @@ function formatDate(iso: string) {
   return formatSaleDate(iso);
 }
 
-/** Rounded to one decimal so a 10% rule reads as "10%", not "9.9987%". */
-function formatRate(amount: number, revenue: number) {
-  if (!revenue) return "—";
-  const rate = (amount / revenue) * 100;
-  return `${rate.toFixed(1).replace(/\.0$/, "")}%`;
-}
-
 /** Anything that is neither a sale nor a team override is an adjustment. */
 function entryBadge(type: string) {
   if (type === "DIRECT") return { label: "Direct", variant: "secondary" } as const;
@@ -160,12 +153,6 @@ export function PayoutBatchDetailView({
                   <p className="font-semibold text-primary">
                     {formatCurrency(recruit.overrideTotal)}
                   </p>
-                  {recruit.sourceRevenue > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      {formatRate(recruit.overrideTotal, recruit.sourceRevenue)}{" "}
-                      of commissionable sales
-                    </p>
-                  )}
                 </div>
               </div>
             ))}

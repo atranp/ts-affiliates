@@ -366,7 +366,6 @@ const CSV_COLUMNS = [
   "Member",
   "Order",
   AFFILIATE_COPY.commissions.columns.sale,
-  "Rate",
   "Earned",
   "Description",
 ];
@@ -415,7 +414,6 @@ export async function buildPayoutCsv(
         : "",
       entry.wooOrderId ? `#${entry.wooOrderId}` : "",
       revenue == null ? "" : revenue.toFixed(2),
-      revenue ? `${((amount / revenue) * 100).toFixed(2)}%` : "",
       amount.toFixed(2),
       entry.description ?? "",
     ]

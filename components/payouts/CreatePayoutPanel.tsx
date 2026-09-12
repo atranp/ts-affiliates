@@ -426,10 +426,6 @@ function ReviewHero({
   selected: PayoutOption;
 }) {
   const isDirect = selected.target.scope === "direct";
-  const rate =
-    draft.revenueTotal > 0
-      ? `${((draft.totalAmount / draft.revenueTotal) * 100).toFixed(1)}%`
-      : null;
 
   return (
     <div className="ts-payout-hero">
@@ -459,7 +455,6 @@ function ReviewHero({
             {formatCurrency(draft.revenueTotal)} sales
           </AffiliateBadge>
         )}
-        {rate && <AffiliateBadge variant="paid">{rate} rate</AffiliateBadge>}
       </div>
     </div>
   );

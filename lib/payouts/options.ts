@@ -121,9 +121,7 @@ function describeMath(totals: Totals): string | null {
 
   if (totals.revenue <= 0) return null;
 
-  // Mixed terms, or direct commissions where the rate comes from SliceWP and
-  // varies per order — an average is the only honest summary.
-  return `${formatCurrency(totals.revenue)} in commissionable sales × ~${trimRate((totals.amount / totals.revenue) * 100)} avg`;
+  return `${formatCurrency(totals.revenue)} in commissionable sales · ${totals.entryCount.toLocaleString("en-US")} commissions`;
 }
 
 type OverrideRow = {

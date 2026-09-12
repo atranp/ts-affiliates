@@ -99,7 +99,7 @@ const PRICING: {
     amount: 4_378.94,
     entryCount: 120,
     revenue: 15_663.2,
-    math: "$15,663.20 in sales × ~27.95% avg",
+    math: "$15,663.20 in commissionable sales · 120 commissions",
   },
   blair: {
     amount: 1_975.28,
@@ -978,22 +978,17 @@ export function mockAdminCreatePayout(
 export function mockAdminPayoutExport(selection: PayoutSelection): string {
   const pricing = pricingFor(selection.target);
   if (!pricing || isTargetPaid(selection.target)) {
-    return "Sale date,Type,Member,Order,Sale amount,Rate,Earned,Description\n";
+    return "Sale date,Type,Member,Order,Sale amount,Earned,Description\n";
   }
 
   const rows = buildAllExportRows(selection.target, pricing).map((entry) => {
     const revenue = entry.orderRevenue ?? 0;
-    const rate =
-      revenue > 0
-        ? `${((entry.amount / revenue) * 100).toFixed(2)}%`
-        : "";
     return [
       entry.occurredAt.slice(0, 10),
       entry.type === "OVERRIDE" ? "Team earnings" : "Direct",
       entry.sourceAffiliateName ?? "",
       entry.wooOrderId ? `#${entry.wooOrderId}` : "",
       revenue ? revenue.toFixed(2) : "",
-      rate,
       entry.amount.toFixed(2),
       entry.description ?? "",
     ]
@@ -1004,7 +999,7 @@ export function mockAdminPayoutExport(selection: PayoutSelection): string {
   });
 
   return [
-    "Sale date,Type,Member,Order,Sale amount,Rate,Earned,Description",
+    "Sale date,Type,Member,Order,Sale amount,Earned,Description",
     ...rows,
   ].join("\n");
 }
