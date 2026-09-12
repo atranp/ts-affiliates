@@ -117,7 +117,11 @@ export async function createSyncDealRuleProcessor() {
           const current = revenueByRecruit.get(commission.affiliateId) ?? 0;
           revenueByRecruit.set(
             commission.affiliateId,
-            current + toNumber(commission.orderRevenue)
+            // Milestones are measured against the same commissionable base the
+            // revenue figures report, so a goal can't read as reached on one
+            // screen and unreached on another.
+            current +
+              toNumber(commission.commissionBase ?? commission.orderRevenue)
           );
         }
       }
