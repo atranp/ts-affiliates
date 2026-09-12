@@ -118,6 +118,18 @@ async function main() {
 
     if (!apply) continue;
 
+    // The divisor convention is gone from the pricing code, so a rule left on
+    // RECRUIT_COMMISSION would pay a tenth of the commission rather than a
+    // third — worth correcting on its own, ahead of any repricing.
+    if (needsBasisFix && process.argv.includes("--basis-only")) {
+      await prisma.dealRule.update({
+        where: { id: rule.id },
+        data: { basis: DealBasis.ORDER_REVENUE, metadata: Prisma.DbNull },
+      });
+      console.log("  basis reset; amounts left alone (--basis-only)");
+      continue;
+    }
+
     if (needsBasisFix) {
       await prisma.dealRule.update({
         where: { id: rule.id },
