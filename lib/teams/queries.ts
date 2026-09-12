@@ -1,8 +1,7 @@
 import { CommissionStatus, LedgerEntryType, Prisma } from "@prisma/client";
-import { getCommissionDivisor } from "../deal-rules";
 import { getMilestoneProgress } from "../milestone";
 import { prisma } from "../prisma";
-import { countableRevenueWhere } from "../revenue";
+import { countableRevenueByAffiliate } from "../revenue";
 import { toNumber } from "../format";
 import { ensureSponsorDownlineTeam, getTeamMembers } from "./members";
 
@@ -10,8 +9,6 @@ export type TeamRuleSummary = {
   id: string;
   name: string;
   ratePercent: string;
-  /** When set, team cut = recruit commission ÷ this (Gavin ops math). */
-  commissionDivisor: number | null;
   milestoneRevenueThreshold: string | null;
   active: boolean;
   recruit: {
@@ -73,19 +70,7 @@ async function buildMemberStats(
   const statsMap = new Map<string, TeamMemberSummary["stats"]>();
   if (memberIds.length === 0) return statsMap;
 
-  const commissionWhere: Prisma.CommissionWhereInput = {
-    affiliateId: { in: memberIds },
-    ...countableRevenueWhere,
-    ...(period
-      ? { dateCreated: { gte: period.from, lte: period.to } }
-      : {}),
-  };
-
-  const revenueByAffiliate = await prisma.commission.groupBy({
-    by: ["affiliateId"],
-    where: commissionWhere,
-    _sum: { orderRevenue: true },
-  });
+  const revenueMap = await countableRevenueByAffiliate(memberIds, period);
 
   const bonusWhere: Prisma.LedgerEntryWhereInput = {
     affiliateId: sponsorAffiliateId,
@@ -101,13 +86,6 @@ async function buildMemberStats(
     where: bonusWhere,
     _sum: { amount: true },
   });
-
-  const revenueMap = new Map(
-    revenueByAffiliate.map((row) => [
-      row.affiliateId,
-      toNumber(row._sum.orderRevenue),
-    ])
-  );
 
   const bonusMap = new Map<
     string,
@@ -161,7 +139,6 @@ function mapRule(rule: {
   id: string;
   name: string;
   ratePercent: { toString(): string };
-  metadata: Prisma.JsonValue | null;
   milestoneRevenueThreshold: { toString(): string } | null;
   active: boolean;
   sourceAffiliate: {
@@ -174,7 +151,6 @@ function mapRule(rule: {
     id: rule.id,
     name: rule.name,
     ratePercent: rule.ratePercent.toString(),
-    commissionDivisor: getCommissionDivisor(rule),
     milestoneRevenueThreshold:
       rule.milestoneRevenueThreshold?.toString() ?? null,
     active: rule.active,

@@ -12,7 +12,7 @@ import {
   promoteMilestoneOverrides,
 } from "./milestone";
 import { getTeamMemberIds } from "./teams/members";
-import { countableRevenueWhere, countsTowardRevenue } from "./revenue";
+import { countableRevenueByAffiliate, countsTowardRevenue } from "./revenue";
 import { getNextPayoutWeek } from "./payout-schedule";
 import {
   bulkUpdateOverrideEntries,
@@ -166,6 +166,7 @@ async function applyOverrideBatch(
       id: true,
       dealRuleId: true,
       sourceCommissionId: true,
+      amount: true,
       status: true,
       payoutBatchId: true,
       paidAt: true,
@@ -198,15 +199,22 @@ async function applyOverrideBatch(
     if (prior) {
       updates.push({
         id: prior.id,
-        amount: data.amount,
+        // A paid override is a record of money that already moved, so a later
+        // rate or basis change must not restate it.
+        amount:
+          prior.status === CommissionStatus.PAID
+            ? toNumber(prior.amount)
+            : data.amount,
         status: resolveOverrideStatusOnSync(prior, data.status),
         description: data.description,
         orderRevenue:
-                  data.orderRevenue == null ? null : toNumber(data.orderRevenue),
-                wooOrderId: data.wooOrderId,
-                sourceAffiliateId: data.sourceAffiliateId,
-                occurredAt: data.occurredAt,
-              });
+          data.orderRevenue == null ? null : toNumber(data.orderRevenue),
+        commissionBase:
+          data.commissionBase == null ? null : toNumber(data.commissionBase),
+        wooOrderId: data.wooOrderId,
+        sourceAffiliateId: data.sourceAffiliateId,
+        occurredAt: data.occurredAt,
+      });
     } else {
       creates.push(data);
     }
@@ -275,6 +283,7 @@ function buildOverrideEntryData(
     | "id"
     | "amount"
     | "orderRevenue"
+    | "commissionBase"
     | "status"
     | "wooOrderId"
     | "affiliateId"
@@ -309,6 +318,7 @@ function buildOverrideEntryData(
     description,
     wooOrderId: commission.wooOrderId,
     orderRevenue: commission.orderRevenue,
+    commissionBase: commission.commissionBase,
     sourceAffiliateId,
     sourceCommissionId: commission.id,
     dealRuleId: rule.id,
@@ -455,18 +465,7 @@ async function applyTeamRuleRetroactively(rule: DealRule) {
   const memberIds = await getTeamMemberIds(rule.teamId);
   if (memberIds.length === 0) return 0;
 
-  const revenueRows = await prisma.commission.groupBy({
-    by: ["affiliateId"],
-    where: {
-      affiliateId: { in: memberIds },
-      ...countableRevenueWhere,
-    },
-    _sum: { orderRevenue: true },
-  });
-
-  const revenueMap = new Map(
-    revenueRows.map((row) => [row.affiliateId, toNumber(row._sum.orderRevenue)])
-  );
+  const revenueMap = await countableRevenueByAffiliate(memberIds);
 
   const commissions = await prisma.commission.findMany({
     where: { affiliateId: { in: memberIds } },

@@ -5,6 +5,7 @@ import {
   isWinningRule,
 } from "@/lib/ledger/attribution-audit";
 import { prisma } from "@/lib/prisma";
+import { commissionBaseFrom } from "@/lib/revenue";
 import {
   BridgeUnavailableError,
   fetchCommissionJourney,
@@ -38,7 +39,12 @@ export type JourneyPendingFilter = {
    * - `unattempted` — skip rows already touched (incl. syncedWithoutAudit)
    * - `sync` — same as post-sync enrich (missing rule OR null audit)
    */
-  mode?: "missing-rule" | "unattempted" | "sync" | "missing-customer-id";
+  mode?:
+    | "missing-rule"
+    | "unattempted"
+    | "sync"
+    | "missing-customer-id"
+    | "missing-order-totals";
 };
 
 export function journeyPendingWhere(
@@ -53,7 +59,7 @@ export function journeyPendingWhere(
     NOT: { type: { equals: "inherit", mode: "insensitive" } },
   };
 
-  if (mode !== "missing-customer-id") {
+  if (mode !== "missing-customer-id" && mode !== "missing-order-totals") {
     where.dateCreated = { gte: since };
   }
 
@@ -63,6 +69,11 @@ export function journeyPendingWhere(
     where.attributionAudit = { equals: Prisma.DbNull };
   } else if (mode === "missing-customer-id") {
     where.customerSlicewpId = null;
+  } else if (mode === "missing-order-totals") {
+    // The commissionable base is order total less shipping and tax, so a sale
+    // whose order was never fetched has no base and falls back to gross.
+    where.commissionBase = null;
+    where.orderRevenue = { not: null };
   } else {
     where.OR = [
       { winningRule: null },
@@ -220,8 +231,16 @@ export async function applyJourneyToCommission(
     payload.order?.coupons
   );
 
+  let commissionBase: number | null | undefined;
+
   if (payload.order) {
     const orderTotals = orderTotalsFromJourneyOrder(payload.order);
+    // The only moment shipping and tax are known for this order, so the
+    // commissionable base is computed here rather than inferred later.
+    commissionBase = commissionBaseFrom({
+      orderRevenue: commission.orderRevenue,
+      ...orderTotals,
+    });
     await prisma.orderAttribution.upsert({
       where: { wooOrderId: payload.order.wooOrderId },
       create: {
@@ -245,6 +264,7 @@ export async function applyJourneyToCommission(
   await prisma.commission.update({
     where: { id: commission.id },
     data: {
+      ...(commissionBase === undefined ? {} : { commissionBase }),
       visitSlicewpId:
         payload.commission.visitId ??
         commission.visitSlicewpId ??

@@ -272,8 +272,9 @@ function buildOrder(ctx: DetailBuildContext): CommissionDetailOrder | null {
     ctx.orderAttribution?.couponCodes ??
     [];
 
-  const commissionBase =
-    ctx.orderAttribution?.orderSubtotal ?? ctx.entry.orderRevenue;
+  // Not the Woo subtotal: that is pre-discount, and the rate is applied to the
+  // order less shipping and tax.
+  const commissionBase = ctx.entry.commissionBase ?? ctx.entry.orderRevenue;
 
   return {
     id: orderId,

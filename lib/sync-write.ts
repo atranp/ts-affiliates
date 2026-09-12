@@ -84,12 +84,80 @@ export async function bulkUpsertCommissions(
   `;
 }
 
+/**
+ * The order figure the commission rate was applied to — see `commissionBaseFrom`
+ * in lib/revenue.ts, which this mirrors in SQL.
+ *
+ * Refunds and order edits can leave `reference_amount` below the shipping and
+ * tax later read off the order, so a non-positive result is stored as unknown
+ * rather than as a sale of nothing.
+ */
+const COMMISSION_BASE = Prisma.sql`
+  CASE
+    WHEN c."orderRevenue"
+       - COALESCE(oa."orderShipping", 0)
+       - COALESCE(oa."orderTax", 0) > 0
+    THEN round(
+      c."orderRevenue"
+        - COALESCE(oa."orderShipping", 0)
+        - COALESCE(oa."orderTax", 0),
+      2
+    )
+    ELSE NULL
+  END
+`;
+
+/**
+ * Recomputes `Commission.commissionBase` from whatever order totals are on file.
+ *
+ * Split from the commission upsert because the two arrive out of order: a sale
+ * syncs from SliceWP immediately, while its Woo totals come from the bridge
+ * afterwards and only 75 orders per run. Running this as its own set-based pass
+ * means each sync picks up every order enriched since the last one, and it is
+ * safe to re-run at any time.
+ */
+export async function syncCommissionBases(
+  affiliateIds?: string[]
+): Promise<number> {
+  if (affiliateIds?.length === 0) return 0;
+
+  return prisma.$executeRaw`
+    UPDATE "Commission" AS c
+    SET "commissionBase" = ${COMMISSION_BASE},
+        "updatedAt"      = now()
+    FROM "OrderAttribution" AS oa
+    WHERE oa."wooOrderId" = c."wooOrderId"
+      AND oa."orderTotal" IS NOT NULL
+      AND c."orderRevenue" IS NOT NULL
+      ${affiliateScope(affiliateIds)}
+      AND c."commissionBase" IS DISTINCT FROM ${COMMISSION_BASE}
+  `;
+}
+
+/**
+ * Copies `Commission.commissionBase` onto every ledger line derived from it.
+ *
+ * Covers overrides as well as direct lines: a sponsor's row quotes the recruit's
+ * sale, and that has to be the same figure the recruit sees.
+ */
+export async function syncLedgerCommissionBases(): Promise<number> {
+  return prisma.$executeRaw`
+    UPDATE "LedgerEntry" AS le
+    SET "commissionBase" = c."commissionBase",
+        "updatedAt"      = now()
+    FROM "Commission" AS c
+    WHERE le."sourceCommissionId" = c."id"
+      AND le."commissionBase" IS DISTINCT FROM c."commissionBase"
+  `;
+}
+
 export type OverrideUpdateRow = {
   id: string;
   amount: number;
   status: string;
   description: string;
   orderRevenue: number | null;
+  commissionBase: number | null;
   wooOrderId: number | null;
   sourceAffiliateId: string;
   occurredAt: Date;
@@ -108,6 +176,7 @@ export async function bulkUpdateOverrideEntries(
       ${row.status}::"CommissionStatus",
       ${row.description},
       ${row.orderRevenue === null ? null : String(row.orderRevenue)}::numeric,
+      ${row.commissionBase === null ? null : String(row.commissionBase)}::numeric,
       ${row.wooOrderId}::integer,
       ${row.sourceAffiliateId},
       ${row.occurredAt}::timestamptz
@@ -120,13 +189,14 @@ export async function bulkUpdateOverrideEntries(
         "status"            = v.status,
         "description"       = v.description,
         "orderRevenue"      = v.order_revenue,
+        "commissionBase"    = v.commission_base,
         "wooOrderId"        = v.woo_order_id,
         "sourceAffiliateId" = v.source_affiliate_id,
         "occurredAt"        = v.occurred_at,
         "updatedAt"         = now()
     FROM (VALUES ${Prisma.join(values)}) AS v(
-      id, amount, status, description, order_revenue, woo_order_id,
-      source_affiliate_id, occurred_at
+      id, amount, status, description, order_revenue, commission_base,
+      woo_order_id, source_affiliate_id, occurred_at
     )
     WHERE le."id" = v.id
   `;
@@ -214,13 +284,14 @@ export async function syncDirectLedgerEntries(
 
   const updated = await prisma.$executeRaw`
     UPDATE "LedgerEntry" AS le
-    SET "amount"       = c."amount",
-        "status"       = ${SYNCED_STATUS},
-        "orderRevenue" = c."orderRevenue",
-        "wooOrderId"   = c."wooOrderId",
-        "occurredAt"   = c."dateCreated",
-        "description"  = ${DIRECT_DESCRIPTION},
-        "updatedAt"    = now()
+    SET "amount"         = c."amount",
+        "status"         = ${SYNCED_STATUS},
+        "orderRevenue"   = c."orderRevenue",
+        "commissionBase" = c."commissionBase",
+        "wooOrderId"     = c."wooOrderId",
+        "occurredAt"     = c."dateCreated",
+        "description"    = ${DIRECT_DESCRIPTION},
+        "updatedAt"      = now()
     FROM "Commission" AS c
     WHERE le."type" = 'DIRECT'
       AND le."slicewpCommissionId" = c."slicewpId"
@@ -228,11 +299,12 @@ export async function syncDirectLedgerEntries(
       ${scope}
       AND (
         le."amount"       IS DISTINCT FROM c."amount"
-        OR le."status"       IS DISTINCT FROM ${SYNCED_STATUS}
-        OR le."orderRevenue" IS DISTINCT FROM c."orderRevenue"
-        OR le."wooOrderId"   IS DISTINCT FROM c."wooOrderId"
-        OR le."occurredAt"   IS DISTINCT FROM c."dateCreated"
-        OR le."description"  IS DISTINCT FROM ${DIRECT_DESCRIPTION}
+        OR le."status"         IS DISTINCT FROM ${SYNCED_STATUS}
+        OR le."orderRevenue"   IS DISTINCT FROM c."orderRevenue"
+        OR le."commissionBase" IS DISTINCT FROM c."commissionBase"
+        OR le."wooOrderId"     IS DISTINCT FROM c."wooOrderId"
+        OR le."occurredAt"     IS DISTINCT FROM c."dateCreated"
+        OR le."description"    IS DISTINCT FROM ${DIRECT_DESCRIPTION}
       )
   `;
 
@@ -241,7 +313,8 @@ export async function syncDirectLedgerEntries(
   const created = await prisma.$executeRaw`
     INSERT INTO "LedgerEntry" (
       "id", "affiliateId", "type", "amount", "status", "description",
-      "wooOrderId", "orderRevenue", "sourceCommissionId", "slicewpCommissionId",
+      "wooOrderId", "orderRevenue", "commissionBase", "sourceCommissionId",
+      "slicewpCommissionId",
       "payoutWeek", "occurredAt", "createdAt", "updatedAt"
     )
     SELECT
@@ -253,6 +326,7 @@ export async function syncDirectLedgerEntries(
       ${DIRECT_DESCRIPTION},
       c."wooOrderId",
       c."orderRevenue",
+      c."commissionBase",
       c."id",
       c."slicewpId",
       ${payoutWeek}::timestamptz,

@@ -8,7 +8,12 @@ import {
   AFFILIATE_COPY,
 } from "@/lib/affiliate/copy";
 import { formatAppDate } from "@/lib/timezone";
-import { formatCurrency, formatSaleDate, cn } from "@/lib/utils";
+import {
+  commissionableSale,
+  formatCurrency,
+  formatSaleDate,
+  cn,
+} from "@/lib/utils";
 import type { LedgerSortKey, SortDirection } from "@/lib/ledger/sort";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -35,6 +40,7 @@ type LedgerEntry = {
   description: string | null;
   wooOrderId: number | null;
   orderRevenue: string | number | null;
+  commissionBase?: string | number | null;
   payoutWeek: string | null;
   paidAt: string | null;
   occurredAt: string;
@@ -236,7 +242,7 @@ export function LedgerTable({
               layout="mobile"
               details={details}
               occurredAt={entry.occurredAt}
-              orderRevenue={entry.orderRevenue}
+              orderRevenue={commissionableSale(entry) as string | number | null}
               amount={formatCurrency(entry.amount)}
               status={status}
               type={entry.type}
@@ -267,8 +273,8 @@ export function LedgerTable({
               subtitle={formatSaleDate(entry.occurredAt)}
               value={<span>{formatCurrency(entry.amount)}</span>}
               valueHint={
-                entry.orderRevenue
-                  ? `of ${formatCurrency(entry.orderRevenue)}`
+                commissionableSale(entry)
+                  ? `of ${formatCurrency(commissionableSale(entry) as string | number)}`
                   : undefined
               }
             />
@@ -458,8 +464,8 @@ export function LedgerTable({
                   "ts-row-meta whitespace-nowrap text-right tabular-nums",
                 )}
               >
-                {entry.orderRevenue
-                  ? formatCurrency(entry.orderRevenue)
+                {commissionableSale(entry)
+                  ? formatCurrency(commissionableSale(entry) as string | number)
                   : "—"}
               </TableCell>
               <TableCell

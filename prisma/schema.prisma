@@ -239,7 +239,13 @@ model Commission {
   affiliate       Affiliate        @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
   wooOrderId      Int?
   amount          Decimal          @db.Decimal(12, 2)
+  /// SliceWP `reference_amount` — the gross order total, kept as a faithful
+  /// mirror so the portal can still be reconciled against Reports → Sales.
   orderRevenue    Decimal?         @db.Decimal(12, 2)
+  /// Order total less shipping and tax: the figure the commission rate was
+  /// actually applied to, and what every "sales generated" number reports.
+  /// Null until the order's Woo totals have been fetched.
+  commissionBase  Decimal?         @db.Decimal(12, 2)
   status          CommissionStatus @default(UNPAID)
   type            String?
   origin          String?
@@ -329,7 +335,10 @@ model LedgerEntry {
   status              CommissionStatus @default(UNPAID)
   description         String?
   wooOrderId          Int?
+  /// Mirrors Commission.orderRevenue / .commissionBase for the sale behind this
+  /// entry, so ledger aggregates never need to join back to the commission.
   orderRevenue        Decimal?         @db.Decimal(12, 2)
+  commissionBase      Decimal?         @db.Decimal(12, 2)
   sourceAffiliateId   String?
   sourceAffiliate     Affiliate?       @relation("SourceAffiliateLedger", fields: [sourceAffiliateId], references: [id], onDelete: SetNull)
   sourceCommissionId  String?

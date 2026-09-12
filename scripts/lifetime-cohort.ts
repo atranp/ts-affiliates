@@ -29,9 +29,8 @@ export const LTC_META_KEY = "ts_lifetime_cohort";
 export const LTC_META_VALUE = "1";
 export const LTC_ORIGIN = "ts-ltc";
 
-/** Matches prod: Trin team cut = Blair commission ÷ 3 (Gavin ops math). */
+/** Matches prod: Trin earns 10% of Blair's commissionable sales. */
 const LTC_OVERRIDE_RATE = 10;
-const LTC_COMMISSION_DIVISOR = 3;
 
 const MYSQL =
   process.env.WP_MYSQL_BIN ??
@@ -485,14 +484,12 @@ async function main() {
 
     if (existing) {
       ruleId = existing.id;
-      await prisma.dealRule.update({
-        where: { id: ruleId },
-        data: {
-          teamId: team.id,
-          basis: DealBasis.RECRUIT_COMMISSION,
-          metadata: { commissionDivisor: LTC_COMMISSION_DIVISOR },
-        },
-      });
+      if (existing.teamId !== team.id) {
+        await prisma.dealRule.update({
+          where: { id: ruleId },
+          data: { teamId: team.id },
+        });
+      }
     } else {
       ruleId = (
         await prisma.dealRule.create({
@@ -504,7 +501,6 @@ async function main() {
             teamId: team.id,
             ratePercent: LTC_OVERRIDE_RATE,
             basis: DealBasis.RECRUIT_COMMISSION,
-            metadata: { commissionDivisor: LTC_COMMISSION_DIVISOR },
           },
           select: { id: true },
         })

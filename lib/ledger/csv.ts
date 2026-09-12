@@ -1,7 +1,7 @@
 import { LedgerEntryType } from "@prisma/client";
 import { AFFILIATE_COPY, formatCommissionStatus } from "@/lib/affiliate/copy";
 import { formatStoreDateInput } from "@/lib/payouts/store-dates";
-import { toNumber } from "@/lib/utils";
+import { commissionableSale, toNumber } from "@/lib/utils";
 
 /**
  * CSV of an affiliate's ledger, matching whatever filters produced it.
@@ -17,6 +17,7 @@ export type ExportableEntry = {
   description: string | null;
   wooOrderId: number | null;
   orderRevenue: unknown;
+  commissionBase?: unknown;
   amount: unknown;
   status: string;
   payoutWeek: Date | null;
@@ -81,9 +82,9 @@ export function ledgerToCsv(entries: ExportableEntry[]): string {
         entry.sourceAffiliate?.email ??
         "",
       entry.wooOrderId ?? "",
-      entry.orderRevenue === null || entry.orderRevenue === undefined
+      commissionableSale(entry) == null
         ? ""
-        : toNumber(entry.orderRevenue).toFixed(2),
+        : toNumber(commissionableSale(entry)).toFixed(2),
       toNumber(entry.amount).toFixed(2),
       formatCommissionStatus(entry.status),
       trackedLabel(entry),

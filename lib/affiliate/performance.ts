@@ -116,7 +116,11 @@ async function ledgerByDay(
     SELECT
       ${STORE_DAY} AS day,
       COALESCE(SUM(le."amount"), 0) AS earnings,
-      COALESCE(SUM(le."orderRevenue") FILTER (WHERE le."type" = 'DIRECT'), 0) AS revenue,
+      COALESCE(
+        SUM(COALESCE(le."commissionBase", le."orderRevenue"))
+          FILTER (WHERE le."type" = 'DIRECT'),
+        0
+      ) AS revenue,
       COUNT(*) FILTER (WHERE le."type" = 'DIRECT') AS sales,
       COUNT(*) FILTER (WHERE le."type" = 'DIRECT' AND v.hit IS NOT NULL) AS tracked
     FROM "LedgerEntry" le

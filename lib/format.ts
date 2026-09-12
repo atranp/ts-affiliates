@@ -24,6 +24,20 @@ export function roundCurrency(amount: number): number {
   return Math.round(amount * 100) / 100;
 }
 
+/**
+ * The sale figure to show beside an earning: the order less shipping and tax,
+ * which is what the commission rate was applied to.
+ *
+ * Falls back to the gross total for orders whose Woo totals have not been
+ * fetched, so a row shows a slightly high sale rather than none at all.
+ */
+export function commissionableSale(entry: {
+  commissionBase?: unknown;
+  orderRevenue?: unknown;
+}): unknown {
+  return entry.commissionBase ?? entry.orderRevenue ?? null;
+}
+
 export async function mapWithConcurrency<T, R>(
   items: T[],
   concurrency: number,

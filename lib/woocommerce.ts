@@ -15,6 +15,18 @@ export interface WooOrder {
   id: number;
   total: string;
   status: string;
+  shipping_total?: string;
+  total_tax?: string;
+  discount_total?: string;
+}
+
+/** The order figures a commission is actually calculated on. */
+export interface WooOrderTotals {
+  id: number;
+  total: number;
+  shipping: number;
+  tax: number;
+  status: string;
 }
 
 export interface WooCustomer {
@@ -99,6 +111,109 @@ export async function fetchWooCustomersByIds(
   return new Map(
     pages.flat().map((customer) => [Number(customer.id), customer])
   );
+}
+
+const WOO_ORDER_BATCH_SIZE = 100;
+
+/**
+ * Order totals for many orders at once.
+ *
+ * The commission bridge exposes order figures one commission at a time, which
+ * costs a request per sale — hours across the whole ledger. `wc/v3/orders`
+ * accepts up to 100 ids per call, turning the same work into a handful of
+ * requests. Reads only; nothing here writes to the store.
+ *
+ * Woo omits orders it won't serve (trashed, or outside the key's permissions)
+ * rather than erroring, so a missing id means "no totals available" and callers
+ * should leave stored values alone.
+ */
+export async function fetchWooOrderTotalsByIds(
+  storeUrl: string,
+  consumerKey: string,
+  consumerSecret: string,
+  orderIds: number[],
+  options: { concurrency?: number; onBatch?: (done: number) => void } = {}
+): Promise<Map<number, WooOrderTotals>> {
+  const unique = Array.from(
+    new Set(orderIds.filter((id) => Number.isFinite(id) && id > 0))
+  );
+  if (unique.length === 0 || !consumerKey || !consumerSecret) return new Map();
+
+  const baseUrl = normalizeStoreUrl(storeUrl);
+  const batches: number[][] = [];
+  for (let i = 0; i < unique.length; i += WOO_ORDER_BATCH_SIZE) {
+    batches.push(unique.slice(i, i + WOO_ORDER_BATCH_SIZE));
+  }
+
+  let completed = 0;
+
+  const pages = await mapWithConcurrency(
+    batches,
+    options.concurrency ?? 2,
+    async (batch) => {
+      const params = appendWpAuthParams(
+        new URLSearchParams({
+          include: batch.join(","),
+          per_page: String(WOO_ORDER_BATCH_SIZE),
+          // Commissions exist for refunded and cancelled orders too, and the
+          // default status filter would hide them.
+          status: "any",
+        }),
+        consumerKey,
+        consumerSecret
+      );
+      const url = `${baseUrl}/wp-json/wc/v3/orders?${params.toString()}`;
+
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          const response = await fetch(url, {
+            headers: { Accept: "application/json" },
+            cache: "no-store",
+          });
+
+          if (response.ok) {
+            const orders = (await response.json()) as WooOrder[];
+            completed += 1;
+            options.onBatch?.(completed);
+            return orders;
+          }
+
+          const detail = await readApiError(response);
+          if (attempt === 2) {
+            console.error(
+              `WooCommerce order lookup failed (${response.status}): ${detail}`
+            );
+          }
+        } catch (error) {
+          if (attempt === 2) {
+            console.error("WooCommerce order lookup failed:", error);
+          }
+        }
+
+        // Back off rather than hammering a host that just refused us.
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+      }
+
+      completed += 1;
+      options.onBatch?.(completed);
+      return [];
+    }
+  );
+
+  const totals = new Map<number, WooOrderTotals>();
+  for (const order of pages.flat()) {
+    const id = Number(order.id);
+    if (!Number.isFinite(id) || id <= 0) continue;
+    totals.set(id, {
+      id,
+      total: Number(order.total ?? 0),
+      shipping: Number(order.shipping_total ?? 0),
+      tax: Number(order.total_tax ?? 0),
+      status: order.status,
+    });
+  }
+
+  return totals;
 }
 
 export async function fetchWooOrderById(

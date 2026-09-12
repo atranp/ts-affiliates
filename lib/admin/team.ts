@@ -4,8 +4,7 @@ import {
   getMilestoneProgress,
   getRecruitCumulativeRevenue,
 } from "../milestone";
-import { getCommissionDivisor } from "../deal-rules";
-import { countableRevenueWhere } from "../revenue";
+import { countableRevenueByAffiliate } from "../revenue";
 import { toNumber } from "../utils";
 
 export type TeamMemberStats = {
@@ -32,7 +31,6 @@ export type TeamMember = {
     id: string;
     name: string;
     ratePercent: string;
-    commissionDivisor: number | null;
     milestoneRevenueThreshold: string | null;
   } | null;
   stats: TeamMemberStats;
@@ -88,7 +86,6 @@ export async function getAffiliateTeam(
         id: rule.id,
         name: rule.name,
         ratePercent: rule.ratePercent.toString(),
-        commissionDivisor: getCommissionDivisor(rule),
         milestoneRevenueThreshold:
           rule.milestoneRevenueThreshold?.toString() ?? null,
       },
@@ -131,14 +128,7 @@ export async function getAffiliateTeam(
   const memberIds = Array.from(memberMap.keys());
   if (memberIds.length === 0) return [];
 
-  const revenueByAffiliate = await prisma.commission.groupBy({
-    by: ["affiliateId"],
-    where: {
-      affiliateId: { in: memberIds },
-      ...countableRevenueWhere,
-    },
-    _sum: { orderRevenue: true },
-  });
+  const revenueMap = await countableRevenueByAffiliate(memberIds);
 
   const bonusEntries = await prisma.ledgerEntry.groupBy({
     by: ["sourceAffiliateId", "status"],
@@ -149,13 +139,6 @@ export async function getAffiliateTeam(
     },
     _sum: { amount: true },
   });
-
-  const revenueMap = new Map(
-    revenueByAffiliate.map((row) => [
-      row.affiliateId,
-      toNumber(row._sum.orderRevenue),
-    ])
-  );
 
   const bonusMap = new Map<
     string,
@@ -209,20 +192,7 @@ export async function getAffiliateTeam(
 export async function getRecruitRevenueMap(
   sourceAffiliateIds: string[]
 ): Promise<Map<string, number>> {
-  if (sourceAffiliateIds.length === 0) return new Map();
-
-  const rows = await prisma.commission.groupBy({
-    by: ["affiliateId"],
-    where: {
-      affiliateId: { in: sourceAffiliateIds },
-      ...countableRevenueWhere,
-    },
-    _sum: { orderRevenue: true },
-  });
-
-  return new Map(
-    rows.map((row) => [row.affiliateId, toNumber(row._sum.orderRevenue)])
-  );
+  return countableRevenueByAffiliate(sourceAffiliateIds);
 }
 
 export async function enrichTeamMemberRevenue(

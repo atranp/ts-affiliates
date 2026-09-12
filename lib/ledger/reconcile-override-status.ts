@@ -1,7 +1,7 @@
 import { CommissionStatus, LedgerEntryType } from "@prisma/client";
 import { prisma } from "../prisma";
 import { overrideStatusForMilestone } from "../milestone";
-import { countableRevenueWhere } from "../revenue";
+import { countableRevenueByAffiliate } from "../revenue";
 import { toNumber } from "../utils";
 
 /**
@@ -51,14 +51,14 @@ export async function reconcileOverrideStatusToSource(options?: {
 
   // Milestone thresholds are measured against lifetime recruit revenue, so the
   // totals are gathered once rather than per entry.
-  const revenueRows = await prisma.commission.groupBy({
-    by: ["affiliateId"],
-    where: countableRevenueWhere,
-    _sum: { orderRevenue: true },
-  });
-  const revenueByAffiliate = new Map(
-    revenueRows.map((row) => [row.affiliateId, toNumber(row._sum.orderRevenue)])
+  const sourceIds = Array.from(
+    new Set(
+      entries
+        .map((entry) => entry.sourceAffiliateId)
+        .filter((id): id is string => id !== null)
+    )
   );
+  const revenueByAffiliate = await countableRevenueByAffiliate(sourceIds);
 
   const idsByTarget = new Map<CommissionStatus, string[]>();
   const transitions = new Map<string, OverrideStatusTransition>();

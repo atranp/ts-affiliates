@@ -101,12 +101,7 @@ function describeMath(totals: Totals): string | null {
   if (totals.entryCount === 0) return null;
 
   if (totals.terms.size === 1) {
-    const term = Array.from(totals.terms)[0];
-    if (term.startsWith("commission-third|")) {
-      return `Their commission ÷ 3 on ${formatCurrency(totals.revenue)} in sales`;
-    }
-
-    const [percentRaw, basis] = term.split("|");
+    const [percentRaw, basis] = Array.from(totals.terms)[0].split("|");
     const percent = Number(percentRaw);
 
     if (basis === DealBasis.FIXED) {
@@ -211,13 +206,13 @@ export async function getPayoutOptions(input: {
       type: true,
       amount: true,
       orderRevenue: true,
+      commissionBase: true,
       sourceCommissionId: true,
       sourceAffiliate: { select: { id: true, displayName: true, email: true } },
       dealRule: {
         select: {
           ratePercent: true,
           basis: true,
-          metadata: true,
           team: { select: { id: true, name: true } },
         },
       },
@@ -231,7 +226,9 @@ export async function getPayoutOptions(input: {
 
   for (const entry of entries) {
     const amount = toNumber(entry.amount);
-    const revenue = toNumber(entry.orderRevenue);
+    // Sales are quoted on the commissionable base so the rate shown beside them
+    // is the rate that produced the amount.
+    const revenue = toNumber(entry.commissionBase ?? entry.orderRevenue);
     const term = payoutMathTerm(entry.dealRule);
 
     if (entry.type === LedgerEntryType.DIRECT) {

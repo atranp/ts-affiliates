@@ -52,7 +52,11 @@ type Args = {
   out: string;
   concurrency: number;
   delayMs: number;
-  mode: "missing-rule" | "unattempted" | "missing-customer-id";
+  mode:
+    | "missing-rule"
+    | "unattempted"
+    | "missing-customer-id"
+    | "missing-order-totals";
 };
 
 function parseArgs(): Args {
@@ -121,7 +125,9 @@ function parseArgs(): Args {
       ? "unattempted"
       : raw.includes("--missing-customer-id")
         ? "missing-customer-id"
-        : "missing-rule",
+        : raw.includes("--missing-order-totals")
+          ? "missing-order-totals"
+          : "missing-rule",
   };
 }
 

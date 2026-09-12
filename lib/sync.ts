@@ -32,7 +32,9 @@ import {
 } from "./payouts/slicewp-sync";
 import {
   bulkUpsertCommissions,
+  syncCommissionBases,
   syncDirectLedgerEntries,
+  syncLedgerCommissionBases,
   type CommissionUpsertRow,
 } from "./sync-write";
 import {
@@ -441,7 +443,10 @@ async function persistRemoteCommissions(
 
   // Derived in SQL from the commissions above, so this is a fixed cost
   // rather than one that scales with the number of rows synced.
-  await syncDirectLedgerEntries(Array.from(touchedAffiliateIds));
+  const touched = Array.from(touchedAffiliateIds);
+  await syncCommissionBases(touched);
+  await syncDirectLedgerEntries(touched);
+  await syncLedgerCommissionBases();
 
   return count;
 }
@@ -669,6 +674,14 @@ export async function syncCommissionsFromSliceWP(): Promise<number> {
   const pruned = await pruneCommissionsMissingFromSliceWP(remoteCommissions);
 
   const journey = await enrichCommissionJourneyAfterSync();
+
+  // Enrichment is the only thing that learns an order's shipping and tax, so the
+  // commissionable base for the orders it just fetched is only knowable now.
+  if (journey.enriched > 0) {
+    await syncCommissionBases();
+    await syncDirectLedgerEntries();
+    await syncLedgerCommissionBases();
+  }
 
   const syncedAt = new Date();
   await prisma.settings.upsert({

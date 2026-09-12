@@ -8,6 +8,7 @@ export type LedgerEntry = {
   description: string | null;
   wooOrderId: number | null;
   orderRevenue: string | null;
+  commissionBase?: string | null;
   payoutWeek: string | null;
   paidAt: string | null;
   occurredAt: string;

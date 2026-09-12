@@ -6,7 +6,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { periodWhere, type PeriodRange } from "@/lib/affiliate/period";
 import { getMilestoneProgress } from "@/lib/milestone";
-import { countableRevenueWhere } from "@/lib/revenue";
+import { countableRevenueByAffiliate } from "@/lib/revenue";
 import type { LedgerSummary } from "@/lib/rules-engine";
 import { toNumber } from "@/lib/utils";
 import {
@@ -407,7 +407,7 @@ export async function getLedgerResponse(filters: LedgerFilters) {
   let teamBonuses = teamBonusesFromGroups(groups, affiliateById);
 
   if (sourceIds.length > 0) {
-    const [dealRules, revenueRows] = [
+    const [dealRules, revenueBySource] = [
       await prisma.dealRule.findMany({
         where: {
           sponsorAffiliateId: filters.affiliateId,
@@ -419,14 +419,7 @@ export async function getLedgerResponse(filters: LedgerFilters) {
           milestoneRevenueThreshold: true,
         },
       }),
-      await prisma.commission.groupBy({
-        by: ["affiliateId"],
-        where: {
-          affiliateId: { in: sourceIds },
-          ...countableRevenueWhere,
-        },
-        _sum: { orderRevenue: true },
-      }),
+      await countableRevenueByAffiliate(sourceIds),
     ];
 
     const thresholdBySource = new Map(
@@ -439,10 +432,6 @@ export async function getLedgerResponse(filters: LedgerFilters) {
             : null,
         ])
     );
-    const revenueBySource = new Map(
-      revenueRows.map((row) => [row.affiliateId, toNumber(row._sum.orderRevenue)])
-    );
-
     teamBonuses = teamBonuses.map((bonus) => {
       const revenue = revenueBySource.get(bonus.sourceAffiliateId) ?? 0;
       const threshold = thresholdBySource.get(bonus.sourceAffiliateId) ?? null;

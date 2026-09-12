@@ -23,7 +23,6 @@ import {
   TeamMemberRow,
 } from "@/components/affiliate/TeamMemberRow";
 import { apiFetch } from "@/lib/api-client";
-import { teamRuleRateLabelFromDivisor } from "@/lib/deal-rules";
 import {
   AFFILIATE_COPY,
   memberCountLabel,
@@ -89,24 +88,16 @@ function useTeamDetail(teamId: string | null, enabled: boolean) {
   });
 }
 
-function teamRuleRateDisplay(rule: TeamRule) {
-  const label = teamRuleRateLabelFromDivisor(
-    rule.ratePercent,
-    rule.commissionDivisor
-  );
-  return rule.commissionDivisor ? label : `${label} team earnings`;
-}
-
 function formatRuleSummary(rule: TeamRule, affiliateView: boolean) {
   if (!affiliateView) {
-    return `${rule.name} · ${teamRuleRateDisplay(rule)}${
+    return `${rule.name} · ${rule.ratePercent}%${
       rule.milestoneRevenueThreshold
         ? ` · ${formatCurrency(Number(rule.milestoneRevenueThreshold))} milestone`
         : ""
     }`;
   }
 
-  const parts = [teamRuleRateDisplay(rule)];
+  const parts = [`${rule.ratePercent}% team earnings`];
   if (rule.milestoneRevenueThreshold) {
     parts.push(
       `${formatCurrency(Number(rule.milestoneRevenueThreshold))} sales milestone`
@@ -181,7 +172,7 @@ function TeamStats({
           key={rule.id}
           compact={affiliateView}
           label={AFFILIATE_COPY.team.teamDeal}
-          value={teamRuleRateDisplay(rule)}
+          value={`${rule.ratePercent}%`}
           tone="primary"
           icon={Target}
         />

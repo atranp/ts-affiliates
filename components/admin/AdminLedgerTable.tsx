@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { formatAppDate } from "@/lib/timezone";
-import { cn, formatCurrency, formatSaleDate } from "@/lib/utils";
+import {
+  cn,
+  commissionableSale,
+  formatCurrency,
+  formatSaleDate,
+} from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +33,7 @@ export type AdminLedgerEntry = {
   description: string | null;
   wooOrderId: number | null;
   orderRevenue: string | number | null;
+  commissionBase?: string | number | null;
   payoutWeek: string | null;
   paidAt: string | null;
   occurredAt: string;
@@ -307,8 +313,8 @@ export function AdminLedgerTable({
                   )}
                 </TableCell>
                 <TableCell className="whitespace-nowrap text-right tabular-nums">
-                  {entry.orderRevenue
-                    ? formatCurrency(entry.orderRevenue)
+                  {commissionableSale(entry)
+                    ? formatCurrency(commissionableSale(entry) as string | number)
                     : "—"}
                 </TableCell>
                 <TableCell className="whitespace-nowrap text-right font-medium tabular-nums text-success">
@@ -392,8 +398,13 @@ export function AdminLedgerTable({
                   {entry.wooOrderId && (
                     <WooOrderLink orderId={entry.wooOrderId} className="text-xs" />
                   )}
-                  {entry.orderRevenue && (
-                    <span>Sale {formatCurrency(entry.orderRevenue)}</span>
+                  {!!commissionableSale(entry) && (
+                    <span>
+                      Sale{" "}
+                      {formatCurrency(
+                        commissionableSale(entry) as string | number,
+                      )}
+                    </span>
                   )}
                   <span>Payout {entryPayoutLabel(entry)}</span>
                 </div>
