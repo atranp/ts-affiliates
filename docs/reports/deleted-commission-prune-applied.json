@@ -1,0 +1,3823 @@
+{
+  "generatedAt": "2026-09-12T07:39:41.176Z",
+  "applied": true,
+  "remoteSource": "/tmp/slicewp-commissions.csv",
+  "remoteCommissionCount": 9472,
+  "localCommissionCount": 9601,
+  "totals": {
+    "orphans": 132,
+    "actionable": 132,
+    "blocked": 0,
+    "reattributed": 19,
+    "replaced": 3,
+    "voided": 110,
+    "revenueRemoved": 12504.149999999974,
+    "commissionRemoved": 5136.069999999999,
+    "ledgerRowsRemoved": 130
+  },
+  "orphans": [
+    {
+      "id": "cmrt9qeb601gul10414souqnu",
+      "slicewpId": 2807,
+      "wooOrderId": 4555,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 12,
+      "orderRevenue": 38.99,
+      "dateCreated": "2026-07-16T17:19:58.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9qhmo01hyl104msi74vzk",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 12,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9q13c01cql1046hso0aqo",
+      "slicewpId": 2839,
+      "wooOrderId": 4598,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 12,
+      "orderRevenue": 38.99,
+      "dateCreated": "2026-07-16T20:21:12.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9q36i01e2l104kptz7b5g",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 12,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9pqeo01ael104hyhg1hwk",
+      "slicewpId": 2855,
+      "wooOrderId": 4618,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 77.98,
+      "orderRevenue": 220.27,
+      "dateCreated": "2026-07-16T22:06:42.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9ptit01bel1040epdygt2",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 77.98,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9pps4019ul10435rij2my",
+      "slicewpId": 2866,
+      "wooOrderId": 4629,
+      "type": "inherit",
+      "status": "UNPAID",
+      "amount": 0,
+      "orderRevenue": 108.99,
+      "dateCreated": "2026-07-16T23:33:12.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "reattributed",
+      "supersededBy": [
+        {
+          "slicewpId": 2865,
+          "affiliateSlicewpId": 117,
+          "status": "paid"
+        }
+      ],
+      "ledgerEntries": [],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9pdtx016il104ii0mbzeh",
+      "slicewpId": 2871,
+      "wooOrderId": 4634,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 97.6,
+      "orderRevenue": 252.95,
+      "dateCreated": "2026-07-17T00:10:40.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9pknj018ul1049dvxxojp",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 97.6,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9pdye016ml104lx6acsf2",
+      "slicewpId": 2872,
+      "wooOrderId": 4635,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 65.99,
+      "orderRevenue": 188.81,
+      "dateCreated": "2026-07-17T00:24:32.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9pkgu018sl1049iqitp0k",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 65.99,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9p1qw012ql1043plu2b9d",
+      "slicewpId": 2895,
+      "wooOrderId": 4661,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 59.39,
+      "orderRevenue": 157.46,
+      "dateCreated": "2026-07-17T03:14:07.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9p9gx015kl1047cx508s4",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 59.39,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrqf84ad00ehitx7ph0etpk3",
+      "slicewpId": 2960,
+      "wooOrderId": 4733,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 16.2,
+      "orderRevenue": 49.49,
+      "dateCreated": "2026-07-17T17:28:53.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrqf84rt00ejitx7mnafwnwa",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 16.2,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrqf82k800editx7sq1r9s97",
+      "slicewpId": 2961,
+      "wooOrderId": 4734,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 65.6,
+      "orderRevenue": 188.96,
+      "dateCreated": "2026-07-17T17:33:15.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrqf82zm00efitx7wt3rc4po",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 65.6,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrqf7dpc00ctitx77d4kllt2",
+      "slicewpId": 2975,
+      "wooOrderId": 4754,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 35.99,
+      "orderRevenue": 108.43,
+      "dateCreated": "2026-07-17T19:50:59.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrqf7e5k00cvitx7tlejm9b2",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 35.99,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrqf4y0g007pitx7qkkyvq3r",
+      "slicewpId": 3021,
+      "wooOrderId": 4809,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 59.04,
+      "orderRevenue": 156.57,
+      "dateCreated": "2026-07-18T02:21:51.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrqf4yfh007ritx7a0kg4l2a",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 59.04,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrqf3hwm004hitx7mfroburl",
+      "slicewpId": 3050,
+      "wooOrderId": 4836,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 13.5,
+      "orderRevenue": 35.99,
+      "dateCreated": "2026-07-18T06:19:41.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrqf3if6004jitx79ynmw7cm",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 13.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9n9x700q4l104z39crysb",
+      "slicewpId": 3085,
+      "wooOrderId": 4872,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 24.75,
+      "orderRevenue": 67.48,
+      "dateCreated": "2026-07-18T20:08:05.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9nd5o00rsl1049cu1q1h9",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 24.75,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9mzhh00nul1041t1vd0gw",
+      "slicewpId": 3096,
+      "wooOrderId": 4883,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 20.25,
+      "orderRevenue": 49.49,
+      "dateCreated": "2026-07-18T22:26:33.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9n57b00pil104qgdnhw1i",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 20.25,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9myxc00ncl1046zarbs3n",
+      "slicewpId": 3097,
+      "wooOrderId": 4884,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 149.5,
+      "orderRevenue": 307.95,
+      "dateCreated": "2026-07-18T22:46:14.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9n50o00pgl10498qtqacj",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 149.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9myhn00myl104k4i3r2s7",
+      "slicewpId": 3103,
+      "wooOrderId": 4890,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 44.99,
+      "orderRevenue": 98.98,
+      "dateCreated": "2026-07-19T00:35:52.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9n3eq00p0l104207vp9oq",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 44.99,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9mz6b00nkl1041qjfz8f4",
+      "slicewpId": 3113,
+      "wooOrderId": 4903,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 20.25,
+      "orderRevenue": 49.49,
+      "dateCreated": "2026-07-19T02:56:51.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9n0jl00o8l1046dec6k8z",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 20.25,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9mnjd00k6l104mkror15r",
+      "slicewpId": 3117,
+      "wooOrderId": 4908,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 20.25,
+      "orderRevenue": 53.43,
+      "dateCreated": "2026-07-19T03:44:07.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9mudm00mkl104jdsdcs6a",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 20.25,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9mmnw00jel1047n2m2kta",
+      "slicewpId": 3138,
+      "wooOrderId": 4930,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 20.25,
+      "orderRevenue": 49.49,
+      "dateCreated": "2026-07-19T06:27:51.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9mp5i00l0l1044al5tin9",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 20.25,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9mczz00gql104fztqwm7c",
+      "slicewpId": 3151,
+      "wooOrderId": 4947,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 24.75,
+      "orderRevenue": 62.74,
+      "dateCreated": "2026-07-19T14:25:13.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9mhx800iql1046575mhk8",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 24.75,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9mdvf00hil104mr0x9cr1",
+      "slicewpId": 3164,
+      "wooOrderId": 4962,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 197.98,
+      "orderRevenue": 425.92,
+      "dateCreated": "2026-07-19T17:23:55.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9mekm00hql104mclw3sl1",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 197.98,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9md8x00gyl104eduj2t0z",
+      "slicewpId": 3165,
+      "wooOrderId": 4968,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 56.5,
+      "orderRevenue": 127.98,
+      "dateCreated": "2026-07-19T18:34:41.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9medg00hol104r3dsmfq7",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 56.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9m16n00d0l104r07ior3y",
+      "slicewpId": 3168,
+      "wooOrderId": 4974,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 34.5,
+      "orderRevenue": 91.85,
+      "dateCreated": "2026-07-19T20:09:31.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9m8s300g2l1045s7e42b5",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 34.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9m1ht00dal104rj91zsp9",
+      "slicewpId": 3172,
+      "wooOrderId": 4978,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 23.99,
+      "orderRevenue": 68.98,
+      "dateCreated": "2026-07-19T20:28:53.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9m7ue00fsl104dyj1hfkc",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 23.99,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9m12500cwl10447hsxz27",
+      "slicewpId": 3175,
+      "wooOrderId": 4985,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 34.5,
+      "orderRevenue": 83.98,
+      "dateCreated": "2026-07-19T21:13:04.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9m73f00fkl104jqy6bydb",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 34.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9lqe7009sl104g0tbm7x9",
+      "slicewpId": 3192,
+      "wooOrderId": 4999,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 57,
+      "orderRevenue": 128.97,
+      "dateCreated": "2026-07-19T23:39:46.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9lxpg00csl104iupesucb",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 57,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9lrco00ail104o3kofg6c",
+      "slicewpId": 3193,
+      "wooOrderId": 5000,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 24.75,
+      "orderRevenue": 58.48,
+      "dateCreated": "2026-07-19T23:52:49.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9lxip00cql104es2x7cyz",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 24.75,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9lqjd009ul104ys8zto9o",
+      "slicewpId": 3195,
+      "wooOrderId": 5006,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 85.5,
+      "orderRevenue": 179.97,
+      "dateCreated": "2026-07-20T00:13:56.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9lx5700cml104tghdo7bh",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 85.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9lrsb00awl104ef4xid8s",
+      "slicewpId": 3199,
+      "wooOrderId": 5013,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 20.25,
+      "orderRevenue": 49.49,
+      "dateCreated": "2026-07-20T00:59:49.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9lw7h00ccl1041ebtt19b",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 20.25,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9lr5j00acl104uzzui9ho",
+      "slicewpId": 3200,
+      "wooOrderId": 5014,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 44.99,
+      "orderRevenue": 98.97,
+      "dateCreated": "2026-07-20T01:02:09.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9lw0q00cal104c204rmiz",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 44.99,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9lr7r00ael104b8vb1yph",
+      "slicewpId": 3208,
+      "wooOrderId": 5023,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 22.5,
+      "orderRevenue": 53.99,
+      "dateCreated": "2026-07-20T02:13:04.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9ltyp00bol104wju457jn",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 22.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9lrwt00b0l1045t41u7sm",
+      "slicewpId": 3214,
+      "wooOrderId": 5028,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 34.5,
+      "orderRevenue": 91.29,
+      "dateCreated": "2026-07-20T02:52:01.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9lsns00bal104ky7fei68",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 34.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9lhbi007ul1046xecumnb",
+      "slicewpId": 3221,
+      "wooOrderId": 5037,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 100,
+      "orderRevenue": 217.96,
+      "dateCreated": "2026-07-20T03:27:32.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9lmht009el10410yty5rr",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 100,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9lgdq0070l10446876z6y",
+      "slicewpId": 3222,
+      "wooOrderId": 5038,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 34.5,
+      "orderRevenue": 83.98,
+      "dateCreated": "2026-07-20T03:27:46.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9lmb3009cl1044h1lenfz",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 34.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9lh4s007ol104dl0wk6ix",
+      "slicewpId": 3227,
+      "wooOrderId": 5042,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 12,
+      "orderRevenue": 38.99,
+      "dateCreated": "2026-07-20T03:42:12.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9lkzu008yl104lui6s824",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 12,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9lgko0076l104ylaa3q51",
+      "slicewpId": 3230,
+      "wooOrderId": 5046,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 12,
+      "orderRevenue": 41.76,
+      "dateCreated": "2026-07-20T03:49:50.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9lk8v008ql104zhhtzn7c",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 12,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9lh9a007sl1049vstoh6g",
+      "slicewpId": 3233,
+      "wooOrderId": 5050,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 27.5,
+      "orderRevenue": 63.98,
+      "dateCreated": "2026-07-20T04:46:43.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9lji0008il104q5hwvnr4",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 27.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9lg71006ul104efho16g1",
+      "slicewpId": 3234,
+      "wooOrderId": 5051,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 23.99,
+      "orderRevenue": 73.63,
+      "dateCreated": "2026-07-20T04:58:07.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9ljba008gl104556wenms",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 23.99,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9lgtl007el104xr0bzd2z",
+      "slicewpId": 3239,
+      "wooOrderId": 5055,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 79.49,
+      "orderRevenue": 173.96,
+      "dateCreated": "2026-07-20T05:20:09.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9li040082l104rr5jspz1",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 79.49,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9l5uf0040l104dwl92avj",
+      "slicewpId": 3244,
+      "wooOrderId": 5059,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 24.75,
+      "orderRevenue": 67.48,
+      "dateCreated": "2026-07-20T05:36:03.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9lccl006al104nnzzqade",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 24.75,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmrt9l4ki003al104pv115nvs",
+      "slicewpId": 3264,
+      "wooOrderId": 5077,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 31.05,
+      "orderRevenue": 76.48,
+      "dateCreated": "2026-07-20T13:13:45.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmrt9l74a004ql1049egr8a2u",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 31.05,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms0aoaab00ytjp04obvkr9n1",
+      "slicewpId": 3462,
+      "wooOrderId": 5317,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 84.5,
+      "orderRevenue": 174.97,
+      "dateCreated": "2026-07-21T22:26:10.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [],
+      "blockedReason": null
+    },
+    {
+      "id": "cms0anz5d00wrjp04rrgsmg9p",
+      "slicewpId": 3475,
+      "wooOrderId": 5329,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 57,
+      "orderRevenue": 128.97,
+      "dateCreated": "2026-07-21T23:47:53.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms0ao6p600yljp04j66aq551",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 57,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms0anz2r00wpjp04jok2vfg0",
+      "slicewpId": 3496,
+      "wooOrderId": 5348,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 20.25,
+      "orderRevenue": 58.49,
+      "dateCreated": "2026-07-22T02:18:03.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms0ao08b00x1jp04icv1zwok",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 20.25,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms0anm9100thjp04wskyiznv",
+      "slicewpId": 3518,
+      "wooOrderId": 5375,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 20.25,
+      "orderRevenue": 49.49,
+      "dateCreated": "2026-07-22T04:25:29.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms0ano8x00tzjp04k139x3ko",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 20.25,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms089tt001kjl504c1j50f6k",
+      "slicewpId": 3521,
+      "wooOrderId": 5380,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 79.5,
+      "orderRevenue": 164.96,
+      "dateCreated": "2026-07-22T05:09:55.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms0annbq00trjp04xpo8bvyq",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 79.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms089t8901k1l5044tx46u8n",
+      "slicewpId": 3525,
+      "wooOrderId": 5389,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 12,
+      "orderRevenue": 41.61,
+      "dateCreated": "2026-07-22T08:51:30.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms0ani3t00s3jp043eh8qqd7",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 12,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms089i7g01hfl504mkqrunh1",
+      "slicewpId": 3547,
+      "wooOrderId": 5410,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 34.5,
+      "orderRevenue": 83.98,
+      "dateCreated": "2026-07-22T14:59:20.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms089pee01jrl504kkjv76so",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 34.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms089ic501hjl504aswwchw3",
+      "slicewpId": 3550,
+      "wooOrderId": 5416,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 101.99,
+      "orderRevenue": 218.95,
+      "dateCreated": "2026-07-22T15:39:28.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms089ok101jjl50453ml8a8a",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 101.99,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms089ix901i1l504194rep3b",
+      "slicewpId": 3553,
+      "wooOrderId": 5418,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 24.75,
+      "orderRevenue": 58.48,
+      "dateCreated": "2026-07-22T15:46:20.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms089nom01jbl504c2yexzu3",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 24.75,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms089hop01gzl504gh7ss21m",
+      "slicewpId": 3557,
+      "wooOrderId": 5424,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 96.5,
+      "orderRevenue": 198.96,
+      "dateCreated": "2026-07-22T16:28:17.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms089mwf01j3l504tkrlm9o7",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 96.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms089i9t01hhl504p0vbdqgj",
+      "slicewpId": 3564,
+      "wooOrderId": 5429,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 34.5,
+      "orderRevenue": 83.98,
+      "dateCreated": "2026-07-22T16:55:18.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms089kqu01ijl504crrurmku",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 34.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms089hmd01gxl504pfnlbrlr",
+      "slicewpId": 3566,
+      "wooOrderId": 5431,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 21.59,
+      "orderRevenue": 62.98,
+      "dateCreated": "2026-07-22T17:09:20.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms089kct01ifl504u26mlutd",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 21.59,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms0896hc01e9l5049w04650i",
+      "slicewpId": 3578,
+      "wooOrderId": 5442,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 12,
+      "orderRevenue": 38.99,
+      "dateCreated": "2026-07-22T17:55:07.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms089c8v01g3l504eyu43cce",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 12,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms0896m101edl504bhly8e6o",
+      "slicewpId": 3588,
+      "wooOrderId": 5455,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 22.5,
+      "orderRevenue": 57.93,
+      "dateCreated": "2026-07-22T20:01:57.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms08999o01fbl5044p7s2y46",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 22.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms0896t101ejl504ikl5t2cy",
+      "slicewpId": 3591,
+      "wooOrderId": 5458,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 31.05,
+      "orderRevenue": 82.29,
+      "dateCreated": "2026-07-22T20:24:04.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms0898fi01f3l5043nklg2jr",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 31.05,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms08961101dvl504n0by6vqm",
+      "slicewpId": 3592,
+      "wooOrderId": 5460,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 24.75,
+      "orderRevenue": 58.48,
+      "dateCreated": "2026-07-22T20:29:21.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms08988j01f1l504dx0qr70l",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 24.75,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms088tet01a5l504x8cqqb3x",
+      "slicewpId": 3603,
+      "wooOrderId": 5471,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 107,
+      "orderRevenue": 228.96,
+      "dateCreated": "2026-07-22T21:35:44.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms0890cb01crl504ottly233",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 107,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms088uro01b3l5047vy1apkk",
+      "slicewpId": 3605,
+      "wooOrderId": 5475,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 24.75,
+      "orderRevenue": 58.48,
+      "dateCreated": "2026-07-22T21:56:33.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms088zy701cnl504rj9cu3jp",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 24.75,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms088ug201atl5048clg5pph",
+      "slicewpId": 3615,
+      "wooOrderId": 5486,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 62.09,
+      "orderRevenue": 143.96,
+      "dateCreated": "2026-07-22T22:48:16.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms088wz401bvl504hma54nh3",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 62.09,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms088hsv017dl504x9iwcw06",
+      "slicewpId": 3636,
+      "wooOrderId": 5508,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 24.75,
+      "orderRevenue": 58.48,
+      "dateCreated": "2026-07-22T23:59:31.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms088loz018tl504txyywp8p",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 24.75,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms0885rg013tl504t47ajd03",
+      "slicewpId": 3664,
+      "wooOrderId": 5539,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 84.5,
+      "orderRevenue": 174.97,
+      "dateCreated": "2026-07-23T03:44:14.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms0888og0159l504zjgina2b",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 84.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms08867t0147l504tfd4fw9s",
+      "slicewpId": 3667,
+      "wooOrderId": 5545,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 24.75,
+      "orderRevenue": 58.48,
+      "dateCreated": "2026-07-23T04:04:30.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms0887u10151l504mq20yq6n",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 24.75,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms087u41010xl504zqn6cjm4",
+      "slicewpId": 3682,
+      "wooOrderId": 5559,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 22.5,
+      "orderRevenue": 62.99,
+      "dateCreated": "2026-07-23T05:12:53.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms087yoa012hl504hj8cwccv",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 22.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms087t0d0105l504us9dti9p",
+      "slicewpId": 3688,
+      "wooOrderId": 5565,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 12,
+      "orderRevenue": 38.99,
+      "dateCreated": "2026-07-23T07:08:39.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms087wz50121l504trwhabzm",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 12,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms087ub30113l504qloz1zbh",
+      "slicewpId": 3693,
+      "wooOrderId": 5568,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 79.5,
+      "orderRevenue": 164.96,
+      "dateCreated": "2026-07-23T07:38:08.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms087vh9011nl504dspluaqj",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 79.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms087hme00xbl504h8ru34nu",
+      "slicewpId": 3698,
+      "wooOrderId": 5572,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 20.25,
+      "orderRevenue": 49.49,
+      "dateCreated": "2026-07-23T10:18:20.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms087phc00zvl504p3dqpqk8",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 20.25,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms0874y000trl504hl2rdfyk",
+      "slicewpId": 3729,
+      "wooOrderId": 5612,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 12,
+      "orderRevenue": 38.99,
+      "dateCreated": "2026-07-23T17:16:13.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms087axc00w1l504wx0mmqlh",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 12,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms086uc300r7l504jzkptgeg",
+      "slicewpId": 3748,
+      "wooOrderId": 5630,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 24.75,
+      "orderRevenue": 58.48,
+      "dateCreated": "2026-07-23T18:57:11.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms08710l00t9l504k8m6f0hj",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 24.75,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms086ttg00qrl504azmxv26v",
+      "slicewpId": 3761,
+      "wooOrderId": 5652,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 67.49,
+      "orderRevenue": 143.97,
+      "dateCreated": "2026-07-23T22:11:43.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms086x6z00s9l504mtu5t0v9",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 67.49,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms086ulg00rfl504pw5ibcek",
+      "slicewpId": 3763,
+      "wooOrderId": 5655,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 24.75,
+      "orderRevenue": 58.48,
+      "dateCreated": "2026-07-23T22:48:04.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms086wt100s5l504i66p0gxw",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 24.75,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms086i5a00nhl504c1tpt5l2",
+      "slicewpId": 3776,
+      "wooOrderId": 5674,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 55.8,
+      "orderRevenue": 120.58,
+      "dateCreated": "2026-07-24T01:13:32.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms086ou400pvl504hryambgd",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 55.8,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms086i2x00nfl504xt1pj9ft",
+      "slicewpId": 3782,
+      "wooOrderId": 5679,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 27.5,
+      "orderRevenue": 63.98,
+      "dateCreated": "2026-07-24T02:15:27.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms086n5700pfl504398zsghr",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 27.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms086hmm00n1l504sbu2r7tu",
+      "slicewpId": 3783,
+      "wooOrderId": 5680,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 24.75,
+      "orderRevenue": 58.48,
+      "dateCreated": "2026-07-24T02:16:19.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms086my500pdl50498bgfi81",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 24.75,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms086icb00nnl504prowgkov",
+      "slicewpId": 3784,
+      "wooOrderId": 5684,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 12,
+      "orderRevenue": 38.99,
+      "dateCreated": "2026-07-24T02:49:23.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms086mr500pbl504z4fqakt3",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 12,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms0866ub00kll504qwl7b259",
+      "slicewpId": 3797,
+      "wooOrderId": 5698,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 34.5,
+      "orderRevenue": 83.98,
+      "dateCreated": "2026-07-24T03:44:03.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms086e7700mxl504ymrkieul",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 34.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms08671c00krl504fzfouyrp",
+      "slicewpId": 3808,
+      "wooOrderId": 5712,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 27.5,
+      "orderRevenue": 68.79,
+      "dateCreated": "2026-07-24T06:07:23.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms086b0m00m3l504brhz3qp6",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 27.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms08660000jvl5045szje4r3",
+      "slicewpId": 3811,
+      "wooOrderId": 5714,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 34.5,
+      "orderRevenue": 83.98,
+      "dateCreated": "2026-07-24T06:15:34.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms086a5v00lvl5043dy0owgz",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 34.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms08678c00kxl5045trjcqn9",
+      "slicewpId": 3812,
+      "wooOrderId": 5718,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 27.5,
+      "orderRevenue": 63.98,
+      "dateCreated": "2026-07-24T06:47:48.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms0869yu00ltl504iemj2zxb",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 27.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms08669c00k3l5049y8nb1r6",
+      "slicewpId": 3818,
+      "wooOrderId": 5728,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 34.5,
+      "orderRevenue": 92.98,
+      "dateCreated": "2026-07-24T10:00:18.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms08689x00ldl5040ji39jr6",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 34.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms085uhw00h7l504qakpwwvt",
+      "slicewpId": 3833,
+      "wooOrderId": 5743,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 24.75,
+      "orderRevenue": 58.48,
+      "dateCreated": "2026-07-24T14:02:20.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms085yqf00irl5049gwbina5",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 24.75,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms085tnf00ghl5048sdk0h3y",
+      "slicewpId": 3836,
+      "wooOrderId": 5746,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 20.25,
+      "orderRevenue": 49.49,
+      "dateCreated": "2026-07-24T14:27:14.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms085xvz00ijl504icu969lb",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 20.25,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms085uk800h9l5041x2uc38s",
+      "slicewpId": 3842,
+      "wooOrderId": 5753,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 24.75,
+      "orderRevenue": 58.48,
+      "dateCreated": "2026-07-24T15:18:27.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms085w7200i3l504eyib34g0",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 24.75,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms085hgg00ddl504jqwxllnm",
+      "slicewpId": 3854,
+      "wooOrderId": 5770,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 24.75,
+      "orderRevenue": 58.48,
+      "dateCreated": "2026-07-24T17:19:50.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms085nv200ftl5045302ffva",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 24.75,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms0856gk00b3l504c1s7qxzu",
+      "slicewpId": 3888,
+      "wooOrderId": 5815,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 35.99,
+      "orderRevenue": 105.94,
+      "dateCreated": "2026-07-24T23:19:53.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms0858sn00brl504xib9uffz",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 35.99,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms08555v009zl504p5vw1mu1",
+      "slicewpId": 3889,
+      "wooOrderId": 5819,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 34.5,
+      "orderRevenue": 83.98,
+      "dateCreated": "2026-07-25T00:09:23.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms0858lo00bpl504wmoie1mi",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 34.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms084u8k007nl504kc4myq80",
+      "slicewpId": 3897,
+      "wooOrderId": 5824,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 89.98,
+      "orderRevenue": 188.96,
+      "dateCreated": "2026-07-25T00:33:05.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms0850vr009pl5049jsu2hhl",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 89.98,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms084ts80079l504uszymjra",
+      "slicewpId": 3900,
+      "wooOrderId": 5830,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 24.75,
+      "orderRevenue": 58.48,
+      "dateCreated": "2026-07-25T01:02:11.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms0850ak009jl50496umwlze",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 24.75,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms084u1l007hl504unt5r9ms",
+      "slicewpId": 3905,
+      "wooOrderId": 5834,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 24.75,
+      "orderRevenue": 58.48,
+      "dateCreated": "2026-07-25T01:54:37.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms084ysj0095l504h9z14v7x",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 24.75,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms084tz9007fl504o3u5trlt",
+      "slicewpId": 3906,
+      "wooOrderId": 5835,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 20.25,
+      "orderRevenue": 49.49,
+      "dateCreated": "2026-07-25T01:55:29.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms084yld0093l504ks3udts8",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 20.25,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms084umr007zl504qr4rwkpw",
+      "slicewpId": 3908,
+      "wooOrderId": 5837,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 91.48,
+      "orderRevenue": 210.29,
+      "dateCreated": "2026-07-25T02:06:00.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms084y77008zl504hbupjuat",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 91.48,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms084ud8007rl504o5pqj3v9",
+      "slicewpId": 3912,
+      "wooOrderId": 5841,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 22.5,
+      "orderRevenue": 57.48,
+      "dateCreated": "2026-07-25T02:32:27.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms084x5o008pl504uqil16ki",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 22.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms084tbw006vl5042j6v9xp4",
+      "slicewpId": 3916,
+      "wooOrderId": 5848,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 79,
+      "orderRevenue": 172.97,
+      "dateCreated": "2026-07-25T03:34:15.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms084w4g008fl504v41vy3aq",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 79,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms1lgqay00hyjy048i0aa5a6",
+      "slicewpId": 3950,
+      "wooOrderId": 5889,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 51.3,
+      "orderRevenue": 116.97,
+      "dateCreated": "2026-07-25T11:59:31.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms1lgwlw00jsjy04x35guquc",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 51.3,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms1lgpk900hajy04jgxbvqn4",
+      "slicewpId": 3964,
+      "wooOrderId": 5903,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 57,
+      "orderRevenue": 128.97,
+      "dateCreated": "2026-07-25T14:42:22.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms1lgssa00iqjy04wo0fksxq",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 57,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms1lgp9v00h4jy049cflf5t5",
+      "slicewpId": 3965,
+      "wooOrderId": 5904,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 12,
+      "orderRevenue": 47.99,
+      "dateCreated": "2026-07-25T14:44:06.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms1lgsll00iojy04tw3fe4ji",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 12,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms1lgf5d00eojy049718smwz",
+      "slicewpId": 3975,
+      "wooOrderId": 5920,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 31.05,
+      "orderRevenue": 76.48,
+      "dateCreated": "2026-07-25T16:31:50.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms1lglml00gijy04nfcnsmu3",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 31.05,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms1lgdz000dmjy041u146m8t",
+      "slicewpId": 3979,
+      "wooOrderId": 5923,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 20.25,
+      "orderRevenue": 49.49,
+      "dateCreated": "2026-07-25T17:08:03.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms1lgkn300g8jy04o6i6yfyk",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 20.25,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms1lgegt00e2jy043sffxr5k",
+      "slicewpId": 3984,
+      "wooOrderId": 5928,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 40.5,
+      "orderRevenue": 89.98,
+      "dateCreated": "2026-07-25T17:31:17.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms1lgj8000fujy040xv70zdn",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 40.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms1lg0mk00a8jy041pswf13a",
+      "slicewpId": 4015,
+      "wooOrderId": 5957,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 40.49,
+      "orderRevenue": 89.98,
+      "dateCreated": "2026-07-25T21:50:59.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms1lg5qs00c2jy04vmoh7m96",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 40.49,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms1lffjs004cjy04kdn9fq63",
+      "slicewpId": 4053,
+      "wooOrderId": 5992,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 45,
+      "orderRevenue": 107.99,
+      "dateCreated": "2026-07-26T01:41:52.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms1lflfo006ajy04plkx1rg9",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 45,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms1lffm0004ejy04jk7l961y",
+      "slicewpId": 4069,
+      "wooOrderId": 6017,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 62,
+      "orderRevenue": 138.98,
+      "dateCreated": "2026-07-26T06:53:53.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms1lfgzp0052jy0445tz5svq",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 62,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms2qsjse00gmjs04xol2cgxh",
+      "slicewpId": 4101,
+      "wooOrderId": 6043,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 34.5,
+      "orderRevenue": 92.98,
+      "dateCreated": "2026-07-26T15:32:00.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms2qsnvs00ikjs04c0b5ym0o",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 34.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms2qrtoc00a4js04sze29tke",
+      "slicewpId": 4145,
+      "wooOrderId": 6083,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 34.5,
+      "orderRevenue": 83.98,
+      "dateCreated": "2026-07-26T19:55:47.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms2qs0i200cejs04c07yjzck",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 34.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms2qr7ho004ajs048fd3vvhs",
+      "slicewpId": 4187,
+      "wooOrderId": 6135,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 22.5,
+      "orderRevenue": 53.99,
+      "dateCreated": "2026-07-27T01:41:27.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms2qremv006ijs048ip31n7s",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 22.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms2qr7ow004gjs0447rgzdy5",
+      "slicewpId": 4188,
+      "wooOrderId": 6139,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 20.25,
+      "orderRevenue": 49.49,
+      "dateCreated": "2026-07-27T01:51:32.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms2qrefp006gjs04xnqkvvpz",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 20.25,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms2qr80x004qjs04o3g4ktn3",
+      "slicewpId": 4200,
+      "wooOrderId": 6149,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 32.5,
+      "orderRevenue": 73.98,
+      "dateCreated": "2026-07-27T03:08:03.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms2qrapq005ijs04ust138l3",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 32.5,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms2qr75n0040js047d3ji1zb",
+      "slicewpId": 4205,
+      "wooOrderId": 6155,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 29.25,
+      "orderRevenue": 67.48,
+      "dateCreated": "2026-07-27T04:14:23.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms2qr96s0054js044bliji2b",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 29.25,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms2tjnl00050ic04jishjh6i",
+      "slicewpId": 4216,
+      "wooOrderId": 6166,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 20.25,
+      "orderRevenue": 58.49,
+      "dateCreated": "2026-07-27T05:40:41.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms2tjos3005cic04mzt4o0e1",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 20.25,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cms2tjn5i004oic042g5qgohq",
+      "slicewpId": 4218,
+      "wooOrderId": 6168,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 69.74,
+      "orderRevenue": 148.46,
+      "dateCreated": "2026-07-27T05:58:03.000Z",
+      "affiliate": {
+        "slicewpId": 15,
+        "name": "rommina2000@gmail.com"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cms2tjo250058ic04apjwby83",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 69.74,
+          "affiliateId": "cmrqf2e31003kitx7h2ue359f",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmsablpo3005kl404qp8nzixi",
+      "slicewpId": 4975,
+      "wooOrderId": 4710,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 18,
+      "orderRevenue": 0,
+      "dateCreated": "2026-08-01T06:26:23.000Z",
+      "affiliate": {
+        "slicewpId": 146,
+        "name": "Brandi Sair"
+      },
+      "classification": "voided",
+      "supersededBy": [],
+      "ledgerEntries": [
+        {
+          "id": "cmsablr0j0060l404pxn1o5bs",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 18,
+          "affiliateId": "cms2qq4c80000js04w942m6ea",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmsctmioy0054jv04c2l8do23",
+      "slicewpId": 5184,
+      "wooOrderId": 7471,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 34.65,
+      "orderRevenue": 0,
+      "dateCreated": "2026-08-03T05:25:53.000Z",
+      "affiliate": {
+        "slicewpId": 33,
+        "name": "Tomas Ordaz"
+      },
+      "classification": "replaced",
+      "supersededBy": [
+        {
+          "slicewpId": 5241,
+          "affiliateSlicewpId": 33,
+          "status": "paid"
+        }
+      ],
+      "ledgerEntries": [
+        {
+          "id": "cmsctmjxc0064jv046l5pfxbx",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 34.65,
+          "affiliateId": "cmrqf2ajt0034itx7a42x0cep",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cmsdjdnc6004gky04vl33eeay",
+      "slicewpId": 5216,
+      "wooOrderId": 7507,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 50.46,
+      "orderRevenue": 0,
+      "dateCreated": "2026-08-03T17:59:50.000Z",
+      "affiliate": {
+        "slicewpId": 33,
+        "name": "Tomas Ordaz"
+      },
+      "classification": "replaced",
+      "supersededBy": [
+        {
+          "slicewpId": 5239,
+          "affiliateSlicewpId": 33,
+          "status": "paid"
+        }
+      ],
+      "ledgerEntries": [
+        {
+          "id": "cmsdjdnxn005uky043klh9ybs",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 50.46,
+          "affiliateId": "cmrqf2ajt0034itx7a42x0cep",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "25b33987-303e-41a8-a3a6-38171e2d035e",
+      "slicewpId": 7065,
+      "wooOrderId": 10068,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 18,
+      "orderRevenue": 57.98,
+      "dateCreated": "2026-08-18T15:27:44.000Z",
+      "affiliate": {
+        "slicewpId": 51,
+        "name": "Trindalyn Mackenzie"
+      },
+      "classification": "reattributed",
+      "supersededBy": [
+        {
+          "slicewpId": 7325,
+          "affiliateSlicewpId": 81,
+          "status": "paid"
+        }
+      ],
+      "ledgerEntries": [
+        {
+          "id": "b9f22b63-4db4-4aad-bc0b-d56622ff3e8d",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 18,
+          "affiliateId": "cmrqf26xx002pitx749va9fps",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "a6bede81-8d26-43d7-8515-759056c77755",
+      "slicewpId": 7066,
+      "wooOrderId": 10072,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 24.89,
+      "orderRevenue": 95.96,
+      "dateCreated": "2026-08-18T16:15:28.000Z",
+      "affiliate": {
+        "slicewpId": 81,
+        "name": "Blair Rodgers"
+      },
+      "classification": "reattributed",
+      "supersededBy": [
+        {
+          "slicewpId": 7327,
+          "affiliateSlicewpId": 25,
+          "status": "paid"
+        }
+      ],
+      "ledgerEntries": [
+        {
+          "id": "cmsyz1vbi005jjr04mjrp1v55",
+          "type": "OVERRIDE",
+          "status": "UNPAID",
+          "amount": 9.6,
+          "affiliateId": "cmrqf26xx002pitx749va9fps",
+          "payoutBatchId": null,
+          "paidAt": null
+        },
+        {
+          "id": "a596313b-b6f4-4dcf-acfd-d3260cca278b",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 24.89,
+          "affiliateId": "cmrqf211u001yitx7mk2yorbx",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "84c35abb-cae7-4990-b031-57667ff9a310",
+      "slicewpId": 7067,
+      "wooOrderId": 10072,
+      "type": "inherit",
+      "status": "UNPAID",
+      "amount": 0,
+      "orderRevenue": 0,
+      "dateCreated": "2026-08-18T16:15:29.000Z",
+      "affiliate": {
+        "slicewpId": 51,
+        "name": "Trindalyn Mackenzie"
+      },
+      "classification": "reattributed",
+      "supersededBy": [
+        {
+          "slicewpId": 7327,
+          "affiliateSlicewpId": 25,
+          "status": "paid"
+        }
+      ],
+      "ledgerEntries": [],
+      "blockedReason": null
+    },
+    {
+      "id": "6c3216f0-b3f3-4317-a445-dee819e95321",
+      "slicewpId": 7074,
+      "wooOrderId": 10110,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 48.59,
+      "orderRevenue": 161.96,
+      "dateCreated": "2026-08-18T18:18:29.000Z",
+      "affiliate": {
+        "slicewpId": 138,
+        "name": "Emmie Payton"
+      },
+      "classification": "reattributed",
+      "supersededBy": [
+        {
+          "slicewpId": 7330,
+          "affiliateSlicewpId": 51,
+          "status": "paid"
+        }
+      ],
+      "ledgerEntries": [
+        {
+          "id": "26e0d6bb-d75c-4699-8177-622fe805ab07",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 48.59,
+          "affiliateId": "cms083jr90003l504k2ybezfv",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "c79802f4-a228-4ef2-b412-974a9154c6f5",
+      "slicewpId": 7078,
+      "wooOrderId": 10131,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 62.99,
+      "orderRevenue": 145.93,
+      "dateCreated": "2026-08-18T21:26:54.000Z",
+      "affiliate": {
+        "slicewpId": 51,
+        "name": "Trindalyn Mackenzie"
+      },
+      "classification": "reattributed",
+      "supersededBy": [
+        {
+          "slicewpId": 7331,
+          "affiliateSlicewpId": 81,
+          "status": "paid"
+        }
+      ],
+      "ledgerEntries": [
+        {
+          "id": "c6f99965-1ff2-4c7b-9b34-c84762aa13f5",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 62.99,
+          "affiliateId": "cmrqf26xx002pitx749va9fps",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cd703e13-be3f-4d14-9a69-4254ccae3989",
+      "slicewpId": 7080,
+      "wooOrderId": 10133,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 19.5,
+      "orderRevenue": 84.81,
+      "dateCreated": "2026-08-18T21:33:05.000Z",
+      "affiliate": {
+        "slicewpId": 81,
+        "name": "Blair Rodgers"
+      },
+      "classification": "reattributed",
+      "supersededBy": [
+        {
+          "slicewpId": 7333,
+          "affiliateSlicewpId": 51,
+          "status": "paid"
+        }
+      ],
+      "ledgerEntries": [
+        {
+          "id": "cmszbu8ak005jib04tsi9zu3d",
+          "type": "OVERRIDE",
+          "status": "UNPAID",
+          "amount": 8.48,
+          "affiliateId": "cmrqf26xx002pitx749va9fps",
+          "payoutBatchId": null,
+          "paidAt": null
+        },
+        {
+          "id": "29a3c9f9-da62-436e-9c6f-e32f08c15997",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 19.5,
+          "affiliateId": "cmrqf211u001yitx7mk2yorbx",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "2a0dd2ad-14b0-4967-801e-b4c5b118e2ec",
+      "slicewpId": 7081,
+      "wooOrderId": 10133,
+      "type": "inherit",
+      "status": "UNPAID",
+      "amount": 0,
+      "orderRevenue": 0,
+      "dateCreated": "2026-08-18T21:33:06.000Z",
+      "affiliate": {
+        "slicewpId": 51,
+        "name": "Trindalyn Mackenzie"
+      },
+      "classification": "replaced",
+      "supersededBy": [
+        {
+          "slicewpId": 7333,
+          "affiliateSlicewpId": 51,
+          "status": "paid"
+        }
+      ],
+      "ledgerEntries": [],
+      "blockedReason": null
+    },
+    {
+      "id": "97240917-4350-43fe-a99a-bb596d2ed15f",
+      "slicewpId": 7082,
+      "wooOrderId": 10146,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 39.15,
+      "orderRevenue": 154.59,
+      "dateCreated": "2026-08-18T23:38:51.000Z",
+      "affiliate": {
+        "slicewpId": 25,
+        "name": "Ann Hla-striano"
+      },
+      "classification": "reattributed",
+      "supersededBy": [
+        {
+          "slicewpId": 7334,
+          "affiliateSlicewpId": 51,
+          "status": "paid"
+        }
+      ],
+      "ledgerEntries": [
+        {
+          "id": "805f1892-e0cb-42dc-899a-0f6637b5b519",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 39.15,
+          "affiliateId": "cmsg3v4qv0045ite7lo79rp9v",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "7531011d-6730-461d-8318-d912efa0b4ae",
+      "slicewpId": 7086,
+      "wooOrderId": 10159,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 33,
+      "orderRevenue": 122.97,
+      "dateCreated": "2026-08-19T01:01:07.000Z",
+      "affiliate": {
+        "slicewpId": 25,
+        "name": "Ann Hla-striano"
+      },
+      "classification": "reattributed",
+      "supersededBy": [
+        {
+          "slicewpId": 7335,
+          "affiliateSlicewpId": 138,
+          "status": "paid"
+        }
+      ],
+      "ledgerEntries": [
+        {
+          "id": "f21881a5-121c-4cf1-9fff-80965ca9b49a",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 33,
+          "affiliateId": "cmsg3v4qv0045ite7lo79rp9v",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "a1019dbb-2cd3-4d35-80ed-20e5d4b7969d",
+      "slicewpId": 7090,
+      "wooOrderId": 10168,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 26,
+      "orderRevenue": 77.97,
+      "dateCreated": "2026-08-19T02:04:24.000Z",
+      "affiliate": {
+        "slicewpId": 51,
+        "name": "Trindalyn Mackenzie"
+      },
+      "classification": "reattributed",
+      "supersededBy": [
+        {
+          "slicewpId": 7336,
+          "affiliateSlicewpId": 81,
+          "status": "paid"
+        }
+      ],
+      "ledgerEntries": [
+        {
+          "id": "13027766-be5a-4e2a-8087-16ea9aa668c0",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 26,
+          "affiliateId": "cmrqf26xx002pitx749va9fps",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "cd95d20b-743e-4385-b783-74badf96002b",
+      "slicewpId": 7095,
+      "wooOrderId": 10192,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 80,
+      "orderRevenue": 199.95,
+      "dateCreated": "2026-08-19T04:36:45.000Z",
+      "affiliate": {
+        "slicewpId": 51,
+        "name": "Trindalyn Mackenzie"
+      },
+      "classification": "reattributed",
+      "supersededBy": [
+        {
+          "slicewpId": 7340,
+          "affiliateSlicewpId": 138,
+          "status": "paid"
+        }
+      ],
+      "ledgerEntries": [
+        {
+          "id": "6e5fc00b-614f-4342-9f33-c17eb29de7ae",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 80,
+          "affiliateId": "cmrqf26xx002pitx749va9fps",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "d1377c25-2f5a-4344-8df1-f7da4c4a840c",
+      "slicewpId": 7096,
+      "wooOrderId": 10185,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 64.78,
+      "orderRevenue": 161.96,
+      "dateCreated": "2026-08-19T05:09:41.000Z",
+      "affiliate": {
+        "slicewpId": 51,
+        "name": "Trindalyn Mackenzie"
+      },
+      "classification": "reattributed",
+      "supersededBy": [
+        {
+          "slicewpId": 7338,
+          "affiliateSlicewpId": 139,
+          "status": "unpaid"
+        }
+      ],
+      "ledgerEntries": [
+        {
+          "id": "c81bccf2-51af-4ff9-ad7b-189053259f2b",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 64.78,
+          "affiliateId": "cmrqf26xx002pitx749va9fps",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "bf765a07-c54a-4a6d-96ab-d600feb85dc7",
+      "slicewpId": 7105,
+      "wooOrderId": 10076,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 33,
+      "orderRevenue": 132.5,
+      "dateCreated": "2026-08-19T05:14:29.000Z",
+      "affiliate": {
+        "slicewpId": 81,
+        "name": "Blair Rodgers"
+      },
+      "classification": "reattributed",
+      "supersededBy": [
+        {
+          "slicewpId": 7328,
+          "affiliateSlicewpId": 169,
+          "status": "pending"
+        }
+      ],
+      "ledgerEntries": [
+        {
+          "id": "cmszop2wy005ol104x04k2bqf",
+          "type": "OVERRIDE",
+          "status": "UNPAID",
+          "amount": 13.25,
+          "affiliateId": "cmrqf26xx002pitx749va9fps",
+          "payoutBatchId": null,
+          "paidAt": null
+        },
+        {
+          "id": "25b00d9b-d0e0-4c59-a877-1bb115be8bf1",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 33,
+          "affiliateId": "cmrqf211u001yitx7mk2yorbx",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "426dbd27-36c0-4b5b-8118-ad1139f0d4d5",
+      "slicewpId": 7106,
+      "wooOrderId": 10076,
+      "type": "inherit",
+      "status": "UNPAID",
+      "amount": 0,
+      "orderRevenue": 0,
+      "dateCreated": "2026-08-19T05:14:30.000Z",
+      "affiliate": {
+        "slicewpId": 51,
+        "name": "Trindalyn Mackenzie"
+      },
+      "classification": "reattributed",
+      "supersededBy": [
+        {
+          "slicewpId": 7328,
+          "affiliateSlicewpId": 169,
+          "status": "pending"
+        }
+      ],
+      "ledgerEntries": [],
+      "blockedReason": null
+    },
+    {
+      "id": "e1eab163-1d7f-4aff-bc93-af1d0bea4b83",
+      "slicewpId": 7107,
+      "wooOrderId": 10195,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 19.5,
+      "orderRevenue": 77.98,
+      "dateCreated": "2026-08-19T05:37:07.000Z",
+      "affiliate": {
+        "slicewpId": 81,
+        "name": "Blair Rodgers"
+      },
+      "classification": "reattributed",
+      "supersededBy": [
+        {
+          "slicewpId": 7341,
+          "affiliateSlicewpId": 138,
+          "status": "paid"
+        }
+      ],
+      "ledgerEntries": [
+        {
+          "id": "8075a62c-66f5-4514-a4ae-7c97230bb295",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 19.5,
+          "affiliateId": "cmrqf211u001yitx7mk2yorbx",
+          "payoutBatchId": null,
+          "paidAt": null
+        },
+        {
+          "id": "cmszop2wy005pl1042dwx8fr5",
+          "type": "OVERRIDE",
+          "status": "UNPAID",
+          "amount": 7.8,
+          "affiliateId": "cmrqf26xx002pitx749va9fps",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "2cf7d370-7d19-4af3-8905-bf3d8530ae93",
+      "slicewpId": 7108,
+      "wooOrderId": 10195,
+      "type": "inherit",
+      "status": "UNPAID",
+      "amount": 0,
+      "orderRevenue": 0,
+      "dateCreated": "2026-08-19T05:37:08.000Z",
+      "affiliate": {
+        "slicewpId": 51,
+        "name": "Trindalyn Mackenzie"
+      },
+      "classification": "reattributed",
+      "supersededBy": [
+        {
+          "slicewpId": 7341,
+          "affiliateSlicewpId": 138,
+          "status": "paid"
+        }
+      ],
+      "ledgerEntries": [],
+      "blockedReason": null
+    },
+    {
+      "id": "52d41952-e14b-4040-b629-d89b1d8271c3",
+      "slicewpId": 7109,
+      "wooOrderId": 10196,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 27,
+      "orderRevenue": 102.97,
+      "dateCreated": "2026-08-19T05:37:22.000Z",
+      "affiliate": {
+        "slicewpId": 81,
+        "name": "Blair Rodgers"
+      },
+      "classification": "reattributed",
+      "supersededBy": [
+        {
+          "slicewpId": 7342,
+          "affiliateSlicewpId": 138,
+          "status": "paid"
+        }
+      ],
+      "ledgerEntries": [
+        {
+          "id": "e1f76238-868e-463d-be9f-cd67b8c4b3b7",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 27,
+          "affiliateId": "cmrqf211u001yitx7mk2yorbx",
+          "payoutBatchId": null,
+          "paidAt": null
+        },
+        {
+          "id": "cmszop2wy005ql104a8iz989r",
+          "type": "OVERRIDE",
+          "status": "UNPAID",
+          "amount": 10.3,
+          "affiliateId": "cmrqf26xx002pitx749va9fps",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    },
+    {
+      "id": "18ce75e0-d9d3-403f-b2bd-c1a45e7e37d1",
+      "slicewpId": 7110,
+      "wooOrderId": 10196,
+      "type": "inherit",
+      "status": "UNPAID",
+      "amount": 0,
+      "orderRevenue": 0,
+      "dateCreated": "2026-08-19T05:37:23.000Z",
+      "affiliate": {
+        "slicewpId": 51,
+        "name": "Trindalyn Mackenzie"
+      },
+      "classification": "reattributed",
+      "supersededBy": [
+        {
+          "slicewpId": 7342,
+          "affiliateSlicewpId": 138,
+          "status": "paid"
+        }
+      ],
+      "ledgerEntries": [],
+      "blockedReason": null
+    },
+    {
+      "id": "3d6679c9-cfb0-45e2-83bd-7de39f561c6b",
+      "slicewpId": 7111,
+      "wooOrderId": 10199,
+      "type": "sale",
+      "status": "UNPAID",
+      "amount": 26,
+      "orderRevenue": 77.97,
+      "dateCreated": "2026-08-19T06:09:53.000Z",
+      "affiliate": {
+        "slicewpId": 51,
+        "name": "Trindalyn Mackenzie"
+      },
+      "classification": "reattributed",
+      "supersededBy": [
+        {
+          "slicewpId": 7343,
+          "affiliateSlicewpId": 81,
+          "status": "paid"
+        }
+      ],
+      "ledgerEntries": [
+        {
+          "id": "021b7c78-df09-4d0b-bfe4-8a062e4e4239",
+          "type": "DIRECT",
+          "status": "UNPAID",
+          "amount": 26,
+          "affiliateId": "cmrqf26xx002pitx749va9fps",
+          "payoutBatchId": null,
+          "paidAt": null
+        }
+      ],
+      "blockedReason": null
+    }
+  ]
+}

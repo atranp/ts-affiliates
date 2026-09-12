@@ -18,7 +18,10 @@ import { useMemo, useState } from "react";
 import { AffiliateStatCard } from "@/components/affiliate/AffiliateStatCard";
 import { InlinePanelSkeleton } from "@/components/affiliate/DashboardSkeleton";
 import { LedgerFilterSelect } from "@/components/affiliate/LedgerFilterSelect";
-import { TeamMemberRow, TeamMilestoneProgress } from "@/components/affiliate/TeamMemberRow";
+import {
+  TeamMemberGoalStatus,
+  TeamMemberRow,
+} from "@/components/affiliate/TeamMemberRow";
 import { apiFetch } from "@/lib/api-client";
 import {
   AFFILIATE_COPY,
@@ -272,16 +275,20 @@ function GoalCell({
 }) {
   const milestone = member.stats.milestone;
 
-  if (!milestone?.threshold) {
-    return <span className="ts-row-meta text-muted-foreground/70">—</span>;
-  }
-
   return (
-    <TeamMilestoneProgress
-      current={milestone.current}
-      threshold={milestone.threshold}
-      met={milestone.met}
+    <TeamMemberGoalStatus
+      memberSales={member.stats.totalRevenue}
+      milestone={
+        milestone?.threshold
+          ? {
+              current: milestone.current,
+              threshold: milestone.threshold,
+              met: milestone.met,
+            }
+          : null
+      }
       variant={affiliateView ? "slim" : "default"}
+      showSalesWhenMet={false}
     />
   );
 }
@@ -384,13 +391,20 @@ function MemberRow({
       </TableCell>
       <TableCell className={cn(tdClass, "text-right tabular-nums")}>
         {member.stats.unpaidTeamBonus > 0 ? (
-          <span
-            className={cn(
-              affiliateView ? "ts-amount text-primary" : "font-semibold text-primary",
+          <div className="inline-flex flex-col items-end">
+            <span
+              className={cn(
+                affiliateView ? "ts-amount text-primary" : "font-semibold text-primary",
+              )}
+            >
+              {formatCurrency(member.stats.unpaidTeamBonus)}
+            </span>
+            {affiliateView && (
+              <span className="ts-amount-sub">
+                {AFFILIATE_COPY.team.teamCutUnpaid}
+              </span>
             )}
-          >
-            {formatCurrency(member.stats.unpaidTeamBonus)}
-          </span>
+          </div>
         ) : (
           <span className="ts-row-meta text-muted-foreground/70">—</span>
         )}
@@ -402,13 +416,20 @@ function MemberRow({
         )}
       >
         {member.stats.pendingTeamBonus > 0 ? (
-          <span
-            className={cn(
-              affiliateView ? "ts-amount text-amber-700" : "font-medium text-amber-700",
+          <div className="inline-flex flex-col items-end">
+            <span
+              className={cn(
+                affiliateView ? "ts-amount text-amber-700" : "font-medium text-amber-700",
+              )}
+            >
+              {formatCurrency(member.stats.pendingTeamBonus)}
+            </span>
+            {affiliateView && (
+              <span className="ts-amount-sub">
+                {AFFILIATE_COPY.team.teamCutLocked}
+              </span>
             )}
-          >
-            {formatCurrency(member.stats.pendingTeamBonus)}
-          </span>
+          </div>
         ) : (
           <span className="ts-row-meta text-muted-foreground/70">—</span>
         )}
@@ -434,6 +455,7 @@ function MemberMobileCard({
       <TeamMemberRow
         layout="flat"
         name={name}
+        memberSales={member.stats.totalRevenue}
         milestone={
           milestone?.threshold
             ? {
@@ -610,13 +632,20 @@ function TeamRoster({
 
         {rows.length > 0 && (
           <div className="ts-table-summary">
-            <p className="ts-row-meta flex w-full min-w-0 items-center justify-between gap-2">
+            <p className="ts-row-meta flex w-full min-w-0 items-center justify-between gap-3">
               <span className="min-w-0 truncate">
                 {rows.length.toLocaleString()}{" "}
                 {rows.length === 1 ? "member" : "members"}
               </span>
-              <span className="ts-amount shrink-0 whitespace-nowrap text-primary">
-                {formatCurrency(summaryUnpaid)}
+              <span className="shrink-0 text-right">
+                <span className="ts-amount block whitespace-nowrap text-primary">
+                  {formatCurrency(summaryUnpaid)}
+                </span>
+                {affiliateView && (
+                  <span className="ts-amount-sub">
+                    {AFFILIATE_COPY.team.teamCutUnpaid}
+                  </span>
+                )}
               </span>
             </p>
           </div>
@@ -847,7 +876,7 @@ function TeamMeta({
           </p>
           <p className="text-xs text-muted-foreground">
             {affiliateView
-              ? "Filter by status or search by name and email."
+              ? AFFILIATE_COPY.team.teamsSectionHint
               : `${team.ruleCount} active rule${team.ruleCount === 1 ? "" : "s"}`}
           </p>
         </div>

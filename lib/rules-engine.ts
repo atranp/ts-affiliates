@@ -13,6 +13,7 @@ import {
   promoteMilestoneOverrides,
 } from "./milestone";
 import { getTeamMemberIds } from "./teams/members";
+import { countableRevenueWhere, countsTowardRevenue } from "./revenue";
 import { getNextPayoutWeek } from "./payout-schedule";
 import {
   bulkUpdateOverrideEntries,
@@ -112,7 +113,7 @@ export async function createSyncDealRuleProcessor() {
           });
         }
 
-        if (commission.orderRevenue != null) {
+        if (countsTowardRevenue(commission)) {
           const current = revenueByRecruit.get(commission.affiliateId) ?? 0;
           revenueByRecruit.set(
             commission.affiliateId,
@@ -457,7 +458,7 @@ async function applyTeamRuleRetroactively(rule: DealRule) {
     by: ["affiliateId"],
     where: {
       affiliateId: { in: memberIds },
-      orderRevenue: { not: null },
+      ...countableRevenueWhere,
     },
     _sum: { orderRevenue: true },
   });

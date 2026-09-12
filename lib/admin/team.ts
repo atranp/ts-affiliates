@@ -4,6 +4,7 @@ import {
   getMilestoneProgress,
   getRecruitCumulativeRevenue,
 } from "../milestone";
+import { countableRevenueWhere } from "../revenue";
 import { toNumber } from "../utils";
 
 export type TeamMemberStats = {
@@ -131,7 +132,7 @@ export async function getAffiliateTeam(
     by: ["affiliateId"],
     where: {
       affiliateId: { in: memberIds },
-      orderRevenue: { not: null },
+      ...countableRevenueWhere,
     },
     _sum: { orderRevenue: true },
   });
@@ -211,7 +212,7 @@ export async function getRecruitRevenueMap(
     by: ["affiliateId"],
     where: {
       affiliateId: { in: sourceAffiliateIds },
-      orderRevenue: { not: null },
+      ...countableRevenueWhere,
     },
     _sum: { orderRevenue: true },
   });

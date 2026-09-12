@@ -1,6 +1,7 @@
 import { CommissionStatus, LedgerEntryType } from "@prisma/client";
 import { prisma } from "../prisma";
 import { overrideStatusForMilestone } from "../milestone";
+import { countableRevenueWhere } from "../revenue";
 import { toNumber } from "../utils";
 
 /**
@@ -52,7 +53,7 @@ export async function reconcileOverrideStatusToSource(options?: {
   // totals are gathered once rather than per entry.
   const revenueRows = await prisma.commission.groupBy({
     by: ["affiliateId"],
-    where: { orderRevenue: { not: null } },
+    where: countableRevenueWhere,
     _sum: { orderRevenue: true },
   });
   const revenueByAffiliate = new Map(

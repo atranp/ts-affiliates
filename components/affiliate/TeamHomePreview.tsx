@@ -125,7 +125,12 @@ function SingleTeamPreview({
       className={cn('flex min-h-0 flex-col', className)}
       title={AFFILIATE_COPY.home.teamsTitle}
       description={
-        <SegmentSummary memberCount={team.memberCount} segments={segments} />
+        <div className="space-y-1">
+          <SegmentSummary memberCount={team.memberCount} segments={segments} />
+          <p className="text-xs leading-snug text-muted-foreground">
+            {AFFILIATE_COPY.team.teamsSectionHint}
+          </p>
+        </div>
       }
       actionLabel={AFFILIATE_COPY.home.teamsAction}
       onAction={onViewTeam}
@@ -147,6 +152,7 @@ function SingleTeamPreview({
                 <TeamMemberRow
                   layout="flat"
                   name={name}
+                  memberSales={member.stats.totalRevenue}
                   milestone={
                     milestone?.threshold
                       ? {

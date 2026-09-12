@@ -1,6 +1,7 @@
 import { CommissionStatus, LedgerEntryType, Prisma } from "@prisma/client";
 import { getMilestoneProgress } from "../milestone";
 import { prisma } from "../prisma";
+import { countableRevenueWhere } from "../revenue";
 import { toNumber } from "../format";
 import { ensureSponsorDownlineTeam, getTeamMembers } from "./members";
 
@@ -71,7 +72,7 @@ async function buildMemberStats(
 
   const commissionWhere: Prisma.CommissionWhereInput = {
     affiliateId: { in: memberIds },
-    orderRevenue: { not: null },
+    ...countableRevenueWhere,
     ...(period
       ? { dateCreated: { gte: period.from, lte: period.to } }
       : {}),

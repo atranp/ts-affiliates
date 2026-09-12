@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Internal commission review brief</title>
+<style>
+@page { size: letter; margin: 0.6in; }
+* { box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; color: #111; line-height: 1.45; font-size: 11px; margin: 0; padding: 24px; }
+h1 { font-size: 22px; margin: 0 0 6px; font-weight: 600; }
+.subtitle { color: #555; margin: 0 0 14px; font-size: 12px; }
+.stamp { background: #7a1420; color: #fff; padding: 8px 12px; border-radius: 4px; font-weight: 600; font-size: 12px; margin: 0 0 16px; letter-spacing: .02em; }
+.warn { border-left: 3px solid #b8860b; background: #fffaf0; padding: 11px 14px; margin: 0 0 14px; border-radius: 0 4px 4px 0; }
+.ok { border-left: 3px solid #1a7f37; background: #f4fbf6; padding: 11px 14px; margin: 0 0 14px; border-radius: 0 4px 4px 0; }
+h2 { font-size: 14px; margin: 22px 0 8px; font-weight: 600; }
+table { width: 100%; border-collapse: collapse; margin: 0 0 8px; font-size: 10px; }
+th, td { border: 1px solid #ddd; padding: 6px 7px; text-align: left; vertical-align: top; }
+th { background: #f5f5f5; font-weight: 600; }
+td.num, th.num { text-align: right; }
+tr.total td { background: #fafafa; font-weight: 600; }
+.foot { color: #666; font-size: 9.5px; margin: 0 0 6px; max-width: 730px; }
+ul { margin: 4px 0 10px; padding-left: 18px; }
+li { margin-bottom: 5px; }
+.footer { margin-top: 24px; padding-top: 10px; border-top: 1px solid #eee; color: #888; font-size: 9px; }
+@media print { body { padding: 0; } tr { page-break-inside: avoid; } h2 { page-break-after: avoid; } }
+</style></head>
+<body>
+<div class="stamp">INTERNAL — NOT FOR AFFILIATES</div>
+<h1>Commission review brief</h1>
+<p class="subtitle">Blair, Trin &amp; Emmie · Aug 1 – Sep 6, 2026 · prepared for commission sign-off</p>
+
+<div class="ok">
+<strong>Reconciliation.</strong> 2,640 orders · $84,876.22 across the three affiliates. These figures
+match a direct SliceWP aggregate exactly, per affiliate. Source is a read-only snapshot of production; no writes
+were made. Individual orders were traced end to end to confirm the repeat-customer and email flags.
+</div>
+
+<h2>What goes out to them</h2>
+<table><thead><tr><th class="">Affiliate</th><th class="num">Orders</th><th class="num">Earned</th><th class="num">Earned with no click on their link</th><th class="num">…of which their own customers</th><th class="num">Share</th></tr></thead><tbody><tr><td class="">Blair</td><td class="num">1,403</td><td class="num">$40,555.56</td><td class="num">$24,599.83</td><td class="num">$21,950.77</td><td class="num">89%</td></tr><tr><td class="">Trin</td><td class="num">790</td><td class="num">$29,755.17</td><td class="num">$18,103.82</td><td class="num">$15,093.72</td><td class="num">83%</td></tr><tr><td class="">Emmie</td><td class="num">447</td><td class="num">$14,565.49</td><td class="num">$9,400.46</td><td class="num">$6,198.09</td><td class="num">66%</td></tr></tbody></table>
+<p class="foot">
+The affiliate-facing PDFs lead on the second-to-last column: the money they earn from customers they originally
+brought in, returning later without clicking. Note Emmie's share is materially lower than Blair's or Trin's.
+</p>
+
+<h2>Cross-credit between the three <span style="color:#7a1420">(not in their PDFs)</span></h2>
+<p class="foot">
+Orders where the customer was lifetime-linked to one of the three but the commission was paid to another of
+them. 94 orders, $3,247.98 in total. Their documents say only "another affiliate brought them"
+and never name anyone, but if all three compare notes this is what they would reconstruct.
+</p>
+<table><thead><tr><th class="">Affiliate</th><th class="num">Orders gained</th><th class="num">Value gained</th><th class="num">Orders lost</th><th class="num">Value lost</th><th class="num">Net</th></tr></thead><tbody><tr><td class="">Blair</td><td class="num">25</td><td class="num">$806.42</td><td class="num">54</td><td class="num">$1,721.28</td><td class="num">−$914.86</td></tr><tr><td class="">Trin</td><td class="num">20</td><td class="num">$741.65</td><td class="num">37</td><td class="num">$1,424.62</td><td class="num">−$682.97</td></tr><tr><td class="">Emmie</td><td class="num">49</td><td class="num">$1,699.91</td><td class="num">3</td><td class="num">$102.08</td><td class="num">+$1,597.83</td></tr></tbody></table>
+<div class="warn">
+<strong>Emmie is a large net winner here and Blair and Trin are both net down.</strong> Nothing is being
+calculated incorrectly — last click beats a lifetime link, which is the documented rule. But this is the most
+likely thing to turn into a dispute, so it is worth having a position ready before the PDFs go out.
+</div>
+
+<h2>Orphaned lifetime links</h2>
+<p class="foot">
+887 customers are still lifetime-linked to affiliate accounts that no longer exist — almost all
+of them to a single deleted affiliate that has no visits and no commission history at all. In this period
+54 orders worth $2,094.95 were credited to Blair, Trin or Emmie over one of these dead links.
+</p>
+<div class="warn">
+These links are worth cleaning up so they stop appearing in attribution logic. Until they are, a last-click win
+over one of them looks like a win over a real affiliate, which it is not.
+</div>
+
+<h2>Stale-click exposure</h2>
+<p class="foot">
+How long before each order the earning click happened, across all 2,640 orders.
+</p>
+<table><thead><tr><th class="">When the click happened</th><th class="num">Orders</th><th class="num">Commission</th><th class="num">Share</th></tr></thead><tbody><tr><td class="">Same day as the click</td><td class="num">1144</td><td class="num">$38,889.43</td><td class="num">45.8%</td></tr><tr><td class="">1–7 days after</td><td class="num">396</td><td class="num">$14,479.26</td><td class="num">17.1%</td></tr><tr><td class="">8–30 days after</td><td class="num">514</td><td class="num">$17,778.08</td><td class="num">20.9%</td></tr><tr><td class="">More than 30 days after</td><td class="num">19</td><td class="num">$654.11</td><td class="num">0.8%</td></tr><tr><td class="">No click on file (lifetime link)</td><td class="num">567</td><td class="num">$13,075.34</td><td class="num">15.4%</td></tr><tr class="total"><td class="">All orders</td><td class="num">2,640</td><td class="num">$84,876.22</td><td class="num">100.0%</td></tr></tbody></table>
+<div class="warn">
+<strong>1,268 orders worth $39,451.17 were paid at full sale rate on a click at least a day old,
+or on no click at all.</strong> The affiliate-facing framing of this is "your link keeps earning", which is true.
+The other reading is that the programme pays a full 30–40% on repeat and direct traffic that would likely have
+converted anyway. If that is a rate conversation the business wants, it should be opened deliberately rather
+than raised by an affiliate first.
+</div>
+
+<h2>Email marketing — which attribution we use</h2>
+<p class="foot">
+The store can only see an email-driven order when Klaviyo's tracking token survives into the landing URL. It has
+no record of opens at all, and a customer who opens an email and returns later looks like direct traffic to us.
+Klaviyo's own attribution — the same model the email P&amp;L runs on — sees roughly 3x as many.
+</p>
+<table><thead><tr><th class="">How email orders are counted</th><th class="num">Orders</th><th class="num">Affiliate commission</th></tr></thead><tbody><tr><td class="">Store-side only (tracking token on the landing page)</td><td class="num">80</td><td class="num">$2,342.97</td></tr><tr><td class="">Klaviyo&#x27;s own attribution (engaged with a send, then ordered)</td><td class="num">257</td><td class="num">$9,012.45</td></tr><tr><td class="">…excluding orders where they arrived on their own link</td><td class="num">208</td><td class="num">$7,127.66</td></tr></tbody></table>
+<p class="foot">
+The affiliate PDFs use the conservative last line, 208 orders and $7,127.66, so we never claim an
+order the affiliate's own link brought in. Of Klaviyo's attributed orders, most show as "direct" on our side —
+that is the traffic that was invisible before. This should now reconcile against the email P&amp;L, since it is
+the same attribution model.
+</p>
+<table><thead><tr><th class="">Campaign or flow</th><th class="num">Orders</th><th class="num">Affiliate commission</th></tr></thead><tbody><tr><td class="">Campaign Aug 12, 2026, 5:58 PM</td><td class="num">24</td><td class="num">$1,594.88</td></tr><tr><td class="">New Testing Standards Aug 19, 2026, 9:58 PM</td><td class="num">47</td><td class="num">$1,411.74</td></tr><tr><td class="">Browse Abandonment - Standard</td><td class="num">33</td><td class="num">$1,088.98</td></tr><tr><td class="">Welcome Series - Customer v. Non-Customer</td><td class="num">21</td><td class="num">$866.14</td></tr><tr><td class="">Abandoned Checkout Reminder (Email)</td><td class="num">25</td><td class="num">$635.95</td></tr><tr><td class="">Discord 2 Campaign Sep 2, 2026, 5:50 PM</td><td class="num">28</td><td class="num">$515.22</td></tr><tr><td class="">Campaign Aug 29, 2026, 5:57 PM</td><td class="num">15</td><td class="num">$383.91</td></tr><tr><td class="">Campaign Aug 5, 2026, 3:46 PM</td><td class="num">3</td><td class="num">$212.79</td></tr><tr><td class="">First Time Order Aug 14, 2026, 2:59 PM</td><td class="num">6</td><td class="num">$164.48</td></tr><tr><td class="">First Time Order Aug 14, 2026, 2:59 PM (clone)</td><td class="num">4</td><td class="num">$138.89</td></tr></tbody></table>
+
+<h2>Method notes</h2>
+<ul>
+<li>True Sciences ads and Klaviyo sends run through their own affiliate accounts. Traffic arriving on those
+accounts is credited to the channel it represents — paid ads or email — not counted as "another affiliate".</li>
+<li>A customer's origin is their <em>first</em> order: whoever brought them to the site the first time, whether
+or not that account still earns on them today.</li>
+<li>Every figure here regenerates from a read-only production pull, so any number can be re-derived or
+challenged line by line.</li>
+</ul>
+
+<div class="footer">Generated Sep 7, 2026 · true-sciences.com · internal commission review</div>
+</body></html>

@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { LedgerEntryType, Prisma } from "@prisma/client";
 import {
   completeSync,
   failSync,
@@ -60,6 +60,32 @@ export type SyncResult = {
 
 /** Rows per bulk statement. Larger chunks mean fewer round-trips. */
 const COMMISSION_CHUNK_SIZE = 500;
+
+/**
+ * Below this many rows the SliceWP fetch was truncated rather than the store
+ * being small, and pruning against a partial list would delete live money.
+ */
+const MIN_REMOTE_COMMISSIONS_TO_PRUNE = 1_000;
+
+/**
+ * A healthy store loses a handful of commissions to re-attribution per sync.
+ * Losing a twentieth of the book at once means the fetch lied, not that the
+ * rows are gone.
+ */
+const MAX_PRUNE_SHARE = 0.05;
+
+/**
+ * How much smaller than the previous sync a fetch may be before pruning is
+ * refused. Non-zero because SliceWP genuinely deletes rows on re-attribution
+ * and refunds; small because a truncated page is a much bigger drop.
+ */
+const MAX_FETCH_SHRINK = 0.02;
+
+/** Ledger types derived from commissions, so they die with their source row. */
+const DERIVED_LEDGER_TYPES = [
+  LedgerEntryType.DIRECT,
+  LedgerEntryType.OVERRIDE,
+] as const;
 
 type ValidRemoteAffiliate = {
   remote: SliceWPAffiliate;
@@ -153,6 +179,41 @@ function upsertAffiliate(
   });
 }
 
+/**
+ * Marks affiliates INACTIVE once SliceWP no longer has them.
+ *
+ * Upserts only touch affiliates the fetch returned, so a deleted affiliate
+ * silently kept whatever status it last had — including ACTIVE, with a stale
+ * unpaid balance nobody upstream would ever settle.
+ *
+ * The row itself is kept: payout history and past commissions still reference
+ * it, so deleting it would erase records of money that really was paid.
+ *
+ * Only safe against a complete fetch, for the same reason as the commission
+ * prune.
+ */
+async function deactivateAffiliatesMissingFromSliceWP(
+  remoteAffiliates: SliceWPAffiliate[]
+): Promise<number> {
+  // One affiliate is a plausible store; zero means the fetch failed.
+  if (remoteAffiliates.length === 0) return 0;
+
+  const remoteIds = remoteAffiliates
+    .map((remote) => Number(remote.id))
+    .filter((id) => Number.isFinite(id));
+  if (remoteIds.length === 0) return 0;
+
+  const result = await prisma.affiliate.updateMany({
+    where: {
+      slicewpId: { notIn: remoteIds },
+      status: { not: "INACTIVE" },
+    },
+    data: { status: "INACTIVE" },
+  });
+
+  return result.count;
+}
+
 export async function syncAffiliatesFromSliceWP(): Promise<number> {
   const settings = await getSettings();
   if (!settings.slicewpConsumerKey || !settings.slicewpConsumerSecret) {
@@ -192,6 +253,10 @@ export async function syncAffiliatesFromSliceWP(): Promise<number> {
 
   await linkAffiliateParents(validRemotes);
 
+  const deactivated = await deactivateAffiliatesMissingFromSliceWP(
+    remoteAffiliates
+  );
+
   await prisma.settings.upsert({
     where: { id: "default" },
     update: { lastAffiliateSyncAt: syncedAt },
@@ -202,8 +267,11 @@ export async function syncAffiliatesFromSliceWP(): Promise<number> {
     data: {
       type: "affiliates",
       status: "success",
-      message: `Synced ${count} affiliates`,
-      metadata: { count },
+      message:
+        deactivated > 0
+          ? `Synced ${count} affiliates, deactivated ${deactivated} removed from SliceWP`
+          : `Synced ${count} affiliates`,
+      metadata: { count, deactivated },
     },
   });
 
@@ -378,6 +446,206 @@ async function persistRemoteCommissions(
   return count;
 }
 
+export type CommissionPruneResult = {
+  commissionsDeleted: number;
+  ledgerEntriesDeleted: number;
+  /** Rows SliceWP dropped that are already paid out, so they are left alone. */
+  settledKept: number;
+  /** Set when a safety guard refused the pass; no rows were touched. */
+  skipped: string | null;
+};
+
+/**
+ * How many commissions the last healthy sync pulled, or null when there is no
+ * baseline yet — a first run has nothing to compare against and skips pruning.
+ */
+async function lastSuccessfulCommissionFetchCount(): Promise<number | null> {
+  const logs = await prisma.syncLog.findMany({
+    where: { type: "commissions", status: "success" },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+    select: { metadata: true },
+  });
+
+  for (const log of logs) {
+    const metadata = log.metadata;
+    if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) {
+      const fetched = (metadata as Prisma.JsonObject).fetched;
+      if (typeof fetched === "number" && fetched > 0) return fetched;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Deletes commissions SliceWP no longer has.
+ *
+ * SliceWP re-attributes an order by deleting the old commission and inserting a
+ * new one for the correct affiliate, and voids one outright on a refund. Upserts
+ * alone never notice either, so the superseded row lives here forever and the
+ * same order revenue is credited twice — once to the affiliate SliceWP dropped
+ * and once to the one it moved the order to.
+ *
+ * Only safe against a complete fetch. Never call this from the per-affiliate
+ * sync, whose commission list covers one downline and would make every other
+ * affiliate's rows look deleted.
+ *
+ * `LedgerEntry.sourceCommission` is `onDelete: SetNull` and the ledger
+ * reconciler only ever inserts and updates, so the derived entries have to be
+ * deleted here or they survive as unpaid money with no source.
+ */
+async function pruneCommissionsMissingFromSliceWP(
+  remoteCommissions: SliceWPCommission[]
+): Promise<CommissionPruneResult> {
+  const empty: CommissionPruneResult = {
+    commissionsDeleted: 0,
+    ledgerEntriesDeleted: 0,
+    settledKept: 0,
+    skipped: null,
+  };
+
+  if (remoteCommissions.length < MIN_REMOTE_COMMISSIONS_TO_PRUNE) {
+    return {
+      ...empty,
+      skipped: `SliceWP returned only ${remoteCommissions.length} commissions, below the ${MIN_REMOTE_COMMISSIONS_TO_PRUNE} floor`,
+    };
+  }
+
+  // The commission book only grows, so a fetch smaller than last night's means
+  // pagination dropped pages rather than that SliceWP lost rows. This is the
+  // guard that matters: a fixed floor cannot tell 9,400 of 9,500 from 9,400 of
+  // 9,400, and the difference is a hundred wrongly deleted commissions.
+  const previousFetch = await lastSuccessfulCommissionFetchCount();
+  if (
+    previousFetch !== null &&
+    remoteCommissions.length < previousFetch * (1 - MAX_FETCH_SHRINK)
+  ) {
+    return {
+      ...empty,
+      skipped: `SliceWP returned ${remoteCommissions.length} commissions against ${previousFetch} last sync, a drop beyond the ${(MAX_FETCH_SHRINK * 100).toFixed(0)}% tolerance`,
+    };
+  }
+
+  const remoteIds = new Set<number>();
+  for (const remote of remoteCommissions) {
+    const id = Number(remote.id);
+    if (Number.isFinite(id)) remoteIds.add(id);
+  }
+
+  const local = await prisma.commission.findMany({
+    select: { id: true, slicewpId: true },
+  });
+  const doomed = local.filter((row) => !remoteIds.has(row.slicewpId));
+  if (doomed.length === 0) return empty;
+
+  const share = doomed.length / local.length;
+  if (share > MAX_PRUNE_SHARE) {
+    return {
+      ...empty,
+      skipped: `${(share * 100).toFixed(1)}% of commissions looked deleted, above the ${(MAX_PRUNE_SHARE * 100).toFixed(0)}% ceiling`,
+    };
+  }
+
+  const doomedIds = doomed.map((row) => row.id);
+  const doomedSlicewpIds = doomed.map((row) => row.slicewpId);
+  const slicewpIdByLocalId = new Map(doomed.map((row) => [row.id, row.slicewpId]));
+  const doomedSlicewpIdSet = new Set(doomedSlicewpIds);
+
+  // Matched two ways because older DIRECT entries predate the foreign key and
+  // only carry `slicewpCommissionId`. Manual BONUS and ADJUSTMENT rows are
+  // never derived from a commission, so they are deliberately out of scope.
+  const candidates = await prisma.ledgerEntry.findMany({
+    where: {
+      OR: [
+        { sourceCommissionId: { in: doomedIds } },
+        {
+          type: { in: [...DERIVED_LEDGER_TYPES] },
+          slicewpCommissionId: { in: doomedSlicewpIds },
+        },
+      ],
+    },
+    select: {
+      id: true,
+      status: true,
+      paidAt: true,
+      payoutBatchId: true,
+      sourceCommissionId: true,
+      slicewpCommissionId: true,
+    },
+  });
+
+  /** Which pruned commission an entry belongs to, or null if it belongs to none. */
+  const ownerOf = (entry: (typeof candidates)[number]): number | null => {
+    if (
+      entry.slicewpCommissionId != null &&
+      doomedSlicewpIdSet.has(entry.slicewpCommissionId)
+    ) {
+      return entry.slicewpCommissionId;
+    }
+    if (entry.sourceCommissionId) {
+      return slicewpIdByLocalId.get(entry.sourceCommissionId) ?? null;
+    }
+    return null;
+  };
+
+  // Money that has left the building is never rewritten by a sync. One settled
+  // entry protects its whole commission so the two never disagree.
+  const settled = new Set<number>();
+  for (const entry of candidates) {
+    const isSettled =
+      entry.status === "PAID" ||
+      entry.paidAt !== null ||
+      entry.payoutBatchId !== null;
+    if (!isSettled) continue;
+    const owner = ownerOf(entry);
+    if (owner !== null) settled.add(owner);
+  }
+
+  const ledgerIdsToDelete = candidates
+    .filter((entry) => {
+      const owner = ownerOf(entry);
+      return owner !== null && !settled.has(owner);
+    })
+    .map((entry) => entry.id);
+
+  const commissionIdsToDelete = doomed
+    .filter((row) => !settled.has(row.slicewpId))
+    .map((row) => row.id);
+
+  if (commissionIdsToDelete.length === 0) {
+    return { ...empty, settledKept: settled.size };
+  }
+
+  let ledgerEntriesDeleted = 0;
+  let commissionsDeleted = 0;
+
+  // Ledger first: the foreign key nulls rather than cascades, so the reverse
+  // order would strand live unpaid rows.
+  for (let i = 0; i < ledgerIdsToDelete.length; i += COMMISSION_CHUNK_SIZE) {
+    const result = await prisma.ledgerEntry.deleteMany({
+      where: { id: { in: ledgerIdsToDelete.slice(i, i + COMMISSION_CHUNK_SIZE) } },
+    });
+    ledgerEntriesDeleted += result.count;
+  }
+
+  for (let i = 0; i < commissionIdsToDelete.length; i += COMMISSION_CHUNK_SIZE) {
+    const result = await prisma.commission.deleteMany({
+      where: {
+        id: { in: commissionIdsToDelete.slice(i, i + COMMISSION_CHUNK_SIZE) },
+      },
+    });
+    commissionsDeleted += result.count;
+  }
+
+  return {
+    commissionsDeleted,
+    ledgerEntriesDeleted,
+    settledKept: settled.size,
+    skipped: null,
+  };
+}
+
 export async function syncCommissionsFromSliceWP(): Promise<number> {
   const settings = await getSettings();
   if (!settings.slicewpConsumerKey || !settings.slicewpConsumerSecret) {
@@ -396,6 +664,10 @@ export async function syncCommissionsFromSliceWP(): Promise<number> {
 
   const count = await persistRemoteCommissions(remoteCommissions);
 
+  // After the upserts, so a row that moved to another affiliate is written in
+  // its new home before the old one is removed.
+  const pruned = await pruneCommissionsMissingFromSliceWP(remoteCommissions);
+
   const journey = await enrichCommissionJourneyAfterSync();
 
   const syncedAt = new Date();
@@ -409,13 +681,20 @@ export async function syncCommissionsFromSliceWP(): Promise<number> {
     data: {
       type: "commissions",
       status: "success",
-      message: `Synced ${count} commissions`,
+      message:
+        pruned.commissionsDeleted > 0
+          ? `Synced ${count} commissions, removed ${pruned.commissionsDeleted} deleted in SliceWP`
+          : `Synced ${count} commissions`,
       metadata: {
         count,
         fetched: remoteCommissions.length,
         journeyEnriched: journey.enriched,
         journeyPending: journey.pendingRemaining,
         journeyBridgeAvailable: journey.bridgeAvailable,
+        prunedCommissions: pruned.commissionsDeleted,
+        prunedLedgerEntries: pruned.ledgerEntriesDeleted,
+        pruneSettledKept: pruned.settledKept,
+        pruneSkipped: pruned.skipped,
       },
     },
   });

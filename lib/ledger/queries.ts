@@ -6,6 +6,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { periodWhere, type PeriodRange } from "@/lib/affiliate/period";
 import { getMilestoneProgress } from "@/lib/milestone";
+import { countableRevenueWhere } from "@/lib/revenue";
 import type { LedgerSummary } from "@/lib/rules-engine";
 import { toNumber } from "@/lib/utils";
 import {
@@ -422,7 +423,7 @@ export async function getLedgerResponse(filters: LedgerFilters) {
         by: ["affiliateId"],
         where: {
           affiliateId: { in: sourceIds },
-          orderRevenue: { not: null },
+          ...countableRevenueWhere,
         },
         _sum: { orderRevenue: true },
       }),

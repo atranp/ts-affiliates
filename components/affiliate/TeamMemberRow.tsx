@@ -30,7 +30,7 @@ export function TeamMilestoneProgress({
           <span className="ts-micro hidden shrink-0 truncate sm:inline">
             {formatCurrency(current)} / {formatCurrency(threshold)}
           </span>
-          <div className="ts-progress-track min-w-[2.5rem]">
+          <div className="ts-progress-track min-w-[2.5rem] flex-1">
             <div
               className={cn(
                 "ts-progress-fill",
@@ -41,7 +41,6 @@ export function TeamMilestoneProgress({
           </div>
           <span
             className={cn(
-              // Wide enough for "100%", which overflows a w-8 cell.
               "ts-micro w-9 shrink-0 text-right tabular-nums",
               met ? "text-emerald-600" : "text-muted-foreground",
             )}
@@ -90,6 +89,60 @@ export function TeamMilestoneProgress({
   );
 }
 
+export function TeamMemberGoalStatus({
+  memberSales,
+  milestone,
+  variant = "default",
+  showSalesWhenMet = true,
+}: {
+  memberSales: number;
+  milestone?: MilestoneData | null;
+  variant?: "default" | "slim";
+  /** Hide sales line in goal cell when a dedicated sales column exists (desktop table). */
+  showSalesWhenMet?: boolean;
+}) {
+  if (!milestone?.threshold) {
+    if (memberSales > 0) {
+      return (
+        <p className="ts-row-meta truncate">
+          {formatCurrency(memberSales)}{" "}
+          <span className="text-muted-foreground">
+            {AFFILIATE_COPY.team.theirSalesShort}
+          </span>
+        </p>
+      );
+    }
+    return <span className="ts-row-meta text-muted-foreground/70">—</span>;
+  }
+
+  if (milestone.met) {
+    return (
+      <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2 sm:gap-y-0.5">
+        <span className="inline-flex w-fit shrink-0 items-center rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-medium text-emerald-800 ring-1 ring-emerald-200/80">
+          {AFFILIATE_COPY.team.goalReachedLine}
+        </span>
+        {showSalesWhenMet && memberSales > 0 ? (
+          <span className="ts-row-meta min-w-0 truncate">
+            {formatCurrency(memberSales)}{" "}
+            <span className="text-muted-foreground">
+              {AFFILIATE_COPY.team.theirSalesShort}
+            </span>
+          </span>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <TeamMilestoneProgress
+      current={milestone.current}
+      threshold={milestone.threshold}
+      met={false}
+      variant={variant}
+    />
+  );
+}
+
 function MemberBonusDisplay({
   unpaidAmount,
   pendingAmount,
@@ -101,7 +154,7 @@ function MemberBonusDisplay({
     return (
       <AffiliateAmountCell
         amount={formatCurrency(unpaidAmount)}
-        sublabel={AFFILIATE_COPY.team.payout}
+        sublabel={AFFILIATE_COPY.team.teamCutUnpaid}
         tone="primary"
       />
     );
@@ -111,7 +164,7 @@ function MemberBonusDisplay({
     return (
       <AffiliateAmountCell
         amount={formatCurrency(pendingAmount)}
-        sublabel={AFFILIATE_COPY.team.awaitingMilestone}
+        sublabel={AFFILIATE_COPY.team.teamCutLocked}
         tone="warning"
       />
     );
@@ -122,6 +175,7 @@ function MemberBonusDisplay({
 
 export type TeamMemberRowProps = {
   name: string;
+  memberSales: number;
   milestone?: MilestoneData | null;
   unpaidAmount: number;
   pendingAmount: number;
@@ -134,6 +188,7 @@ export type TeamMemberRowProps = {
 
 export function TeamMemberRow({
   name,
+  memberSales,
   milestone,
   unpaidAmount,
   pendingAmount,
@@ -149,8 +204,8 @@ export function TeamMemberRow({
     <div
       className={cn(
         flat
-          ? "grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_auto] items-center gap-x-3 gap-y-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)_4.75rem] sm:grid-rows-1 sm:gap-y-0"
-          : "grid w-full min-w-0 grid-cols-[minmax(0,1fr)_5.5rem] items-center gap-x-3 gap-y-1.5 sm:grid-cols-[minmax(0,1fr)_8.5rem_5.5rem] sm:gap-y-0",
+          ? "grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_auto] items-start gap-x-3 gap-y-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)_auto] sm:grid-rows-1 sm:items-center sm:gap-y-0"
+          : "grid w-full min-w-0 grid-cols-[minmax(0,1fr)_5.5rem] items-center gap-x-3 gap-y-1.5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_5.5rem] sm:gap-y-0",
         className,
       )}
     >
@@ -163,16 +218,11 @@ export function TeamMemberRow({
           flat && "col-span-2 sm:col-span-1 sm:col-start-2 sm:row-start-1",
         )}
       >
-        {milestone?.threshold ? (
-          <TeamMilestoneProgress
-            current={milestone.current}
-            threshold={milestone.threshold}
-            met={milestone.met}
-            variant={flat ? "slim" : "default"}
-          />
-        ) : (
-          <span className="ts-row-meta text-muted-foreground/70">—</span>
-        )}
+        <TeamMemberGoalStatus
+          memberSales={memberSales}
+          milestone={milestone}
+          variant={flat ? "slim" : "default"}
+        />
       </div>
       <div
         className={cn(

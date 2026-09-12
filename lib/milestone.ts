@@ -1,5 +1,6 @@
 import { CommissionStatus } from "@prisma/client";
 import { prisma } from "./prisma";
+import { countableRevenueWhere } from "./revenue";
 import { toNumber } from "./format";
 
 export type MilestoneProgress = {
@@ -16,7 +17,7 @@ export async function getRecruitCumulativeRevenue(
   const result = await prisma.commission.aggregate({
     where: {
       affiliateId: sourceAffiliateId,
-      orderRevenue: { not: null },
+      ...countableRevenueWhere,
     },
     _sum: { orderRevenue: true },
   });

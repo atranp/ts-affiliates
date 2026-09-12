@@ -562,7 +562,7 @@ function DashboardPageContent() {
                   <CardContent className="space-y-4">
                     <div className="grid gap-3 sm:grid-cols-2">
                       <AffiliateStatCard
-                        label={AFFILIATE_COPY.team.payout}
+                        label={AFFILIATE_COPY.team.teamCutUnpaid}
                         value={data.overrideSummary.unpaidTotal}
                         tone="primary"
                       />
@@ -604,7 +604,7 @@ function DashboardPageContent() {
                                       'ts-affiliate-badge-interactive',
                                     )}
                                   >
-                                    {AFFILIATE_COPY.team.payout}{' '}
+                                    {AFFILIATE_COPY.team.teamCutUnpaid}{' '}
                                     {formatCurrency(bonus.unpaidTotal)}
                                   </button>
                                 )}
@@ -612,7 +612,7 @@ function DashboardPageContent() {
                                   <span
                                     className={affiliateBadgeClass('pending')}
                                   >
-                                    {AFFILIATE_COPY.team.awaitingMilestone}{' '}
+                                    {AFFILIATE_COPY.team.teamCutLocked}{' '}
                                     {formatCurrency(bonus.pendingTotal)}
                                   </span>
                                 )}
@@ -822,7 +822,10 @@ function DashboardPageContent() {
             <div className="ts-page-header shrink-0 max-sm:px-0.5">
               <h1 className="page-title">{AFFILIATE_COPY.team.rosterTitle}</h1>
               <p className="page-description">
-                {AFFILIATE_COPY.team.rosterDescription}
+                {AFFILIATE_COPY.team.rosterDescription}{' '}
+                <span className="text-muted-foreground">
+                  {AFFILIATE_COPY.team.teamsSectionHint}
+                </span>
               </p>
             </div>
             {teamsLoading ? (
