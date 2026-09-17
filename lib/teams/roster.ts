@@ -122,7 +122,12 @@ export function sortMembers(
  * differ between rows.
  */
 export function memberSpecificRules(member: TeamMemberSummary) {
-  return member.rules.filter((rule) => rule.recruit?.id === member.id);
+  // A negotiated rate belongs on the member's own row even though the rule it
+  // departs from is team-wide — otherwise the roster shows everyone the team
+  // rate and nothing explains why one member's cut is larger.
+  return member.rules.filter(
+    (rule) => rule.recruit?.id === member.id || rule.isException
+  );
 }
 
 export function teamWideRules(rules: TeamRuleSummary[]) {

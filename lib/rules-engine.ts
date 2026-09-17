@@ -297,7 +297,11 @@ function buildOverrideEntryData(
   cumulativeRevenue: number,
   sourceAffiliateId: string
 ) {
-  const amount = calculateOverrideAmount(rule, commission as Commission);
+  const amount = calculateOverrideAmount(
+    rule,
+    commission as Commission,
+    sourceAffiliateId
+  );
   if (amount <= 0) return null;
 
   const threshold = rule.milestoneRevenueThreshold

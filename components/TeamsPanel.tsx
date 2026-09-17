@@ -89,8 +89,10 @@ function useTeamDetail(teamId: string | null, enabled: boolean) {
 }
 
 function formatRuleSummary(rule: TeamRule, affiliateView: boolean) {
+  const rate = `${rule.ratePercent}%${rule.isException ? " (exception)" : ""}`;
+
   if (!affiliateView) {
-    return `${rule.name} · ${rule.ratePercent}%${
+    return `${rule.name} · ${rate}${
       rule.milestoneRevenueThreshold
         ? ` · ${formatCurrency(Number(rule.milestoneRevenueThreshold))} milestone`
         : ""

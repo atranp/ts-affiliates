@@ -341,7 +341,7 @@ async function main() {
           if (rule) {
             let expected = 0;
             for (const c of comms) {
-              expected += calculateOverrideAmount(rule, c);
+              expected += calculateOverrideAmount(rule, c, memberId);
             }
             gavinSum += expected;
             const gap = row.amount - expected;
@@ -392,6 +392,7 @@ async function main() {
       where: { affiliateId: trin.id, type: "OVERRIDE", status: "UNPAID" },
       select: {
         amount: true,
+        sourceAffiliateId: true,
         sourceCommission: {
           select: { amount: true, orderRevenue: true, commissionBase: true },
         },
@@ -400,15 +401,25 @@ async function main() {
     let mispriced = 0;
     for (const row of unpaidOverrides) {
       if (!row.sourceCommission || !rule) continue;
-      const expected = calculateOverrideAmount(rule, row.sourceCommission);
+      // Priced per member: a recruit on a negotiated rate divides by their own
+      // divisor, not the roster's.
+      const expected = calculateOverrideAmount(
+        rule,
+        row.sourceCommission,
+        row.sourceAffiliateId
+      );
       if (Math.abs(toNumber(row.amount) - expected) >= 0.005) mispriced += 1;
     }
     if (mispriced > 0) {
-      fail(who, "override pricing", `${mispriced} UNPAID rows ≠ commission ÷ 3`);
+      fail(
+        who,
+        "override pricing",
+        `${mispriced} UNPAID rows ≠ their member's team rate`
+      );
     } else {
       pass(
         who,
-        `all ${unpaidOverrides.length} UNPAID overrides priced as commission ÷ 3`
+        `all ${unpaidOverrides.length} UNPAID overrides priced at each member's team rate`
       );
     }
   }

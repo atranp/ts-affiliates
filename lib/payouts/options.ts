@@ -232,7 +232,9 @@ export async function getPayoutOptions(input: {
     // Sales are quoted on the commissionable base so the rate shown beside them
     // is the rate that produced the amount.
     const revenue = toNumber(entry.commissionBase ?? entry.orderRevenue);
-    const term = payoutDisplayTerm(entry.dealRule);
+    // Override rows are bucketed per member below, so a member with a rate
+    // exception never shares a math label with the rest of the roster.
+    const term = payoutDisplayTerm(entry.dealRule, entry.sourceAffiliate?.id);
 
     if (entry.type === LedgerEntryType.DIRECT) {
       addTo(direct, amount, revenue, term);

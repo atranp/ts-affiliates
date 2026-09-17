@@ -3,12 +3,15 @@ import { getMilestoneProgress } from "../milestone";
 import { prisma } from "../prisma";
 import { countableRevenueByAffiliate } from "../revenue";
 import { toNumber } from "../format";
+import { resolveRateForMember } from "../deal-rules";
 import { ensureSponsorDownlineTeam, getTeamMembers } from "./members";
 
 export type TeamRuleSummary = {
   id: string;
   name: string;
   ratePercent: string;
+  /** True when `ratePercent` is this member's negotiated rate, not the rule's. */
+  isException: boolean;
   milestoneRevenueThreshold: string | null;
   active: boolean;
   recruit: {
@@ -135,10 +138,11 @@ async function buildMemberStats(
   return statsMap;
 }
 
-function mapRule(rule: {
+type RuleRecord = {
   id: string;
   name: string;
   ratePercent: { toString(): string };
+  metadata: Prisma.JsonValue | null;
   milestoneRevenueThreshold: { toString(): string } | null;
   active: boolean;
   sourceAffiliate: {
@@ -146,11 +150,20 @@ function mapRule(rule: {
     displayName: string | null;
     email: string;
   } | null;
-}): TeamRuleSummary {
+};
+
+/**
+ * `memberId` resolves the rate as that member earns it, so a recruit on a
+ * negotiated exception is not shown the roster's rate.
+ */
+function mapRule(rule: RuleRecord, memberId?: string): TeamRuleSummary {
+  const { ratePercent, isException } = resolveRateForMember(rule, memberId);
+
   return {
     id: rule.id,
     name: rule.name,
-    ratePercent: rule.ratePercent.toString(),
+    ratePercent: String(ratePercent),
+    isException,
     milestoneRevenueThreshold:
       rule.milestoneRevenueThreshold?.toString() ?? null,
     active: rule.active,
@@ -166,21 +179,25 @@ function mapRule(rule: {
 
 function assignRulesToMembers(
   memberIds: string[],
-  mappedRules: TeamRuleSummary[]
+  rules: RuleRecord[]
 ): Map<string, TeamRuleSummary[]> {
-  const teamWideRules = mappedRules.filter((rule) => !rule.recruit);
+  const teamWideRules = rules.filter((rule) => !rule.sourceAffiliate);
   const rulesByRecruit = new Map<string, TeamRuleSummary[]>();
 
-  for (const rule of mappedRules) {
-    if (!rule.recruit) continue;
-    const existing = rulesByRecruit.get(rule.recruit.id) ?? [];
-    existing.push(rule);
-    rulesByRecruit.set(rule.recruit.id, existing);
+  for (const rule of rules) {
+    if (!rule.sourceAffiliate) continue;
+    const recruitId = rule.sourceAffiliate.id;
+    const existing = rulesByRecruit.get(recruitId) ?? [];
+    existing.push(mapRule(rule, recruitId));
+    rulesByRecruit.set(recruitId, existing);
   }
 
   for (const memberId of memberIds) {
     const existing = rulesByRecruit.get(memberId) ?? [];
-    rulesByRecruit.set(memberId, [...existing, ...teamWideRules]);
+    rulesByRecruit.set(memberId, [
+      ...existing,
+      ...teamWideRules.map((rule) => mapRule(rule, memberId)),
+    ]);
   }
 
   return rulesByRecruit;
@@ -212,8 +229,8 @@ export async function getTeamsForSponsor(
       },
     });
 
-    const mappedRules = rules.map(mapRule);
-    const rulesByRecruit = assignRulesToMembers(memberIds, mappedRules);
+    const mappedRules = rules.map((rule) => mapRule(rule));
+    const rulesByRecruit = assignRulesToMembers(memberIds, rules);
 
     const memberStats = await buildMemberStats(
       sponsorAffiliateId,
@@ -295,9 +312,9 @@ export async function getTeamDetail(
     orderBy: { name: "asc" },
   });
 
-  const mappedRules = rules.map(mapRule);
+  const mappedRules = rules.map((rule) => mapRule(rule));
   const memberIds = membersRaw.map((member) => member.id);
-  const rulesByRecruit = assignRulesToMembers(memberIds, mappedRules);
+  const rulesByRecruit = assignRulesToMembers(memberIds, rules);
 
   const memberStats = await buildMemberStats(
     team.sponsorAffiliateId,

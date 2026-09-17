@@ -30,9 +30,8 @@ async function main() {
 
   const { Prisma } = await import("@prisma/client");
   const { prisma } = await import("../lib/prisma");
-  const { calculateOverrideAmount, getCommissionDivisor } = await import(
-    "../lib/deal-rules"
-  );
+  const { calculateOverrideAmount, getCommissionDivisor, parseDealRuleMetadata } =
+    await import("../lib/deal-rules");
   const { toNumber } = await import("../lib/format");
   const { syncCommissionBases, syncLedgerCommissionBases } = await import(
     "../lib/sync-write"
@@ -99,16 +98,23 @@ async function main() {
       select: {
         id: true,
         amount: true,
+        sourceAffiliateId: true,
         sourceCommission: {
           select: { amount: true, orderRevenue: true, commissionBase: true },
         },
       },
     });
 
+    // Negotiated per-member rates survive a reprice: this script sets the
+    // roster's arithmetic, not the exceptions to it.
+    const memberRates = parseDealRuleMetadata(rule.metadata).memberRates;
     const priced = {
       basis: DealBasis.RECRUIT_COMMISSION,
       ratePercent: rule.ratePercent,
-      metadata: { commissionDivisor: COMMISSION_DIVISOR },
+      metadata: {
+        commissionDivisor: COMMISSION_DIVISOR,
+        ...(memberRates ? { memberRates } : {}),
+      },
     };
 
     const updates: Array<{ id: string; amount: number }> = [];
@@ -117,7 +123,11 @@ async function main() {
 
     for (const row of rows) {
       if (!row.sourceCommission) continue;
-      const next = calculateOverrideAmount(priced, row.sourceCommission);
+      const next = calculateOverrideAmount(
+        priced,
+        row.sourceCommission,
+        row.sourceAffiliateId
+      );
       oldTotal += toNumber(row.amount);
       newTotal += next;
       if (Math.abs(next - toNumber(row.amount)) >= 0.005) {
@@ -136,7 +146,7 @@ async function main() {
         where: { id: rule.id },
         data: {
           basis: DealBasis.RECRUIT_COMMISSION,
-          metadata: { commissionDivisor: COMMISSION_DIVISOR },
+          metadata: priced.metadata,
         },
       });
     }
