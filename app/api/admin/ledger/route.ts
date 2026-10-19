@@ -6,17 +6,15 @@ import {
   createAdjustmentEntry,
   parseStatus,
 } from "@/lib/ledger/admin";
+import { readJsonObject } from "@/lib/api/body";
 
 export async function POST(request: Request) {
   const auth = await requireAdmin();
   if ("error" in auth) return auth.error;
 
-  let body: Record<string, unknown>;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  const parsed = await readJsonObject(request);
+  if ("error" in parsed) return parsed.error;
+  const { body } = parsed;
 
   const affiliateId =
     typeof body.affiliateId === "string" ? body.affiliateId : "";
@@ -61,12 +59,9 @@ export async function PATCH(request: Request) {
   const auth = await requireAdmin();
   if ("error" in auth) return auth.error;
 
-  let body: Record<string, unknown>;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  const parsed = await readJsonObject(request);
+  if ("error" in parsed) return parsed.error;
+  const { body } = parsed;
 
   const ids = Array.isArray(body.ids)
     ? body.ids.filter((id): id is string => typeof id === "string")

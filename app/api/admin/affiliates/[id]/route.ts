@@ -6,6 +6,7 @@ import { getAffiliateDetail } from "@/lib/admin/queries";
 import { applyAffiliateEdit, type AffiliateEdit } from "@/lib/admin/affiliate-write";
 import { isAdminMockMode } from "@/lib/mock/config";
 import { mockAdminAffiliateDetail } from "@/lib/mock/admin-fixtures";
+import { readJsonObject } from "@/lib/api/body";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -55,12 +56,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     );
   }
 
-  let body: Record<string, unknown>;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  const parsed = await readJsonObject(request);
+  if ("error" in parsed) return parsed.error;
+  const { body } = parsed;
 
   const edit: AffiliateEdit = {};
 

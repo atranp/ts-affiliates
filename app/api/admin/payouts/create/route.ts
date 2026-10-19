@@ -13,6 +13,7 @@ import {
   mockAdminCreatePayout,
   mockAdminPayoutPreview,
 } from "@/lib/mock/admin-fixtures";
+import { readJsonObject } from "@/lib/api/body";
 
 function handleError(error: unknown) {
   if (error instanceof PayoutInputError) {
@@ -73,13 +74,11 @@ export async function POST(request: Request) {
   const auth = await requireAdmin();
   if ("error" in auth) return auth.error;
 
-  const body = await request.json().catch(() => null);
-  if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  const parsed = await readJsonObject(request, "Invalid request body");
+  if ("error" in parsed) return parsed.error;
 
   const { affiliateId, scope, teamId, memberId, cutoff, expected, directPayoutSource, directPayoutId } =
-    body as Record<string, unknown>;
+    parsed.body;
 
   if (typeof affiliateId !== "string" || !affiliateId) {
     return NextResponse.json(

@@ -5,6 +5,7 @@ import {
   deleteNonPaidOverridesForRule,
 } from "@/lib/rules-engine";
 import { scheduleDealRuleBackfill } from "@/lib/deal-rules/schedule-backfill";
+import { readJsonObject } from "@/lib/api/body";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -34,7 +35,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Rule not found" }, { status: 404 });
   }
 
-  const body = await request.json();
+  const parsed = await readJsonObject(request);
+  if ("error" in parsed) return parsed.error;
+  const { body } = parsed;
   const {
     name,
     sponsorAffiliateId,

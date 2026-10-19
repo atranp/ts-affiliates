@@ -10,6 +10,7 @@ import {
   hasResolvedWooCommerce,
   isEnvCredentialsOverride,
 } from "@/lib/settings";
+import { readJsonObject } from "@/lib/api/body";
 
 export async function GET() {
   const auth = await requireAdmin();
@@ -45,7 +46,9 @@ export async function PUT(request: Request) {
     );
   }
 
-  const body = await request.json();
+  const parsed = await readJsonObject(request);
+  if ("error" in parsed) return parsed.error;
+  const { body } = parsed;
   const {
     wcStoreUrl,
     wcConsumerKey,

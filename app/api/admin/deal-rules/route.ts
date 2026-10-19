@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/api/auth";
 import { jsonCached } from "@/lib/api/cache";
 import { prisma } from "@/lib/prisma";
 import { scheduleDealRuleBackfill } from "@/lib/deal-rules/schedule-backfill";
+import { readJsonObject } from "@/lib/api/body";
 
 export async function GET() {
   const auth = await requireAdmin();
@@ -29,7 +30,9 @@ export async function POST(request: Request) {
   const auth = await requireAdmin();
   if ("error" in auth) return auth.error;
 
-  const body = await request.json();
+  const parsed = await readJsonObject(request);
+  if ("error" in parsed) return parsed.error;
+  const { body } = parsed;
   const {
     name,
     type,
