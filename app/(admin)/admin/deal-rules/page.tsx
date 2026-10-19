@@ -6,7 +6,7 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/admin/PageHeader";
-import type { AffiliateOption } from "@/components/admin/AffiliateSearchCombobox";
+import { fetchAffiliateOption } from "@/components/admin/AffiliateSearchCombobox";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { TableSkeleton } from "@/components/admin/TableSkeleton";
 import { EmptyState } from "@/components/admin/EmptyState";
@@ -157,19 +157,8 @@ function AdminDealRulesPageContent() {
     async function prefillFromUrl() {
       try {
         if (sponsorId) {
-          const affiliate = await apiFetch<AffiliateOption>(
-            `/api/admin/affiliates/${sponsorId}`
-          );
-          setCreateDraft((draft) => ({
-            ...draft,
-            sponsor: {
-              id: affiliate.id,
-              email: affiliate.email,
-              displayName: affiliate.displayName,
-              slicewpId: affiliate.slicewpId,
-              status: affiliate.status,
-            },
-          }));
+          const sponsor = await fetchAffiliateOption(sponsorId);
+          setCreateDraft((draft) => ({ ...draft, sponsor }));
         }
         if (teamIdParam) {
           setCreateDraft((draft) => ({

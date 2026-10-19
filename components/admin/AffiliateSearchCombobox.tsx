@@ -17,6 +17,18 @@ export type AffiliateOption = {
   status: string;
 };
 
+/** Loads one affiliate in the shape the combobox selects, e.g. from a URL param. */
+export async function fetchAffiliateOption(id: string): Promise<AffiliateOption> {
+  const affiliate = await apiFetch<AffiliateOption>(`/api/admin/affiliates/${id}`);
+  return {
+    id: affiliate.id,
+    email: affiliate.email,
+    displayName: affiliate.displayName,
+    slicewpId: affiliate.slicewpId,
+    status: affiliate.status,
+  };
+}
+
 const MIN_SEARCH_LENGTH = 2;
 const LISTBOX_MAX_HEIGHT = 288;
 
