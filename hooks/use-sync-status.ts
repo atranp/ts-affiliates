@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api/client";
 import { queryKeys } from "@/lib/query-keys";
@@ -52,75 +52,54 @@ export function useSyncStatus(options?: { poll?: boolean }) {
   const queryClient = useQueryClient();
   const wasRunning = useRef(false);
   const poll = options?.poll ?? true;
-  const [status, setStatus] = useState<SyncStatus | null>(null);
   const [starting, setStarting] = useState(false);
 
-  const refresh = useCallback(async () => {
-    const next = await fetchSyncStatus();
-    setStatus(next);
-    return next;
-  }, []);
+  const { data: status } = useQuery({
+    queryKey: queryKeys.admin.syncStatus,
+    queryFn: fetchSyncStatus,
+    enabled: poll,
+    retry: false,
+    refetchInterval: (query) =>
+      query.state.data?.running ? POLL_RUNNING_MS : POLL_IDLE_MS,
+    refetchIntervalInBackground: true,
+  });
 
   useEffect(() => {
-    if (!poll) return;
+    if (!status) return;
 
-    let cancelled = false;
-    let timeoutId: number;
-
-    async function tick() {
-      try {
-        const next = await fetchSyncStatus();
-        if (cancelled) return;
-
-        setStatus(next);
-
-        if (wasRunning.current && !next.running) {
-          if (next.lastSyncError) {
-            toast.error(next.lastSyncError);
-          } else if (next.lastSyncResult) {
-            const r = next.lastSyncResult;
-            const parts = [
-              `${r.affiliatesUpserted} affiliates`,
-              `${r.commissionsUpserted} commissions`,
-              r.slicewpPayoutsSynced
-                ? `${r.slicewpPayoutsSynced} SliceWP payouts`
-                : null,
-            ].filter(Boolean);
-            toast.success(`Sync complete — ${parts.join(", ")}`);
-          }
-          await queryClient.invalidateQueries({ queryKey: queryKeys.admin.all });
-          await queryClient.invalidateQueries({ queryKey: queryKeys.ledgerAll });
-        }
-
-        wasRunning.current = next.running;
-        const delay = next.running ? POLL_RUNNING_MS : POLL_IDLE_MS;
-        timeoutId = window.setTimeout(tick, delay);
-      } catch {
-        if (!cancelled) {
-          timeoutId = window.setTimeout(tick, POLL_IDLE_MS);
-        }
+    if (wasRunning.current && !status.running) {
+      if (status.lastSyncError) {
+        toast.error(status.lastSyncError);
+      } else if (status.lastSyncResult) {
+        const r = status.lastSyncResult;
+        const parts = [
+          `${r.affiliatesUpserted} affiliates`,
+          `${r.commissionsUpserted} commissions`,
+          r.slicewpPayoutsSynced
+            ? `${r.slicewpPayoutsSynced} SliceWP payouts`
+            : null,
+        ].filter(Boolean);
+        toast.success(`Sync complete — ${parts.join(", ")}`);
       }
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.ledgerAll });
     }
 
-    tick();
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeoutId);
-    };
-  }, [poll, queryClient]);
+    wasRunning.current = status.running;
+  }, [status, queryClient]);
 
   const startManualSync = useCallback(async () => {
     setStarting(true);
     try {
       await startSync({ auto: false });
-      setStatus((prev) =>
+      queryClient.setQueryData<SyncStatus>(queryKeys.admin.syncStatus, (prev) =>
         prev ? { ...prev, running: true, step: "affiliates" } : prev
       );
       wasRunning.current = true;
     } finally {
       setStarting(false);
     }
-  }, []);
+  }, [queryClient]);
 
-  return { status, starting, refresh, startManualSync };
+  return { status: status ?? null, starting, startManualSync };
 }
