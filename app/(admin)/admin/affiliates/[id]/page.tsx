@@ -56,6 +56,7 @@ import {
   type PayoutBatchRow,
 } from "@/components/payouts/PayoutHistoryPanel";
 import { formatCurrency } from "@/lib/utils";
+import { affiliateStatusBadgeVariant } from "@/lib/admin/format";
 
 type ViewTab = "ledger" | "payouts" | "team" | "rules";
 
@@ -64,21 +65,6 @@ const detailTabClass =
   "relative h-10 shrink-0 rounded-none border-b-2 border-b-transparent bg-transparent px-3 pb-3 pt-2 font-semibold text-muted-foreground shadow-none transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none sm:px-4";
 
 const detailTabIconClass = "mr-2 hidden h-4 w-4 sm:inline-block";
-
-function statusBadgeVariant(
-  status: string
-): "paid" | "pending" | "secondary" | "destructive" {
-  switch (status) {
-    case "ACTIVE":
-      return "paid";
-    case "PENDING":
-      return "pending";
-    case "REJECTED":
-      return "destructive";
-    default:
-      return "secondary";
-  }
-}
 
 function formatDate(iso: string | null) {
   if (!iso) return "—";
@@ -298,7 +284,7 @@ function AdminAffiliateDetailPageContent() {
             description={`${affiliate.email} · SliceWP #${affiliate.slicewpId}`}
             actions={
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={statusBadgeVariant(affiliate.status)}>
+                <Badge variant={affiliateStatusBadgeVariant(affiliate.status)}>
                   {affiliate.status}
                 </Badge>
                 {affiliate.commissionRate && (

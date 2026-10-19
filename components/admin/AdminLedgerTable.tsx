@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatAppDate } from "@/lib/timezone";
+import { formatPayoutWeekLabel } from "@/lib/ledger/format";
 import {
   cn,
   commissionableSale,
@@ -65,19 +65,10 @@ function EntryTypeBadge({ type }: { type: string }) {
   );
 }
 
-function formatPayoutWeek(iso: string | null) {
-  if (!iso) return "—";
-  return formatAppDate(iso, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
-}
-
 function entryPayoutLabel(entry: AdminLedgerEntry) {
   const batch = entry.payoutBatch;
   if (batch) return batch.label;
-  return formatPayoutWeek(entry.payoutWeek) ?? "—";
+  return formatPayoutWeekLabel(entry.payoutWeek) ?? "—";
 }
 
 type EditForm = {
