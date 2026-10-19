@@ -2,10 +2,10 @@ import { getSettings } from "../settings";
 import {
   fetchSliceWPAffiliateById,
   fetchSliceWPCommissionsForAffiliates,
-} from "../slicewp";
+} from "../integrations/slicewp";
 import { prisma } from "../prisma";
 import { assertSyncTargetsAgree } from "../env-guard";
-import { fetchWooCustomersByIds } from "../woocommerce";
+import { fetchWooCustomersByIds } from "../integrations/woocommerce";
 import { ensureSponsorDownlineTeam } from "../teams/members";
 import {
   affiliateUserIds,

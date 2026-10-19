@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { isAffiliateMockMode } from "@/lib/mock/config";
 import { MOCK_AUTH_USER } from "@/lib/mock/affiliate-auth";
-import type { AuthUser } from "@/lib/auth";
-import { requireAuth } from "@/lib/api-auth";
+import type { AuthUser } from "@/lib/auth/session";
+import { requireAuth } from "@/lib/api/auth";
 
 type AuthResult =
   | { user: AuthUser }

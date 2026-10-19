@@ -1,6 +1,6 @@
 import { LedgerEntryType, PayoutWriteBackStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { settlePayment, SliceWPSettleError } from "@/lib/slicewp-bridge";
+import { settlePayment, SliceWPSettleError } from "@/lib/integrations/slicewp-bridge";
 import { toNumber } from "@/lib/utils";
 
 /**

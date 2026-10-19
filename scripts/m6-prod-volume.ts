@@ -39,7 +39,7 @@ if (process.env.PROD_ENCRYPTION_SECRET) {
 async function main() {
   const { decryptOptional } = await import("../lib/encryption");
   const { normalizeStoreUrl, appendWpAuthParams, sanitizeCredential } =
-    await import("../lib/wordpress-auth");
+    await import("../lib/integrations/wordpress-auth");
 
   const prisma = new PrismaClient({ datasources: { db: { url } } });
 

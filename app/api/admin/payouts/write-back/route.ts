@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { PayoutWriteBackStatus } from "@prisma/client";
-import { requireAdmin } from "@/lib/api-auth";
+import { requireAdmin } from "@/lib/api/auth";
 import { logAdminAction } from "@/lib/admin/audit-log";
 import { getWriteBackHealth } from "@/lib/payouts/reconcile";
 import { settlePayoutBatch } from "@/lib/payouts/settle";

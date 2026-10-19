@@ -198,7 +198,7 @@ Meta key: `_ts_slicewp_attribution_audit` (order meta; map keyed by commission i
 
 **Goal:** Expose commission + order + audit data through the existing bridge (server-side WC credentials).
 
-**Repo:** `true-sciences-04` mu-plugin `true-sciences-slicewp-bridge.php` + portal `lib/slicewp-bridge.ts`
+**Repo:** `true-sciences-04` mu-plugin `true-sciences-slicewp-bridge.php` + portal `lib/integrations/slicewp-bridge.ts`
 
 ### Route
 
@@ -252,7 +252,7 @@ type CommissionJourneyPayload = {
 - [x] Load WC order by `reference`
 - [x] Read `_ts_slicewp_attribution_audit` from order meta
 - [x] Customer summary: count prior commissions same affiliate + `customer_id`
-- [x] Add `fetchCommissionJourney(id)` to `lib/slicewp-bridge.ts`
+- [x] Add `fetchCommissionJourney(id)` to `lib/integrations/slicewp-bridge.ts`
 - [x] Smoke script: `scripts/m2-journey-smoke.ts`
 - [ ] Curl test against Local WP (Mode B in migration doc)
 

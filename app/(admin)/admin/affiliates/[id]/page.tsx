@@ -25,7 +25,7 @@ import {
 } from "@/hooks/use-admin-query";
 import type { LedgerTab } from "@/hooks/use-ledger";
 import { useTeamRoster, useTeams } from "@/hooks/use-teams";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch } from "@/lib/api/client";
 import { affiliateStatusBadgeVariant } from "@/lib/admin/format";
 import { CreatePayoutPanel } from "@/components/payouts/CreatePayoutPanel";
 import {

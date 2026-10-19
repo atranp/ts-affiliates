@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { clearImpersonateCookie } from "@/lib/auth-impersonation";
+import { clearImpersonateCookie } from "@/lib/auth/impersonation";
 import {
   applyMustChangePasswordCookie,
   clearRoleCookie,
-} from "@/lib/auth-cookies";
+} from "@/lib/auth/cookies";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST() {

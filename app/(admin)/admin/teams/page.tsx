@@ -41,7 +41,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAdminQuery } from "@/hooks/use-admin-query";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch } from "@/lib/api/client";
 import { queryKeys } from "@/lib/query-keys";
 
 type AdminTeamRow = {

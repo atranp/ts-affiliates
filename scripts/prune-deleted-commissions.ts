@@ -159,7 +159,7 @@ async function main() {
     console.log(`  read ${remote.length.toLocaleString()} SliceWP commissions from file`);
   } else {
     const { getSettings, hasResolvedSliceWP } = await import("../lib/settings");
-    const { fetchAllSliceWPCommissions } = await import("../lib/slicewp");
+    const { fetchAllSliceWPCommissions } = await import("../lib/integrations/slicewp");
 
     const settings = await getSettings();
     if (!hasResolvedSliceWP(settings)) {

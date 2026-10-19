@@ -4,7 +4,7 @@ import { getSettings } from "@/lib/settings";
 import {
   updateAffiliateSettings,
   type AffiliateSettingsWrite,
-} from "@/lib/slicewp-bridge";
+} from "@/lib/integrations/slicewp-bridge";
 
 /**
  * The affiliate's own edits to their SliceWP record.

@@ -30,7 +30,7 @@ import {
   useAdminQuery,
   type DealRuleListItem,
 } from "@/hooks/use-admin-query";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch } from "@/lib/api/client";
 import { queryKeys } from "@/lib/query-keys";
 
 type SavedRule = DealRuleListItem & {

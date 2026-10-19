@@ -421,8 +421,8 @@ No — Local only until Milestone 6 deploy.
 
 ### Tasks
 
-- [x] `lib/slicewp-write.ts` — POST/PUT client; every call uses `assertWritableStore()`
-- [x] `lib/slicewp-bridge.ts` — client for bridge read endpoints
+- [x] `lib/integrations/slicewp-write.ts` — POST/PUT client; every call uses `assertWritableStore()`
+- [x] `lib/integrations/slicewp-bridge.ts` — client for bridge read endpoints
 - [x] `PATCH /api/admin/affiliates/[id]` → `PUT /slicewp/v1/affiliates/{slicewpId}`
   - `status` (approve / reject / deactivate)
   - `payment_email`
@@ -727,7 +727,7 @@ to skip a window of visits on every sync. `parseGmt()` appends the `Z`.
 
 `/affiliate-extras` is registered `READABLE`. `lib/sync/parity.ts` contains no
 mutating calls. The only `CREATABLE` bridge route and the only POST in
-`lib/slicewp-bridge.ts` are still M3's `/payments/settle`, behind
+`lib/integrations/slicewp-bridge.ts` are still M3's `/payments/settle`, behind
 `assertWritableStore`.
 
 #### Admin UI

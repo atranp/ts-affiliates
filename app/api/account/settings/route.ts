@@ -7,7 +7,7 @@ import {
 } from "@/lib/mock/affiliate-fixtures";
 import { requireAffiliateAuth } from "@/lib/mock/require-affiliate-auth";
 import { prisma } from "@/lib/prisma";
-import { AffiliateSettingsError } from "@/lib/slicewp-bridge";
+import { AffiliateSettingsError } from "@/lib/integrations/slicewp-bridge";
 
 /**
  * The affiliate's own SliceWP settings.

@@ -24,7 +24,7 @@ function record(name: string, ok: boolean, detail: string) {
 async function main() {
   const { getSettings } = await import("../lib/settings");
   const { normalizeStoreUrl, appendWpAuthParams, sanitizeCredential } =
-    await import("../lib/wordpress-auth");
+    await import("../lib/integrations/wordpress-auth");
 
   const settings = await getSettings();
   const baseUrl = normalizeStoreUrl(settings.wcStoreUrl);
@@ -56,7 +56,7 @@ async function main() {
     Array<{ affiliate_id: number; custom_slug: string | null }>
   >("/affiliate-extras?include_coupons=0");
 
-  const { fetchAllSliceWPAffiliates } = await import("../lib/slicewp");
+  const { fetchAllSliceWPAffiliates } = await import("../lib/integrations/slicewp");
 
   const affiliates = await fetchAllSliceWPAffiliates(
     settings.wcStoreUrl,

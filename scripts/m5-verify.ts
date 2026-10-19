@@ -35,8 +35,8 @@ async function main() {
   const { applyAffiliateSelfEdit } = await import(
     "../lib/affiliate/settings-write"
   );
-  const { fetchAffiliateExtras } = await import("../lib/slicewp-bridge");
-  const { fetchSliceWPAffiliateById } = await import("../lib/slicewp");
+  const { fetchAffiliateExtras } = await import("../lib/integrations/slicewp-bridge");
+  const { fetchSliceWPAffiliateById } = await import("../lib/integrations/slicewp");
 
   const settings = await getSettings();
   console.log(`store:      ${settings.wcStoreUrl}`);

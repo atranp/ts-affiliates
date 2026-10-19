@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/api-auth";
+import { requireAdmin } from "@/lib/api/auth";
 import {
   applyImpersonateCookie,
   clearImpersonateCookie,
-} from "@/lib/auth-impersonation";
+} from "@/lib/auth/impersonation";
 import { logAdminAction } from "@/lib/admin/audit-log";
 import { prisma } from "@/lib/prisma";
 

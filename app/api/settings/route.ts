@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/api-auth";
-import { jsonCached } from "@/lib/api-cache";
+import { requireAdmin } from "@/lib/api/auth";
+import { jsonCached } from "@/lib/api/cache";
 import { prisma } from "@/lib/prisma";
 import { encryptOptional } from "@/lib/encryption";
 import {

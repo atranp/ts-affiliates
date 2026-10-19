@@ -10,7 +10,7 @@ import {
   BridgeUnavailableError,
   fetchCommissionJourney,
   isBridgeAvailable,
-} from "@/lib/slicewp-bridge";
+} from "@/lib/integrations/slicewp-bridge";
 
 /** Aligned with COMMISSION-JOURNEY-PLAN backfill window. */
 export const JOURNEY_SYNC_SINCE = new Date("2026-08-18T00:00:00.000Z");

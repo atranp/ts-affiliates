@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/api-auth";
-import { jsonCached } from "@/lib/api-cache";
+import { requireAdmin } from "@/lib/api/auth";
+import { jsonCached } from "@/lib/api/cache";
 import { getPaginatedAffiliates } from "@/lib/admin/queries";
 
 export async function GET(request: Request) {

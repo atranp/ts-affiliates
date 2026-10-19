@@ -1,5 +1,5 @@
-import { getSettings } from "./settings";
-import type { CommissionJourneyPayload } from "./ledger/attribution-audit";
+import { getSettings } from "../settings";
+import type { CommissionJourneyPayload } from "../ledger/attribution-audit";
 import {
   appendWpAuthParams,
   normalizeStoreUrl,
@@ -11,7 +11,7 @@ import {
  * Client for the `slicewp-ts/v1` routes added by the True Sciences bridge
  * mu-plugin — the data SliceWP stores but does not expose over its own REST API.
  *
- * Authentication is identical to `lib/slicewp.ts`: the bridge namespace starts
+ * Authentication is identical to `lib/integrations/slicewp.ts`: the bridge namespace starts
  * with `slicewp-`, which the REST add-on's auth filter matches, so the same
  * consumer key and secret apply.
  *
@@ -278,7 +278,7 @@ export class SliceWPSettleError extends Error {
 export async function settlePayment(
   payload: SliceWPSettleRequest
 ): Promise<SliceWPPaymentReceipt> {
-  const { assertWritableStore } = await import("./env-guard");
+  const { assertWritableStore } = await import("../env-guard");
   const settings = await getSettings();
 
   assertWritableStore(settings.wcStoreUrl);
@@ -452,7 +452,7 @@ export async function updateAffiliateSettings(
   slicewpAffiliateId: number,
   edit: AffiliateSettingsWrite
 ): Promise<AffiliateSettingsResult> {
-  const { assertWritableStore } = await import("./env-guard");
+  const { assertWritableStore } = await import("../env-guard");
   const settings = await getSettings();
 
   assertWritableStore(settings.wcStoreUrl);

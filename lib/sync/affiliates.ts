@@ -3,9 +3,9 @@ import {
   fetchAllSliceWPAffiliates,
   mapSliceWPStatus,
   type SliceWPAffiliate,
-} from "../slicewp";
+} from "../integrations/slicewp";
 import { prisma } from "../prisma";
-import { fetchWooCustomersByIds, type WooCustomer } from "../woocommerce";
+import { fetchWooCustomersByIds, type WooCustomer } from "../integrations/woocommerce";
 import { toNumber } from "../utils";
 import { COMMISSION_CHUNK_SIZE } from "./constants";
 

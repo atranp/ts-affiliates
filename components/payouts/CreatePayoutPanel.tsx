@@ -25,7 +25,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAdminQuery } from "@/hooks/use-admin-query";
 import { useSliceWPPreSync } from "@/hooks/use-slicewp-pre-sync";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch } from "@/lib/api/client";
 import type { CreatedPayout, PayoutDraft } from "@/lib/payouts/create";
 import type { PayoutOptions } from "@/lib/payouts/options";
 import { payoutTargetParams } from "@/lib/payouts/target-params";

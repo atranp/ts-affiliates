@@ -202,11 +202,11 @@ function unpaidStatus(index: number, total: number): "paid" | "unpaid" {
 async function main() {
   const command = process.argv[2] ?? "list";
 
-  const { slicewpWrite, canWriteToStore } = await import("../lib/slicewp-write");
+  const { slicewpWrite, canWriteToStore } = await import("../lib/integrations/slicewp-write");
   const { isProductionStore } = await import("../lib/env-guard");
   const { getSettings } = await import("../lib/settings");
   const { fetchAllSliceWPAffiliates, fetchSliceWPCommissions } = await import(
-    "../lib/slicewp"
+    "../lib/integrations/slicewp"
   );
 
   const { writable, storeUrl, reason } = await canWriteToStore();

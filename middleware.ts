@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
-import { IMPERSONATE_COOKIE } from "@/lib/auth-impersonation";
+import { IMPERSONATE_COOKIE } from "@/lib/auth/impersonation";
 import {
   MUST_CHANGE_PASSWORD_COOKIE,
   ROLE_COOKIE,
   roleFromRequest,
-} from "@/lib/auth-cookies";
+} from "@/lib/auth/cookies";
 import { isAdminMockMode, isAffiliateMockMode } from "@/lib/mock/config";
 import { homePathForRole, NEXT_PARAM, safeNextPath } from "@/lib/routes";
 

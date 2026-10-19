@@ -100,7 +100,7 @@ async function main() {
 
   const { createAdminClient } = await import("../lib/supabase/admin");
   const { prisma } = await import("../lib/prisma");
-  const { ensureAuthRoleConsistency } = await import("../lib/auth-role");
+  const { ensureAuthRoleConsistency } = await import("../lib/auth/role");
   const { linkProfileToAffiliateByEmail } = await import("../lib/sync");
 
   const supabase = createAdminClient();

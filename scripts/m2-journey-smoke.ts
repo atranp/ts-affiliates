@@ -12,7 +12,7 @@ async function main() {
     process.exit(1);
   }
 
-  const bridge = await import("../lib/slicewp-bridge");
+  const bridge = await import("../lib/integrations/slicewp-bridge");
 
   console.log("bridge available:", await bridge.isBridgeAvailable());
 

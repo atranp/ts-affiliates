@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch } from "@/lib/api/client";
 import { queryKeys } from "@/lib/query-keys";
 import type { TeamMember } from "@/lib/admin/team";
 import type { TeamDetail, TeamSummary } from "@/lib/teams/queries";

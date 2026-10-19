@@ -40,9 +40,9 @@ async function main() {
   const { prisma } = await import("../lib/prisma");
   const { createPayout, previewPayout } = await import("../lib/payouts/create");
   const { settlePayoutBatch } = await import("../lib/payouts/settle");
-  const { settlePayment } = await import("../lib/slicewp-bridge");
+  const { settlePayment } = await import("../lib/integrations/slicewp-bridge");
   const { fetchSliceWPCommissions, fetchAllSliceWPAffiliates } = await import(
-    "../lib/slicewp"
+    "../lib/integrations/slicewp"
   );
   const { PayoutWriteBackStatus } = await import("@prisma/client");
 

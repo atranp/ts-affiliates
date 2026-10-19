@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AffiliateHomeCard } from "@/components/affiliate/primitives";
 import { ReferralLinkField } from "@/components/affiliate/ReferralLinkField";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch } from "@/lib/api/client";
 import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
 import type { AffiliateLink } from "@/lib/affiliate/reach";
 

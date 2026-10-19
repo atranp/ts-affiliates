@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/api-auth";
+import { requireAdmin } from "@/lib/api/auth";
 import { inviteAffiliateToPortal } from "@/lib/admin/affiliate-portal";
 import { isAdminMockMode } from "@/lib/mock/config";
 import { mockInviteAffiliate } from "@/lib/mock/admin-fixtures";

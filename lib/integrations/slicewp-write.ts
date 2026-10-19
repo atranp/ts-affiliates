@@ -1,5 +1,5 @@
-import { assertWritableStore } from "./env-guard";
-import { getSettings } from "./settings";
+import { assertWritableStore } from "../env-guard";
+import { getSettings } from "../settings";
 import {
   appendWpAuthParams,
   normalizeStoreUrl,
@@ -9,7 +9,7 @@ import {
 import type { SliceWPAffiliate } from "./slicewp";
 
 /**
- * Mutating counterpart to `lib/slicewp.ts`.
+ * Mutating counterpart to `lib/integrations/slicewp.ts`.
  *
  * Kept separate from the read client on purpose: every export here goes through
  * `assertWritableStore()` first, so the guard cannot be forgotten by adding one

@@ -24,7 +24,7 @@ import {
   PortalCredentialsDialog,
   type PortalCredentials,
 } from "@/components/admin/PortalCredentialsDialog";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch } from "@/lib/api/client";
 import type {
   AdminAffiliatePortal,
   InviteAffiliateResult,

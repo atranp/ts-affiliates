@@ -23,7 +23,7 @@ import {
   formatCommissionStatus,
   AFFILIATE_COPY,
 } from "@/lib/affiliate/copy";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch } from "@/lib/api/client";
 import type { CommissionDetailResponse } from "@/lib/ledger/commission-detail";
 import type { JourneyStepKind } from "@/lib/ledger/attribution-audit";
 import { cn, formatCurrency, formatSaleDate } from "@/lib/utils";

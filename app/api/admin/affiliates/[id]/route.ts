@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { AffiliateStatus } from "@prisma/client";
-import { requireAdmin } from "@/lib/api-auth";
-import { jsonCached } from "@/lib/api-cache";
+import { requireAdmin } from "@/lib/api/auth";
+import { jsonCached } from "@/lib/api/cache";
 import { getAffiliateDetail } from "@/lib/admin/queries";
 import { applyAffiliateEdit, type AffiliateEdit } from "@/lib/admin/affiliate-write";
 import { isAdminMockMode } from "@/lib/mock/config";

@@ -9,7 +9,7 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { Button } from "@/components/ui/button";
 import { useAdminQuery } from "@/hooks/use-admin-query";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch } from "@/lib/api/client";
 import type { PayoutBatchDetail } from "@/lib/payouts/types";
 import { queryKeys } from "@/lib/query-keys";
 

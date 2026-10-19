@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/api-auth";
+import { requireAdmin } from "@/lib/api/auth";
 import { syncAffiliate } from "@/lib/sync";
 import { formatSyncError } from "@/lib/sync/state";
 import { isAdminMockMode } from "@/lib/mock/config";

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/api-auth";
-import { jsonCached } from "@/lib/api-cache";
+import { requireAdmin } from "@/lib/api/auth";
+import { jsonCached } from "@/lib/api/cache";
 import { endOfStoreDay, startOfStoreDay } from "@/lib/payouts/store-dates";
 import { prisma } from "@/lib/prisma";
 import { getTeamsForSponsor } from "@/lib/teams/queries";

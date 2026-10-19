@@ -2,8 +2,8 @@ import { randomUUID } from "crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma";
 import { getSettings } from "../settings";
-import { fetchSliceWPVisits, type SliceWPVisit } from "../slicewp";
-import { fetchAffiliateExtras, fetchCreatives } from "../slicewp-bridge";
+import { fetchSliceWPVisits, type SliceWPVisit } from "../integrations/slicewp";
+import { fetchAffiliateExtras, fetchCreatives } from "../integrations/slicewp-bridge";
 
 /**
  * Read parity: the SliceWP data an affiliate sees in the WordPress portal that

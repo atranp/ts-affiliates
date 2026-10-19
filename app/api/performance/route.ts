@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { jsonCached } from "@/lib/api-cache";
+import { jsonCached } from "@/lib/api/cache";
 import { getAffiliatePerformance } from "@/lib/affiliate/performance";
 import { periodFromParams } from "@/lib/affiliate/period";
 import { isAffiliateMockMode } from "@/lib/mock/config";

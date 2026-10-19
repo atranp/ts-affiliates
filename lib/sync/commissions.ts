@@ -4,7 +4,7 @@ import {
   fetchAllSliceWPCommissions,
   mapSliceWPCommissionStatus,
   type SliceWPCommission,
-} from "../slicewp";
+} from "../integrations/slicewp";
 import { prisma } from "../prisma";
 import { getRecruitRevenueMap } from "../admin/team";
 import { createSyncDealRuleProcessor } from "../rules-engine";

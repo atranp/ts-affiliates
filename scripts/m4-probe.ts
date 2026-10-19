@@ -23,7 +23,7 @@ function heading(title: string) {
 async function main() {
   const { getSettings } = await import("../lib/settings");
   const { appendWpAuthParams, normalizeStoreUrl, sanitizeCredential } =
-    await import("../lib/wordpress-auth");
+    await import("../lib/integrations/wordpress-auth");
 
   const settings = await getSettings();
   const key = sanitizeCredential(settings.slicewpConsumerKey);

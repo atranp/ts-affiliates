@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/api-auth";
+import { requireAdmin } from "@/lib/api/auth";
 import { parsePayoutCutoff, PayoutInputError } from "@/lib/payouts/create";
 import { getPayoutOptions } from "@/lib/payouts/options";
 import { isAdminMockMode } from "@/lib/mock/config";

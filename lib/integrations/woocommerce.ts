@@ -1,4 +1,4 @@
-import { mapWithConcurrency } from "./utils";
+import { mapWithConcurrency } from "../utils";
 import {
   appendWpAuthParams,
   normalizeStoreUrl,

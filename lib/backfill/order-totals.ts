@@ -3,7 +3,7 @@ import { prisma } from "../prisma";
 import { getSettings, hasResolvedWooCommerce } from "../settings";
 import { journeyPendingWhere } from "../sync/journey";
 import { syncCommissionBases, syncLedgerCommissionBases } from "../sync/write";
-import { fetchWooOrderTotalsByIds } from "../woocommerce";
+import { fetchWooOrderTotalsByIds } from "../integrations/woocommerce";
 
 /**
  * Fills in the shipping and tax a commissionable base is derived from.
