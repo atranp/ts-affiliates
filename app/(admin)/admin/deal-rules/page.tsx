@@ -40,7 +40,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  adminMutate,
   useAdminDealRules,
   useAdminQuery,
   type DealRuleListItem,
@@ -289,14 +288,13 @@ function AdminDealRulesPageContent() {
 
     setSavingEdit(true);
     try {
-      const body = await adminMutate<
+      const body = await apiFetch<
         DealRuleListItem & {
           overridesRemoved?: number;
           backfillStarted?: boolean;
         }
       >(`/api/admin/deal-rules/${editingRule.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: editForm.name,
           sponsorAffiliateId: editSponsor.id,
@@ -336,7 +334,7 @@ function AdminDealRulesPageContent() {
 
     setDeleting(true);
     try {
-      const body = await adminMutate<{ overridesRemoved: number }>(
+      const body = await apiFetch<{ overridesRemoved: number }>(
         `/api/admin/deal-rules/${deletingRule.id}`,
         { method: "DELETE" }
       );
@@ -380,13 +378,12 @@ function AdminDealRulesPageContent() {
 
     setSubmitting(true);
     try {
-      const body = await adminMutate<
+      const body = await apiFetch<
         DealRuleListItem & { backfillStarted?: boolean }
       >(
         "/api/admin/deal-rules",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: form.name,
             type: "REVENUE_OVERRIDE",

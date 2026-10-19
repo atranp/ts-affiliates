@@ -39,7 +39,6 @@ export function syncStepLabel(step: SyncStatus["step"]) {
 export async function startSync(options?: { auto?: boolean }) {
   return apiFetch<{ status: string }>("/api/sync", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ auto: options?.auto ?? false }),
   });
 }

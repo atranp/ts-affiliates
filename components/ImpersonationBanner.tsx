@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, X } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
-import { adminMutate } from "@/hooks/use-admin-query";
+import { apiFetch } from "@/lib/api-client";
 
 const IMPERSONATION_OFFSET_VAR = "--impersonation-offset";
 
@@ -49,7 +49,7 @@ export function ImpersonationBanner() {
   async function handleExit() {
     setLoading(true);
     try {
-      await adminMutate<{ redirectTo: string }>("/api/admin/impersonate", {
+      await apiFetch<{ redirectTo: string }>("/api/admin/impersonate", {
         method: "DELETE",
       });
       await refresh();

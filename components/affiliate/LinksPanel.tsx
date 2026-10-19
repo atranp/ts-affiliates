@@ -37,7 +37,6 @@ export function LinksPanel({ link }: { link: AffiliateLink }) {
     try {
       const result = await apiFetch<{ referralUrl: string }>("/api/links", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
       });
       setGenerated(result.referralUrl);

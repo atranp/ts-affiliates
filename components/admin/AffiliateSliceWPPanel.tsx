@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
-import { adminMutate } from "@/hooks/use-admin-query";
+import { apiFetch } from "@/lib/api-client";
 
 /**
  * Edits that are written straight through to SliceWP. Kept separate from the
@@ -76,11 +76,10 @@ export function AffiliateSliceWPPanel({
   async function write(label: string, payload: EditPayload) {
     setSaving(label);
     try {
-      const result = await adminMutate<{ mirrored: boolean }>(
+      const result = await apiFetch<{ mirrored: boolean }>(
         `/api/admin/affiliates/${affiliateId}`,
         {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         }
       );

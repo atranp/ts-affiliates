@@ -15,7 +15,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAdminSettings, adminMutate } from "@/hooks/use-admin-query";
+import { useAdminSettings } from "@/hooks/use-admin-query";
+import { apiFetch } from "@/lib/api-client";
 
 function formatSyncTime(iso: string | null) {
   if (!iso) return "Never";
@@ -47,9 +48,8 @@ export default function AdminSettingsPage() {
     if (slicewpConsumerSecret) body.slicewpConsumerSecret = slicewpConsumerSecret;
 
     try {
-      await adminMutate("/api/settings", {
+      await apiFetch("/api/settings", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       setWcStoreUrl("");
@@ -69,7 +69,7 @@ export default function AdminSettingsPage() {
   async function handleTestSliceWP() {
     setTestingSliceWP(true);
     try {
-      await adminMutate<{ ok: true }>("/api/admin/integrations/test-slicewp", {
+      await apiFetch<{ ok: true }>("/api/admin/integrations/test-slicewp", {
         method: "POST",
       });
       toast.success("SliceWP connection OK");

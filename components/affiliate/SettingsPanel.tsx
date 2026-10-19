@@ -64,7 +64,6 @@ export function SettingsPanel({
     try {
       const saved = await apiFetch<SaveResult>("/api/account/settings", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(edit),
       });
 

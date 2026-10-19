@@ -35,11 +35,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TableSkeleton } from "@/components/admin/TableSkeleton";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  adminMutate,
   queryKeys,
   useAdminAffiliate,
   useAdminQuery,
 } from "@/hooks/use-admin-query";
+import { apiFetch } from "@/lib/api-client";
 import { ledgerTabToFilters, useLedger, type LedgerTab } from "@/hooks/use-ledger";
 import { TeamPanel, useTeam } from "@/components/TeamPanel";
 import { TeamsPanel, useTeams } from "@/components/TeamsPanel";
@@ -176,11 +176,10 @@ function AdminAffiliateDetailPageContent() {
 
   async function handleViewAsAffiliate() {
     try {
-      const { redirectTo } = await adminMutate<{ redirectTo: string }>(
+      const { redirectTo } = await apiFetch<{ redirectTo: string }>(
         "/api/admin/impersonate",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ affiliateId }),
         }
       );
@@ -221,9 +220,8 @@ function AdminAffiliateDetailPageContent() {
   ) {
     setLedgerSaving(true);
     try {
-      await adminMutate(`/api/admin/ledger/${id}`, {
+      await apiFetch(`/api/admin/ledger/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
       await invalidateLedgerData();
@@ -239,9 +237,8 @@ function AdminAffiliateDetailPageContent() {
   async function handleBulkLedgerStatus(ids: string[], status: string) {
     setLedgerSaving(true);
     try {
-      await adminMutate("/api/admin/ledger", {
+      await apiFetch("/api/admin/ledger", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids, status }),
       });
       await invalidateLedgerData();
@@ -261,9 +258,8 @@ function AdminAffiliateDetailPageContent() {
   }) {
     setLedgerSaving(true);
     try {
-      await adminMutate("/api/admin/ledger", {
+      await apiFetch("/api/admin/ledger", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ affiliateId, ...data }),
       });
       await invalidateLedgerData();

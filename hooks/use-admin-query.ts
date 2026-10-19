@@ -117,12 +117,4 @@ export function useAdminMutation<T>(
   });
 }
 
-/** @deprecated use apiFetch directly or useAdminMutation */
-export async function adminMutate<T>(
-  url: string,
-  options?: RequestInit
-): Promise<T> {
-  return apiFetch<T>(url, options);
-}
-
 export { queryKeys };

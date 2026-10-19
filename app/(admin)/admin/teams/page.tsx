@@ -39,7 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { adminMutate, useAdminQuery } from "@/hooks/use-admin-query";
+import { useAdminQuery } from "@/hooks/use-admin-query";
 import { apiFetch } from "@/lib/api-client";
 
 type AdminTeamRow = {
@@ -170,9 +170,8 @@ function AdminTeamsPageContent() {
 
     setSubmitting(true);
     try {
-      await adminMutate("/api/admin/teams", {
+      await apiFetch("/api/admin/teams", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: form.name,
           description: form.description || undefined,
@@ -195,7 +194,7 @@ function AdminTeamsPageContent() {
     if (!deletingTeam) return;
     setDeleting(true);
     try {
-      await adminMutate(`/api/admin/teams/${deletingTeam.id}`, {
+      await apiFetch(`/api/admin/teams/${deletingTeam.id}`, {
         method: "DELETE",
       });
       toast.success(`Deleted team: ${deletingTeam.name}`);
