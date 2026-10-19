@@ -298,8 +298,8 @@ model OrderAttribution {
 ### Tasks
 
 - [x] Prisma migration (`Commission` + `OrderAttribution` models)
-- [x] Extend `buildCommissionData()` in `lib/sync.ts` — map SliceWP REST `visit_id`, `customer_id`
-- [x] During commission sync: `enrichCommissionJourneyAfterSync()` in `lib/sync-journey.ts`
+- [x] Extend `buildCommissionData()` in `lib/sync/` — map SliceWP REST `visit_id`, `customer_id`
+- [x] During commission sync: `enrichCommissionJourneyAfterSync()` in `lib/sync/journey.ts`
   - Bridge fetch capped at **75 commissions/sync** (newest first, since 2026-08-18)
   - Skips silently when bridge unavailable
 - [x] Denormalize `winningRule` + `attributionAudit` onto `Commission` from journey audit
@@ -550,7 +550,7 @@ Build `journey` server-side from Commission + Visit + OrderAttribution + audit �
 | WP attribution engine | `true-sciences-04/.../inc/order-awaiting-payment.php` |
 | Lifetime priority | `true-sciences-04/.../inc/slicewp-lifetime-priority.php` |
 | Bridge plugin | `true-sciences-04/.../mu-plugins/true-sciences-slicewp-bridge.php` |
-| Portal sync | `ts-affiliate-platform/lib/sync.ts` |
+| Portal sync | `ts-affiliate-platform/lib/sync/` |
 | Attribution enrich | `ts-affiliate-platform/lib/ledger/attribution.ts` |
 | Commission row | `ts-affiliate-platform/components/affiliate/CommissionRow.tsx` |
 | Copy | `ts-affiliate-platform/lib/affiliate/copy.ts` |

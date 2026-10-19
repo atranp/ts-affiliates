@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { syncDownlineTeams } from "@/lib/sync-write";
+import { syncDownlineTeams } from "@/lib/sync/write";
 import { SLICEWP_DOWNLINE_KEY } from "./constants";
 
 /** Create/update one downline Team per sponsor that has SliceWP recruits. */

@@ -170,7 +170,7 @@ async function main() {
 
   // 5 — the settlement now exists in both systems. Once the payment mirrors
   //     home it must still read as one receipt, not two.
-  const { clearStaleSyncLock, tryBeginSync } = await import("../lib/sync-state");
+  const { clearStaleSyncLock, tryBeginSync } = await import("../lib/sync/state");
   const { runFullSyncJob } = await import("../lib/sync");
   const { listDirectPayoutAnchorsForMember } = await import(
     "../lib/payouts/direct-payout-ref"

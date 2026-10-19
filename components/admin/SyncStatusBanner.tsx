@@ -6,7 +6,7 @@ import {
   syncStepLabel,
   type SyncStatus,
 } from "@/hooks/use-sync-status";
-import { describeSyncError } from "@/lib/sync-errors";
+import { describeSyncError } from "@/lib/sync/errors";
 
 function formatSyncTime(iso: string | null) {
   if (!iso) return "Never";

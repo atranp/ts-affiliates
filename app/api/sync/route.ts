@@ -8,7 +8,7 @@ import {
   getSyncStatus,
   isSyncStale,
   tryBeginSync,
-} from "@/lib/sync-state";
+} from "@/lib/sync/state";
 
 export const maxDuration = 300;
 

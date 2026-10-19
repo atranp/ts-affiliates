@@ -17,7 +17,7 @@ import { getNextPayoutWeek } from "./payout-schedule";
 import {
   bulkUpdateOverrideEntries,
   type OverrideUpdateRow,
-} from "./sync-write";
+} from "./sync/write";
 import { calculateOverrideAmount } from "./deal-rules";
 import { toNumber } from "./utils";
 

@@ -1,8 +1,8 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma";
 import { getSettings, hasResolvedWooCommerce } from "../settings";
-import { journeyPendingWhere } from "../sync-journey";
-import { syncCommissionBases, syncLedgerCommissionBases } from "../sync-write";
+import { journeyPendingWhere } from "../sync/journey";
+import { syncCommissionBases, syncLedgerCommissionBases } from "../sync/write";
 import { fetchWooOrderTotalsByIds } from "../woocommerce";
 
 /**

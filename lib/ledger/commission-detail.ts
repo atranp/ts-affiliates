@@ -13,7 +13,7 @@ import {
   type JourneyStep,
   type WinningRule,
 } from "@/lib/ledger/attribution-audit";
-import { orderTotalsFromJourneyOrder } from "@/lib/sync-journey";
+import { orderTotalsFromJourneyOrder } from "@/lib/sync/journey";
 import { fetchCommissionJourney } from "@/lib/slicewp-bridge";
 import { resolveTrackedByClick } from "@/lib/ledger/attribution";
 import { prisma } from "@/lib/prisma";

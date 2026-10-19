@@ -113,7 +113,7 @@ The `dev:local`, `sync:local`, `cohort`, and `bootstrap-admin` npm scripts set t
 
 | Guard | File | What it does |
 |---|---|---|
-| Sync clobber fix | `lib/sync-write.ts` | Settled ledger entries (`payoutBatchId` set) keep `PAID` status during sync |
+| Sync clobber fix | `lib/sync/write.ts` | Settled ledger entries (`payoutBatchId` set) keep `PAID` status during sync |
 | Production write block | `lib/env-guard.ts` | Refuses WP mutations when store URL is `true-sciences.com` unless `ALLOW_PRODUCTION_WRITES=true` |
 | Local→prod sync block | `lib/env-guard.ts` | Refuses sync when store is non-prod but Supabase is prod |
 | Local→prod mirror skip | `lib/env-guard.ts` | `shouldMirrorWrites()` — a write to a non-prod store is not mirrored into a prod database |
@@ -265,7 +265,7 @@ These are scripts against a live Local WP + local Supabase, not unit tests. That
 
 ### Tasks
 
-- [x] Sync clobber guard (`lib/sync-write.ts`)
+- [x] Sync clobber guard (`lib/sync/write.ts`)
 - [x] Environment guards (`lib/env-guard.ts`)
 - [x] `USE_ENV_CREDENTIALS` dev override (`lib/settings.ts`; exported as `isEnvCredentialsOverride()`)
 - [x] Integrations UI banner + save block when env override active
@@ -624,7 +624,7 @@ npm run guard-check                              # prove the prod guards hold
 ### Tasks
 
 - [x] Prisma schema + `npm run db:push`
-- [x] Extend `lib/sync.ts` with visits / creatives / coupons steps
+- [x] Extend `lib/sync/` with visits / creatives / coupons steps
 - [x] Admin affiliate detail shows visit count + coupons (read-only)
 
 ### Exit criteria
@@ -725,7 +725,7 @@ to skip a window of visits on every sync. `parseGmt()` appends the `Z`.
 
 #### No new write paths
 
-`/affiliate-extras` is registered `READABLE`. `lib/sync-parity.ts` contains no
+`/affiliate-extras` is registered `READABLE`. `lib/sync/parity.ts` contains no
 mutating calls. The only `CREATABLE` bridge route and the only POST in
 `lib/slicewp-bridge.ts` are still M3's `/payments/settle`, behind
 `assertWritableStore`.

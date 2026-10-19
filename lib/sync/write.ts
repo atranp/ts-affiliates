@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { Prisma, PayoutSchedule, type Commission } from "@prisma/client";
-import { prisma } from "./prisma";
-import { getNextPayoutWeek } from "./payout-schedule";
+import { prisma } from "../prisma";
+import { getNextPayoutWeek } from "../payout-schedule";
 
 /**
  * Set-based writes for the sync path.
