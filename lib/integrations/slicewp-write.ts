@@ -1,11 +1,7 @@
 import { assertWritableStore } from "../env-guard";
 import { getSettings } from "../settings";
-import {
-  appendWpAuthParams,
-  normalizeStoreUrl,
-  readApiError,
-  sanitizeCredential,
-} from "./wordpress-auth";
+import { slicewpAuthParams, slicewpUrl } from "./slicewp-http";
+import { readApiError } from "./wordpress-auth";
 import type { SliceWPAffiliate } from "./slicewp";
 
 /**
@@ -45,20 +41,16 @@ export async function slicewpWrite<T>(
 
   assertWritableStore(settings.wcStoreUrl);
 
-  const key = sanitizeCredential(settings.slicewpConsumerKey);
-  const secret = sanitizeCredential(settings.slicewpConsumerSecret);
-
-  if (!key || !secret) {
-    throw new Error(
-      "SliceWP credentials are missing. Add them in Admin → Integrations."
-    );
-  }
-
-  const baseUrl = normalizeStoreUrl(settings.wcStoreUrl);
-  const search = appendWpAuthParams(new URLSearchParams(), key, secret);
-
   const response = await fetch(
-    `${baseUrl}/wp-json/slicewp/v1${path}?${search.toString()}`,
+    slicewpUrl(
+      settings.wcStoreUrl,
+      "slicewp/v1",
+      path,
+      slicewpAuthParams(
+        settings.slicewpConsumerKey,
+        settings.slicewpConsumerSecret
+      )
+    ),
     {
       method,
       headers: {

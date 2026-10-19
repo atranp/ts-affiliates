@@ -1,10 +1,6 @@
 import { mapWithConcurrency } from "../utils";
-import {
-  appendWpAuthParams,
-  normalizeStoreUrl,
-  readApiError,
-  sanitizeCredential,
-} from "./wordpress-auth";
+import { slicewpAuthParams, slicewpUrl } from "./slicewp-http";
+import { readApiError } from "./wordpress-auth";
 
 function formatSliceWPAuthError(status: number, detail: string): string {
   if (detail.includes("invalid_username")) {
@@ -35,20 +31,13 @@ async function slicewpFetch<T>(
   path: string,
   params: Record<string, string> = {}
 ): Promise<T> {
-  const baseUrl = normalizeStoreUrl(storeUrl);
-  const key = sanitizeCredential(consumerKey);
-  const secret = sanitizeCredential(consumerSecret);
-
-  if (!key || !secret) {
-    throw new Error(
-      "SliceWP credentials are missing. Add them in Admin → Integrations."
-    );
-  }
-
-  const search = appendWpAuthParams(new URLSearchParams(params), key, secret);
-
   const response = await fetch(
-    `${baseUrl}/wp-json/slicewp/v1${path}?${search.toString()}`,
+    slicewpUrl(
+      storeUrl,
+      "slicewp/v1",
+      path,
+      slicewpAuthParams(consumerKey, consumerSecret, params)
+    ),
     {
       headers: { Accept: "application/json" },
       cache: "no-store",

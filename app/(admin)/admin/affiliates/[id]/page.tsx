@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { FileText, Users, Share2, ChevronRight, DollarSign } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -25,6 +25,7 @@ import {
 } from "@/hooks/use-admin-query";
 import type { LedgerTab } from "@/hooks/use-ledger";
 import { useTeamRoster, useTeams } from "@/hooks/use-teams";
+import { useUrlParams } from "@/hooks/use-url-params";
 import { apiFetch } from "@/lib/api/client";
 import { affiliateStatusBadgeVariant } from "@/lib/admin/format";
 import { CreatePayoutPanel } from "@/components/payouts/CreatePayoutPanel";
@@ -47,6 +48,19 @@ function resolveViewTab(value: string | null): ViewTab {
     : "ledger";
 }
 
+const LEDGER_TABS: LedgerTab[] = [
+  "all",
+  "unpaid",
+  "paid",
+  "pending",
+  "overrides",
+  "rejected",
+];
+
+function resolveDetailLedgerTab(value: string | null): LedgerTab {
+  return LEDGER_TABS.find((tab) => tab === value) ?? "all";
+}
+
 export default function AdminAffiliateDetailPage() {
   return (
     <Suspense fallback={<p className="text-muted-foreground">Loading...</p>}>
@@ -57,18 +71,30 @@ export default function AdminAffiliateDetailPage() {
 
 function AdminAffiliateDetailPageContent() {
   const params = useParams<{ id: string }>();
-  const searchParams = useSearchParams();
+  const { searchParams, setParams } = useUrlParams();
   const affiliateId = params.id;
   const queryClient = useQueryClient();
 
-  const [viewTab, setViewTab] = useState<ViewTab>(() =>
-    resolveViewTab(searchParams.get("tab"))
-  );
-  const [ledgerTab, setLedgerTab] = useState<LedgerTab>("all");
-  const [teamFilter, setTeamFilter] = useState("all");
+  const viewTab = resolveViewTab(searchParams.get("tab"));
+  const ledgerTab = resolveDetailLedgerTab(searchParams.get("status"));
+  const teamFilter = searchParams.get("team") ?? "all";
   const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
   const [payoutSearch, setPayoutSearch] = useState("");
+
+  function setViewTab(tab: ViewTab) {
+    setParams({ tab: tab === "ledger" ? null : tab }, { history: true });
+  }
+
+  function setLedgerTab(tab: LedgerTab) {
+    setParams({ status: tab === "all" ? null : tab });
+    setPage(1);
+  }
+
+  function setTeamFilter(teamId: string) {
+    setParams({ team: teamId === "all" ? null : teamId });
+    setPage(1);
+  }
 
   const {
     data: affiliate,
@@ -118,8 +144,10 @@ function AdminAffiliateDetailPageContent() {
   }
 
   function focusLedger(status: LedgerTab) {
-    setViewTab("ledger");
-    setLedgerTab(status);
+    setParams(
+      { tab: null, status: status === "all" ? null : status },
+      { history: true }
+    );
     setPage(1);
   }
 
@@ -284,8 +312,15 @@ function AdminAffiliateDetailPageContent() {
                     teams={teamsData?.teams}
                     legacyTeam={teamData?.team}
                     onViewTeamLedger={(teamId) => {
-                      setTeamFilter(teamId);
-                      focusLedger("overrides");
+                      setParams(
+                        {
+                          tab: null,
+                          status: "overrides",
+                          team: teamId,
+                        },
+                        { history: true }
+                      );
+                      setPage(1);
                     }}
                   />
                 </TabsContent>

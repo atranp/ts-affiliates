@@ -1,11 +1,7 @@
 import { getSettings } from "../settings";
 import type { CommissionJourneyPayload } from "../ledger/attribution-audit";
-import {
-  appendWpAuthParams,
-  normalizeStoreUrl,
-  readApiError,
-  sanitizeCredential,
-} from "./wordpress-auth";
+import { slicewpAuthParams, slicewpUrl } from "./slicewp-http";
+import { readApiError } from "./wordpress-auth";
 
 /**
  * Client for the `slicewp-ts/v1` routes added by the True Sciences bridge
@@ -80,20 +76,17 @@ async function bridgeFetch<T>(
 ): Promise<T> {
   const settings = await getSettings();
 
-  const key = sanitizeCredential(settings.slicewpConsumerKey);
-  const secret = sanitizeCredential(settings.slicewpConsumerSecret);
-
-  if (!key || !secret) {
-    throw new Error(
-      "SliceWP credentials are missing. Add them in Admin → Integrations."
-    );
-  }
-
-  const baseUrl = normalizeStoreUrl(settings.wcStoreUrl);
-  const search = appendWpAuthParams(new URLSearchParams(params), key, secret);
-
   const response = await fetch(
-    `${baseUrl}/wp-json/slicewp-ts/v1${path}?${search.toString()}`,
+    slicewpUrl(
+      settings.wcStoreUrl,
+      "slicewp-ts/v1",
+      path,
+      slicewpAuthParams(
+        settings.slicewpConsumerKey,
+        settings.slicewpConsumerSecret,
+        params
+      )
+    ),
     {
       headers: { Accept: "application/json" },
       cache: "no-store",
@@ -283,20 +276,16 @@ export async function settlePayment(
 
   assertWritableStore(settings.wcStoreUrl);
 
-  const key = sanitizeCredential(settings.slicewpConsumerKey);
-  const secret = sanitizeCredential(settings.slicewpConsumerSecret);
-
-  if (!key || !secret) {
-    throw new Error(
-      "SliceWP credentials are missing. Add them in Admin → Integrations."
-    );
-  }
-
-  const baseUrl = normalizeStoreUrl(settings.wcStoreUrl);
-  const search = appendWpAuthParams(new URLSearchParams(), key, secret);
-
   const response = await fetch(
-    `${baseUrl}/wp-json/slicewp-ts/v1/payments/settle?${search.toString()}`,
+    slicewpUrl(
+      settings.wcStoreUrl,
+      "slicewp-ts/v1",
+      "/payments/settle",
+      slicewpAuthParams(
+        settings.slicewpConsumerKey,
+        settings.slicewpConsumerSecret
+      )
+    ),
     {
       method: "POST",
       headers: {
@@ -363,24 +352,17 @@ export async function fetchCommissionJourney(
   options: { lite?: boolean } = {}
 ): Promise<CommissionJourneyPayload> {
   const settings = await getSettings();
-
-  const key = sanitizeCredential(settings.slicewpConsumerKey);
-  const secret = sanitizeCredential(settings.slicewpConsumerSecret);
-
-  if (!key || !secret) {
-    throw new Error(
-      "SliceWP credentials are missing. Add them in Admin → Integrations."
-    );
-  }
-
-  const baseUrl = normalizeStoreUrl(settings.wcStoreUrl);
-  const search = appendWpAuthParams(new URLSearchParams(), key, secret);
-  if (options.lite) {
-    search.set("lite", "1");
-  }
-
   const response = await fetch(
-    `${baseUrl}/wp-json/slicewp-ts/v1/commissions/${slicewpCommissionId}/journey?${search.toString()}`,
+    slicewpUrl(
+      settings.wcStoreUrl,
+      "slicewp-ts/v1",
+      `/commissions/${slicewpCommissionId}/journey`,
+      slicewpAuthParams(
+        settings.slicewpConsumerKey,
+        settings.slicewpConsumerSecret,
+        options.lite ? { lite: "1" } : {}
+      )
+    ),
     {
       headers: { Accept: "application/json" },
       cache: "no-store",
@@ -457,25 +439,21 @@ export async function updateAffiliateSettings(
 
   assertWritableStore(settings.wcStoreUrl);
 
-  const key = sanitizeCredential(settings.slicewpConsumerKey);
-  const secret = sanitizeCredential(settings.slicewpConsumerSecret);
-
-  if (!key || !secret) {
-    throw new Error(
-      "SliceWP credentials are missing. Add them in Admin → Integrations."
-    );
-  }
-
   const body: Record<string, string> = {};
   if (edit.paymentEmail !== undefined) body.payment_email = edit.paymentEmail;
   if (edit.website !== undefined) body.website = edit.website;
   if (edit.customSlug !== undefined) body.custom_slug = edit.customSlug;
 
-  const baseUrl = normalizeStoreUrl(settings.wcStoreUrl);
-  const search = appendWpAuthParams(new URLSearchParams(), key, secret);
-
   const response = await fetch(
-    `${baseUrl}/wp-json/slicewp-ts/v1/affiliates/${slicewpAffiliateId}/settings?${search.toString()}`,
+    slicewpUrl(
+      settings.wcStoreUrl,
+      "slicewp-ts/v1",
+      `/affiliates/${slicewpAffiliateId}/settings`,
+      slicewpAuthParams(
+        settings.slicewpConsumerKey,
+        settings.slicewpConsumerSecret
+      )
+    ),
     {
       method: "POST",
       headers: {

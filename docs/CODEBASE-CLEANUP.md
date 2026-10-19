@@ -74,12 +74,14 @@ behaviour-preserving unless it is listed under "Intentional behaviour changes".
 | `app/(admin)/admin/affiliates/[id]/page.tsx` 760 | 306, plus `components/admin/affiliate-detail/*` (stats, sidebar, ledger, teams, rules tabs) |
 | `components/payouts/CreatePayoutPanel.tsx` 715 | 318, plus `components/payouts/create/*` and the pre-sync hook |
 | `lib/sync.ts` 1050 | `lib/sync/` split into `affiliates`, `commissions`, `affiliate-sync`, `profiles`, `optional-steps`, and `full-sync`, behind `index.ts` |
+| `components/CommissionsPanel.tsx` 537 | Filter bar in `components/affiliate/CommissionsFilterBar.tsx`; the panel keeps the stat cards, table, and detail drawer |
+| `components/admin/AdminLedgerTable.tsx` 518 | Edit dialog and bulk confirm in `components/admin/ledger/LedgerEntryDialogs.tsx` |
 
 ### `lib/` layout
 ```
 lib/api/          auth.ts (requireAdmin/requireAuth), body.ts, cache.ts, client.ts
 lib/auth/         session.ts, role.ts, cookies.ts (edge-safe), impersonation.ts
-lib/integrations/ slicewp.ts, slicewp-bridge.ts, slicewp-write.ts, woocommerce.ts, wordpress-auth.ts
+lib/integrations/ slicewp.ts, slicewp-bridge.ts, slicewp-write.ts, slicewp-http.ts, woocommerce.ts, wordpress-auth.ts
 lib/sync/         index.ts plus the sync stages, state, write, parity, journey, errors
 ```
 `lib/auth/` deliberately has no `index.ts`: the middleware imports
@@ -94,6 +96,9 @@ bundle. The middleware bundle is 84 kB on this branch, down from 143 kB on
   (`formatPayoutWeekLabel`), `lib/admin/format.ts`
   (`affiliateStatusBadgeVariant`), `fetchAffiliateOption`, and
   `lib/api/body.ts` (`readJsonObject`).
+- `lib/integrations/slicewp-http.ts` (`slicewpAuthParams`, `slicewpUrl`) builds
+  the authenticated SliceWP URL. Each caller still owns its status handling, and
+  writes still go through `assertWritableStore` before the request.
 
 ### Intentional behaviour changes
 - Malformed or non-object JSON bodies return `400 { error: "Invalid JSON body" }`
@@ -105,6 +110,11 @@ bundle. The middleware bundle is 84 kB on this branch, down from 143 kB on
   than after the debounce.
 - Sync-status polling is shared through the query cache instead of running one
   loop per hook instance. Only `AdminShell` uses it today.
+- The admin affiliate detail view is shareable. `tab` is `payouts`, `team`, or
+  `rules` (ledger omits it); `status` is the ledger sub-tab (`unpaid`, `paid`,
+  `pending`, `overrides`, `rejected`); `team` is the roster filter. Tab changes
+  push a history entry. Search text and page stay in component state, so typing
+  still resets to page 1 immediately and switching tabs keeps the search box.
 
 ## Remaining backlog (not on this branch)
 
@@ -120,23 +130,15 @@ In priority order, with what each touches:
 3. **Move route-embedded business logic into `lib/`:** deal-rules create and
    update validation, the audit-log query and name join, payout batch merging,
    and settings encryption.
-4. **SliceWP fetch boilerplate.** `slicewpFetch`, `bridgeFetch`, and
-   `slicewpWrite` each resolve credentials and build auth params. Extract
-   `resolveSlicewpCredentials()` and one `wpJsonFetch`, keeping writes behind
-   `assertWritableStore`.
-5. **Remaining large files.**
-   - `CommissionsPanel` (537): extract the filter bar.
-   - `AdminLedgerTable` (518): extract the edit dialog and bulk confirm.
-   - `lib/ledger/commission-detail.ts` (732).
-   - `lib/rules-engine.ts` (591).
+4. **Remaining large files.**
+   - `lib/ledger/commission-detail.ts` (651).
+   - `lib/rules-engine.ts` (525).
    - The mock fixtures (1335 and 1055) are data and can stay large.
-6. **Admin affiliate detail tabs in the URL**, using `useUrlParams` the way the
-   dashboard does, so a tab and filter can be shared.
-7. **Local-time dates.** `formatDate` helpers in the affiliate sidebar, the
+5. **Local-time dates.** `formatDate` helpers in the affiliate sidebar, the
    portal panel, and the audit log use the browser's time zone rather than
    `APP_TIMEZONE`. Switching to `formatAppDateTime` changes what admins see, so
    it needs sign-off.
-8. **Unexport internal-only helpers** that knip flags (for example
+6. **Unexport internal-only helpers** that knip flags (for example
    `buildUnpaidWhere`, `buildPayoutLabel`, `ledgerInclude`). Confirm each
    against `scripts/` first: knip treats `scripts/` as unused files, so it
    misses their imports.
