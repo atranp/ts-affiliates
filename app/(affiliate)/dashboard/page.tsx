@@ -1,54 +1,34 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import { useAuth } from '@/components/AuthProvider';
-import { affiliateBadgeClass } from '@/components/affiliate/AffiliateBadge';
-import { AffiliateStatCard } from '@/components/affiliate/AffiliateStatCard';
-import { AffiliateHomeCard } from '@/components/affiliate/primitives';
 import {
   DashboardSkeleton,
   TeamsPanelSkeleton,
 } from '@/components/affiliate/DashboardSkeleton';
-import { MilestoneProgress } from '@/components/affiliate/MilestoneProgress';
-import { CommissionsHomePreview } from '@/components/affiliate/CommissionsHomePreview';
-import { PayoutsHomePreview } from '@/components/affiliate/PayoutsHomePreview';
-import { TeamHomePreview } from '@/components/affiliate/TeamHomePreview';
+import {
+  DashboardTabPanel,
+  PanelSkeleton,
+} from '@/components/affiliate/dashboard/DashboardTabPanel';
+import { OverviewTab } from '@/components/affiliate/dashboard/OverviewTab';
 import { CommissionsPanel } from '@/components/CommissionsPanel';
 import { TeamsPanel } from '@/components/TeamsPanel';
 import { TeamPanel } from '@/components/TeamPanel';
-import { useTeamRoster, useTeams } from '@/hooks/use-teams';
-import { useAffiliatePayouts } from '@/hooks/use-payouts';
 import { ErrorState } from '@/components/admin/ErrorState';
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Tabs, TabsContent } from '@/components/ui/tabs';
-import {
-  defaultSortDirection,
-  ledgerSortParamsForUrl,
-  ledgerTabToFilters,
-  ledgerTypeFilterToApi,
-  resolveLedgerSortDir,
-  resolveLedgerSortKey,
-  resolveLedgerStatusTab,
-  resolveLedgerTypeFilter,
-  useLedger,
-  type LedgerSortKey,
-  type LedgerStatusTab,
-  type LedgerTypeFilter,
-} from '@/hooks/use-ledger';
-import type { SortDirection } from '@/lib/ledger/sort';
+import { Tabs } from '@/components/ui/tabs';
 import { PayoutsList } from '@/components/payouts/PayoutsList';
 import { LinksPanel } from '@/components/affiliate/LinksPanel';
 import { StatsPanel } from '@/components/affiliate/StatsPanel';
 import { CreativesPanel } from '@/components/affiliate/CreativesPanel';
 import { CouponsPanel } from '@/components/affiliate/CouponsPanel';
 import { SettingsPanel } from '@/components/affiliate/SettingsPanel';
+import { PeriodPicker } from '@/components/affiliate/PeriodPicker';
 import {
   useAffiliateCoupons,
   useAffiliateCreatives,
@@ -57,26 +37,18 @@ import {
   useAffiliateVisits,
   type VisitOutcomeFilter,
 } from '@/hooks/use-affiliate-reach';
-import { AFFILIATE_COPY } from '@/lib/affiliate/copy';
-import { PeriodPicker } from '@/components/affiliate/PeriodPicker';
-import { EarningsTrend } from '@/components/affiliate/PerformanceCharts';
-import { percentChange, usePerformance } from '@/hooks/use-performance';
-import { periodFromParams, type PeriodKey } from '@/lib/affiliate/period';
-import { cn, formatCurrency } from '@/lib/utils';
+import { useLedger } from '@/hooks/use-ledger';
+import { useLedgerUrlFilters } from '@/hooks/use-ledger-url-filters';
 import { useMinLg } from '@/hooks/use-media-query';
+import { useAffiliatePayouts } from '@/hooks/use-payouts';
+import { usePerformance } from '@/hooks/use-performance';
+import { useTeamRoster, useTeams } from '@/hooks/use-teams';
+import { useUrlParams } from '@/hooks/use-url-params';
+import { AFFILIATE_COPY } from '@/lib/affiliate/copy';
+import { periodFromParams, type PeriodKey } from '@/lib/affiliate/period';
+import { cn } from '@/lib/utils';
 
-type DashboardTab =
-  | 'overview'
-  | 'links'
-  | 'creatives'
-  | 'coupons'
-  | 'visits'
-  | 'ledger'
-  | 'teams'
-  | 'payouts'
-  | 'settings';
-
-const DASHBOARD_TABS: DashboardTab[] = [
+const DASHBOARD_TABS = [
   'overview',
   'links',
   'creatives',
@@ -86,7 +58,9 @@ const DASHBOARD_TABS: DashboardTab[] = [
   'teams',
   'payouts',
   'settings',
-];
+] as const;
+
+type DashboardTab = (typeof DASHBOARD_TABS)[number];
 
 function resolveTab(value: string | null): DashboardTab {
   if (value === 'commissions') return 'ledger';
@@ -105,58 +79,12 @@ export default function DashboardPage() {
   );
 }
 
-/** Placeholder while a promotional tab's first fetch is in flight. */
-function PanelSkeleton() {
-  return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <div className="h-48 animate-pulse rounded-xl border border-border/60 bg-muted/15" />
-      <div className="h-48 animate-pulse rounded-xl border border-border/60 bg-muted/15" />
-    </div>
-  );
-}
-
 function DashboardPageContent() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const { searchParams, setParams } = useUrlParams();
   const { user, loading: authLoading } = useAuth();
-
-  /**
-   * The URL is the single source of truth for navigation state so refreshes,
-   * the back button, and shared links all land where the user expects.
-   * Tab moves go into history; filter tweaks replace so they don't flood it.
-   */
-  const setParams = useCallback(
-    (
-      updates: Record<string, string | null>,
-      { history = false }: { history?: boolean } = {},
-    ) => {
-      const next = new URLSearchParams(searchParams.toString());
-      for (const [key, value] of Object.entries(updates)) {
-        if (value === null) next.delete(key);
-        else next.set(key, value);
-      }
-      const query = next.toString();
-      const url = query ? `${pathname}?${query}` : pathname;
-      if (history) router.push(url, { scroll: false });
-      else router.replace(url, { scroll: false });
-    },
-    [pathname, router, searchParams],
-  );
+  const signedIn = !!user;
 
   const viewTab = resolveTab(searchParams.get('tab'));
-  const statusParam = searchParams.get('status');
-  const ledgerTab = resolveLedgerStatusTab(statusParam);
-  const typeFilter = resolveLedgerTypeFilter(
-    searchParams.get('type'),
-    statusParam,
-  );
-  const sourceFilter = searchParams.get('member') ?? 'all';
-  const teamFilter = searchParams.get('team') ?? 'all';
-  const urlQuery = searchParams.get('q') ?? '';
-  const page = Math.max(1, Number(searchParams.get('page') ?? '1') || 1);
-  const sortKey = resolveLedgerSortKey(searchParams.get('sort'));
-  const sortDir = resolveLedgerSortDir(searchParams.get('dir'), sortKey);
 
   /**
    * One period param, two defaults. Home and Traffic are reports and open on a
@@ -197,126 +125,51 @@ function DashboardPageContent() {
     });
   }
 
-  // Typing stays local for responsiveness, then lands in the URL once settled.
-  const [q, setQ] = useState(urlQuery);
-  const lastWritten = useRef(urlQuery);
-
-  // Adopt query changes we did not cause, so back/forward and "clear filters"
-  // are not immediately overwritten by the pending debounce.
-  useEffect(() => {
-    if (urlQuery !== lastWritten.current) {
-      lastWritten.current = urlQuery;
-      setQ(urlQuery);
-    }
-  }, [urlQuery]);
-
-  useEffect(() => {
-    if (q === urlQuery) return;
-    const timer = setTimeout(() => {
-      lastWritten.current = q;
-      setParams({ q: q || null, page: null });
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [q, urlQuery, setParams]);
-
-  const tabFilters = ledgerTabToFilters(ledgerTab, sourceFilter);
-
-  /**
-   * The CSV has to answer for exactly what is on screen, so it is built from
-   * the same values the table query uses rather than from the raw URL — the
-   * status tab and the type filter both translate before they reach the API.
-   */
-  const exportHref = (() => {
-    const params = new URLSearchParams();
-    const typeQuery = ledgerTypeFilterToApi(typeFilter);
-
-    if (tabFilters.status) params.set('status', tabFilters.status);
-    if (tabFilters.type) params.set('type', tabFilters.type);
-    if (typeQuery.type) params.set('type', typeQuery.type);
-    if (typeQuery.directKind) params.set('directKind', typeQuery.directKind);
-    if (tabFilters.sourceAffiliateId) {
-      params.set('sourceAffiliateId', tabFilters.sourceAffiliateId);
-    }
-    if (teamFilter !== 'all') params.set('teamId', teamFilter);
-    if (urlQuery) params.set('q', urlQuery);
-
-    params.set('period', periodParams.period);
-    if (periodParams.from) params.set('from', periodParams.from);
-    if (periodParams.to) params.set('to', periodParams.to);
-    params.set('sort', sortKey);
-    params.set('dir', sortDir);
-
-    return `/api/ledger/export?${params.toString()}`;
-  })();
-
+  const ledgerFilters = useLedgerUrlFilters(
+    searchParams,
+    setParams,
+    periodParams,
+  );
   const { data, error, isLoading, refetch, isFetching } = useLedger({
-    ...tabFilters,
-    ...ledgerTypeFilterToApi(typeFilter),
-    q: urlQuery,
-    teamId: teamFilter !== 'all' ? teamFilter : undefined,
-    ...periodParams,
-    page,
-    limit: 50,
-    sortBy: sortKey,
-    sortDir,
-    enabled: !!user,
+    ...ledgerFilters.ledgerQuery,
+    enabled: signedIn,
   });
 
   // Home and Traffic both read this; fetching it on either avoids a second
   // round trip when the affiliate moves between them.
   const { data: performance } = usePerformance({
     ...periodParams,
-    enabled: !!user && (viewTab === 'overview' || viewTab === 'visits'),
+    enabled: signedIn && (viewTab === 'overview' || viewTab === 'visits'),
   });
-
-  const countOf = (value: number | undefined) =>
-    value === undefined ? '—' : value.toLocaleString('en-US');
-
-  const rateOf = (value: number | null | undefined) =>
-    value === null || value === undefined ? '—' : `${value.toFixed(1)}%`;
-
-  /**
-   * Movement on one metric. Null whenever the comparison would be invented
-   * rather than measured — an unbounded period, or a baseline of zero.
-   */
-  function periodDelta(
-    key: 'earnings' | 'revenue' | 'clicks' | 'sales' | 'conversionRate',
-  ): number | null {
-    const current = performance?.current[key];
-    const previous = performance?.previous?.[key];
-    if (current === null || current === undefined) return null;
-    if (previous === null || previous === undefined) return null;
-    return percentChange(current, previous);
-  }
 
   const { data: teamsData, isLoading: teamsLoading } = useTeams(
     undefined,
-    !!user,
+    signedIn,
   );
-  const { data: legacyTeamData } = useTeamRoster(undefined, !!user);
+  const { data: legacyTeamData } = useTeamRoster(undefined, signedIn);
 
   // Warms the cache for the payouts tab and the home preview, which render it.
-  useAffiliatePayouts(!!user);
+  useAffiliatePayouts(signedIn);
 
   // The promotional tabs fetch only once their tab is open — visits in
   // particular is the heaviest query here, and most sessions never open it.
   const visitsPage = Math.max(1, Number(searchParams.get('vp') ?? '1') || 1);
   const visitOutcome = resolveVisitOutcome(searchParams.get('clicks'));
 
-  const { data: linkData } = useAffiliateLink(!!user && viewTab === 'links');
+  const { data: linkData } = useAffiliateLink(signedIn && viewTab === 'links');
   const { data: visitsData, isFetching: visitsFetching } = useAffiliateVisits(
     visitsPage,
-    !!user && viewTab === 'visits',
+    signedIn && viewTab === 'visits',
     visitOutcome,
   );
   const { data: creativesData } = useAffiliateCreatives(
-    !!user && viewTab === 'creatives',
+    signedIn && viewTab === 'creatives',
   );
   const { data: couponsData } = useAffiliateCoupons(
-    !!user && viewTab === 'coupons',
+    signedIn && viewTab === 'coupons',
   );
   const { data: settingsData } = useAffiliateSettings(
-    !!user && viewTab === 'settings',
+    signedIn && viewTab === 'settings',
   );
 
   function setViewTab(tab: string) {
@@ -354,72 +207,6 @@ function DashboardPageContent() {
     );
   }
 
-  function handleTeamFilter(value: string) {
-    setParams({
-      team: value === 'all' ? null : value,
-      // A team and a single member are mutually exclusive narrowings.
-      ...(value === 'all' ? {} : { member: null }),
-      page: null,
-    });
-  }
-
-  function handleSourceFilter(value: string) {
-    setParams({ member: value === 'all' ? null : value, page: null });
-  }
-
-  function handleTypeFilter(value: LedgerTypeFilter) {
-    setParams({
-      type: value === 'all' ? null : value,
-      status: statusParam === 'overrides' ? null : statusParam,
-      ...(value === 'direct' || value === 'lifetime'
-        ? { team: null, member: null }
-        : {}),
-      page: null,
-    });
-  }
-
-  function handleLedgerTab(value: LedgerStatusTab) {
-    setParams({ status: value === 'all' ? null : value, page: null });
-  }
-
-  function handleLedgerPageChange(nextPage: number) {
-    setParams({
-      page: nextPage <= 1 ? null : String(nextPage),
-    });
-  }
-
-  function handleLedgerSort(key: LedgerSortKey) {
-    const nextDir =
-      sortKey === key
-        ? sortDir === 'asc'
-          ? 'desc'
-          : 'asc'
-        : defaultSortDirection(key);
-
-    handleLedgerSortChange(key, nextDir);
-  }
-
-  function handleLedgerSortChange(key: LedgerSortKey, dir: SortDirection) {
-    setParams({
-      ...ledgerSortParamsForUrl(key, dir),
-      page: null,
-    });
-  }
-
-  function clearLedgerFilters() {
-    setQ('');
-    setParams({
-      status: null,
-      type: null,
-      member: null,
-      team: null,
-      q: null,
-      page: null,
-      sort: null,
-      dir: null,
-    });
-  }
-
   const displayName = user?.affiliateName?.trim() || user?.name?.trim() || null;
   const desktopFill = useMinLg();
 
@@ -427,14 +214,7 @@ function DashboardPageContent() {
     return <DashboardSkeleton />;
   }
 
-  const hasTeams = (teamsData?.teams.length ?? 0) > 0;
-  const hasTeamBonuses = (data?.teamBonuses.length ?? 0) > 0;
-  const filtersActive =
-    ledgerTab !== 'all' ||
-    typeFilter !== 'all' ||
-    sourceFilter !== 'all' ||
-    teamFilter !== 'all' ||
-    urlQuery !== '';
+  const fillClassName = cn('min-h-0', desktopFill && 'flex-1');
 
   return (
     <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden">
@@ -448,234 +228,34 @@ function DashboardPageContent() {
           onValueChange={setViewTab}
           className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col lg:overflow-hidden"
         >
-          <TabsContent
-            value="overview"
-            className="ts-affiliate-tab-scroll ts-home-overview"
-          >
-            <div className="min-w-0 shrink-0">
-              <h1 className="page-title">
-                {displayName ? `Welcome, ${displayName}` : 'Welcome'}
-              </h1>
-              <p className="page-description">{AFFILIATE_COPY.home.subtitle}</p>
-            </div>
+          <OverviewTab
+            displayName={displayName}
+            period={period}
+            onPeriodChange={handlePeriodChange}
+            performance={performance}
+            ledger={data}
+            teams={teamsData?.teams}
+            teamsLoading={teamsLoading}
+            enabled={signedIn}
+            desktopFill={desktopFill}
+            onNavigate={setViewTab}
+            onViewTeamLedger={focusTeam}
+            onViewMember={focusTeamMember}
+          />
 
-            <PeriodPicker period={period} onChange={handlePeriodChange} />
-
-            <div className="ts-home-stat-grid-wide shrink-0">
-              <AffiliateStatCard
-                compact
-                label={AFFILIATE_COPY.performance.earnings}
-                value={performance?.current.earnings ?? 0}
-                tone="primary"
-                delta={periodDelta('earnings')}
-              />
-              <AffiliateStatCard
-                compact
-                label={AFFILIATE_COPY.performance.revenueGenerated}
-                value={performance?.current.revenue ?? 0}
-                delta={periodDelta('revenue')}
-              />
-              <AffiliateStatCard
-                compact
-                actionArrow
-                label={AFFILIATE_COPY.performance.readyForPayout}
-                value={data.accountSummary.unpaidTotal}
-                tone="success"
-                actionLabel={AFFILIATE_COPY.stats.owed.action}
-                onAction={() => setViewTab('ledger')}
-              />
-              <AffiliateStatCard
-                compact
-                label={AFFILIATE_COPY.performance.clicks}
-                value={countOf(performance?.current.clicks)}
-                delta={periodDelta('clicks')}
-              />
-              <AffiliateStatCard
-                compact
-                label={AFFILIATE_COPY.performance.sales}
-                value={countOf(performance?.current.sales)}
-                delta={periodDelta('sales')}
-              />
-              <AffiliateStatCard
-                compact
-                label={AFFILIATE_COPY.performance.conversion}
-                value={rateOf(performance?.current.conversionRate)}
-                delta={periodDelta('conversionRate')}
-              />
-            </div>
-
-            <AffiliateHomeCard
-              className="shrink-0"
-              title={AFFILIATE_COPY.performance.earningsTrendTitle}
-              description={`${AFFILIATE_COPY.performance.earningsTrendDescription} · ${period.label}`}
-            >
-              {performance ? (
-                <EarningsTrend daily={performance.daily} />
-              ) : (
-                <div className="h-32 animate-pulse rounded-lg bg-muted/20" />
-              )}
-            </AffiliateHomeCard>
-
-            <div className="ts-home-split shrink-0">
-              <CommissionsHomePreview
-                enabled={!!user}
-                onViewCommissions={() => setViewTab('ledger')}
-              />
-
-              <PayoutsHomePreview
-                enabled={!!user}
-                onViewPayouts={() => setViewTab('payouts')}
-              />
-            </div>
-
-            <div className={cn('ts-home-teams', desktopFill && 'min-h-0')}>
-              {teamsLoading ? (
-                <AffiliateHomeCard title={AFFILIATE_COPY.home.teamsTitle}>
-                  <div className="h-48 animate-pulse rounded-lg border border-border/60 bg-muted/15" />
-                </AffiliateHomeCard>
-              ) : hasTeams ? (
-                <TeamHomePreview
-                  fill={false}
-                  scrollContent={false}
-                  className={cn(desktopFill && 'min-h-0')}
-                  teams={teamsData!.teams}
-                  onViewTeam={() => setViewTab('teams')}
-                  onViewTeamLedger={focusTeam}
-                  onViewMember={(memberId) =>
-                    focusTeamMember(memberId, 'unpaid')
-                  }
-                />
-              ) : hasTeamBonuses ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">
-                      {AFFILIATE_COPY.home.teamEarningsTitle}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <AffiliateStatCard
-                        label={AFFILIATE_COPY.team.teamCutUnpaid}
-                        value={data.overrideSummary.unpaidTotal}
-                        tone="primary"
-                      />
-                      <AffiliateStatCard
-                        label={AFFILIATE_COPY.team.paid}
-                        value={data.overrideSummary.paidTotal}
-                        tone="success"
-                      />
-                    </div>
-
-                    <div className="space-y-3">
-                      {data.teamBonuses.map((bonus) => {
-                        const name = bonus.displayName ?? bonus.email;
-
-                        return (
-                          <div
-                            key={bonus.sourceAffiliateId}
-                            className="rounded-lg border border-border bg-background p-4 space-y-3"
-                          >
-                            <div className="flex flex-wrap items-start justify-between gap-3">
-                              <div>
-                                <p className="font-medium">{name}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  Team member
-                                </p>
-                              </div>
-                              <div className="flex flex-wrap gap-2 text-sm">
-                                {bonus.unpaidTotal > 0 && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      focusTeamMember(
-                                        bonus.sourceAffiliateId,
-                                        'unpaid',
-                                      )
-                                    }
-                                    className={cn(
-                                      affiliateBadgeClass('unpaid'),
-                                      'ts-affiliate-badge-interactive',
-                                    )}
-                                  >
-                                    {AFFILIATE_COPY.team.teamCutUnpaid}{' '}
-                                    {formatCurrency(bonus.unpaidTotal)}
-                                  </button>
-                                )}
-                                {bonus.pendingTotal > 0 && (
-                                  <span
-                                    className={affiliateBadgeClass('pending')}
-                                  >
-                                    {AFFILIATE_COPY.team.teamCutLocked}{' '}
-                                    {formatCurrency(bonus.pendingTotal)}
-                                  </span>
-                                )}
-                                {bonus.paidTotal > 0 && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      focusTeamMember(
-                                        bonus.sourceAffiliateId,
-                                        'paid',
-                                      )
-                                    }
-                                    className={cn(
-                                      affiliateBadgeClass('paid'),
-                                      'ts-affiliate-badge-interactive',
-                                    )}
-                                  >
-                                    {AFFILIATE_COPY.team.paid}{' '}
-                                    {formatCurrency(bonus.paidTotal)}
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-
-                            {bonus.milestone && (
-                              <MilestoneProgress
-                                current={bonus.milestone.current}
-                                threshold={bonus.milestone.threshold}
-                                remaining={bonus.milestone.remaining}
-                                met={bonus.milestone.met}
-                                compact
-                              />
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : null}
-            </div>
-          </TabsContent>
-
-          <TabsContent
+          <DashboardTabPanel
             value="links"
-            className="ts-affiliate-tab-scroll flex min-h-0 min-w-0 max-w-full flex-col gap-4 lg:ts-affiliate-tab-fill lg:gap-5"
+            title={AFFILIATE_COPY.links.title}
+            description={AFFILIATE_COPY.links.description}
           >
-            <div className="ts-page-header shrink-0">
-              <h1 className="page-title">{AFFILIATE_COPY.links.title}</h1>
-              <p className="page-description">
-                {AFFILIATE_COPY.links.description}
-              </p>
-            </div>
-            {linkData ? (
-              <LinksPanel link={linkData} />
-            ) : (
-              <PanelSkeleton />
-            )}
-          </TabsContent>
+            {linkData ? <LinksPanel link={linkData} /> : <PanelSkeleton />}
+          </DashboardTabPanel>
 
-          <TabsContent
+          <DashboardTabPanel
             value="creatives"
-            className="ts-affiliate-tab-scroll flex min-h-0 min-w-0 max-w-full flex-col gap-4 lg:ts-affiliate-tab-fill lg:gap-5"
+            title={AFFILIATE_COPY.creatives.title}
+            description={AFFILIATE_COPY.creatives.description}
           >
-            <div className="ts-page-header shrink-0">
-              <h1 className="page-title">{AFFILIATE_COPY.creatives.title}</h1>
-              <p className="page-description">
-                {AFFILIATE_COPY.creatives.description}
-              </p>
-            </div>
             {creativesData ? (
               <CreativesPanel
                 creatives={creativesData.creatives}
@@ -684,45 +264,34 @@ function DashboardPageContent() {
             ) : (
               <PanelSkeleton />
             )}
-          </TabsContent>
+          </DashboardTabPanel>
 
-          <TabsContent
+          <DashboardTabPanel
             value="coupons"
-            className="ts-affiliate-tab-scroll flex min-h-0 min-w-0 max-w-full flex-col gap-4 lg:ts-affiliate-tab-fill lg:gap-5"
+            title={AFFILIATE_COPY.coupons.title}
+            description={AFFILIATE_COPY.coupons.description}
           >
-            <div className="ts-page-header shrink-0">
-              <h1 className="page-title">{AFFILIATE_COPY.coupons.title}</h1>
-              <p className="page-description">
-                {AFFILIATE_COPY.coupons.description}
-              </p>
-            </div>
             {couponsData ? (
               <CouponsPanel coupons={couponsData.coupons} />
             ) : (
               <PanelSkeleton />
             )}
-          </TabsContent>
+          </DashboardTabPanel>
 
-          <TabsContent
+          {/* Visits scrolls rather than fills: stat cards, two charts and the
+              click list together exceed a laptop viewport, and a fill layout
+              would crush the list to nothing and clip it. */}
+          <DashboardTabPanel
             value="visits"
-            /* Scrolls rather than fills: stat cards, two charts and the click
-               list together exceed a laptop viewport, and a fill layout would
-               crush the list to nothing and clip it. */
-            className="ts-affiliate-tab-scroll flex min-h-0 min-w-0 max-w-full flex-col gap-4 lg:gap-5"
+            title={AFFILIATE_COPY.visits.title}
+            description={AFFILIATE_COPY.visits.description}
+            fill={false}
           >
-            <div className="ts-page-header shrink-0">
-              <h1 className="page-title">{AFFILIATE_COPY.visits.title}</h1>
-              <p className="page-description">
-                {AFFILIATE_COPY.visits.description}
-              </p>
-            </div>
-
             <PeriodPicker
               period={period}
               onChange={handlePeriodChange}
               className="shrink-0"
             />
-
             {visitsData ? (
               <StatsPanel
                 data={visitsData}
@@ -744,83 +313,71 @@ function DashboardPageContent() {
             ) : (
               <PanelSkeleton />
             )}
-          </TabsContent>
+          </DashboardTabPanel>
 
-          <TabsContent
+          <DashboardTabPanel
             value="settings"
-            className="ts-affiliate-tab-scroll flex min-h-0 min-w-0 max-w-full flex-col gap-4 lg:ts-affiliate-tab-fill lg:gap-5"
+            title={AFFILIATE_COPY.settings.title}
+            description={AFFILIATE_COPY.settings.description}
           >
-            <div className="ts-page-header shrink-0">
-              <h1 className="page-title">{AFFILIATE_COPY.settings.title}</h1>
-              <p className="page-description">
-                {AFFILIATE_COPY.settings.description}
-              </p>
-            </div>
             {settingsData ? (
               <SettingsPanel settings={settingsData} />
             ) : (
               <PanelSkeleton />
             )}
-          </TabsContent>
+          </DashboardTabPanel>
 
-          <TabsContent
+          <DashboardTabPanel
             value="ledger"
-            className="ts-affiliate-tab-scroll flex min-h-0 min-w-0 max-w-full flex-col gap-4 lg:ts-affiliate-tab-fill lg:gap-5"
+            title={AFFILIATE_COPY.commissions.title}
+            description={AFFILIATE_COPY.commissions.description}
           >
-            <div className="ts-page-header shrink-0">
-              <h1 className="page-title">{AFFILIATE_COPY.commissions.title}</h1>
-              <p className="page-description">
-                {AFFILIATE_COPY.commissions.description}
-              </p>
-            </div>
-
             <PeriodPicker
               period={period}
               onChange={handlePeriodChange}
               className="shrink-0"
             />
-
             <CommissionsPanel
               data={data}
-              exportHref={exportHref}
+              exportHref={ledgerFilters.exportHref}
               teams={teamsData?.teams}
-              ledgerTab={ledgerTab}
-              typeFilter={typeFilter}
-              sourceFilter={sourceFilter}
-              teamFilter={teamFilter}
-              q={q}
-              page={page}
-              sortKey={sortKey}
-              sortDir={sortDir}
+              ledgerTab={ledgerFilters.ledgerTab}
+              typeFilter={ledgerFilters.typeFilter}
+              sourceFilter={ledgerFilters.sourceFilter}
+              teamFilter={ledgerFilters.teamFilter}
+              q={ledgerFilters.q}
+              page={ledgerFilters.page}
+              sortKey={ledgerFilters.sortKey}
+              sortDir={ledgerFilters.sortDir}
               isFetching={isFetching}
-              filtersActive={filtersActive}
-              onLedgerTab={handleLedgerTab}
-              onTypeFilter={handleTypeFilter}
-              onTeamFilter={handleTeamFilter}
-              onSourceFilter={handleSourceFilter}
-              onSearchChange={setQ}
-              onSort={handleLedgerSort}
-              onSortChange={handleLedgerSortChange}
-              onClearFilters={clearLedgerFilters}
-              onPageChange={handleLedgerPageChange}
+              filtersActive={ledgerFilters.filtersActive}
+              onLedgerTab={ledgerFilters.onLedgerTab}
+              onTypeFilter={ledgerFilters.onTypeFilter}
+              onTeamFilter={ledgerFilters.onTeamFilter}
+              onSourceFilter={ledgerFilters.onSourceFilter}
+              onSearchChange={ledgerFilters.onSearchChange}
+              onSort={ledgerFilters.onSort}
+              onSortChange={ledgerFilters.onSortChange}
+              onClearFilters={ledgerFilters.onClearFilters}
+              onPageChange={ledgerFilters.onPageChange}
               fillHeight={desktopFill}
-              className={cn('min-h-0', desktopFill && 'flex-1')}
+              className={fillClassName}
             />
-          </TabsContent>
+          </DashboardTabPanel>
 
-          <TabsContent
+          <DashboardTabPanel
             value="teams"
-            className="ts-affiliate-tab-scroll flex min-h-0 min-w-0 max-w-full flex-col gap-3 lg:ts-affiliate-tab-fill lg:gap-5"
-          >
-            <div className="ts-page-header shrink-0 max-sm:px-0.5">
-              <h1 className="page-title">{AFFILIATE_COPY.team.rosterTitle}</h1>
-              <p className="page-description">
+            compact
+            title={AFFILIATE_COPY.team.rosterTitle}
+            description={
+              <>
                 {AFFILIATE_COPY.team.rosterDescription}{' '}
                 <span className="text-muted-foreground">
                   {AFFILIATE_COPY.team.teamsSectionHint}
                 </span>
-              </p>
-            </div>
+              </>
+            }
+          >
             {teamsLoading ? (
               <TeamsPanelSkeleton />
             ) : teamsData?.teams && teamsData.teams.length > 0 ? (
@@ -829,7 +386,7 @@ function DashboardPageContent() {
                 onViewLedger={(memberId) => focusTeamMember(memberId, 'unpaid')}
                 onViewTeamLedger={focusTeam}
                 fillHeight={desktopFill}
-                className={cn('min-h-0', desktopFill && 'flex-1')}
+                className={fillClassName}
               />
             ) : legacyTeamData?.team && legacyTeamData.team.length > 0 ? (
               <TeamPanel team={legacyTeamData.team} />
@@ -841,24 +398,20 @@ function DashboardPageContent() {
                 </CardHeader>
               </Card>
             )}
-          </TabsContent>
+          </DashboardTabPanel>
 
-          <TabsContent
+          <DashboardTabPanel
             value="payouts"
-            className="ts-affiliate-tab-scroll flex min-h-0 min-w-0 max-w-full flex-col gap-3 lg:ts-affiliate-tab-fill lg:gap-5"
+            compact
+            title={AFFILIATE_COPY.payouts.historyTitle}
+            description={AFFILIATE_COPY.payouts.description}
           >
-            <div className="ts-page-header shrink-0 max-sm:px-0.5">
-              <h1 className="page-title">{AFFILIATE_COPY.payouts.historyTitle}</h1>
-              <p className="page-description">
-                {AFFILIATE_COPY.payouts.description}
-              </p>
-            </div>
             <PayoutsList
               detailHrefPrefix="/dashboard/payouts"
               affiliateView
-              className={cn('min-h-0', desktopFill && 'flex-1')}
+              className={fillClassName}
             />
-          </TabsContent>
+          </DashboardTabPanel>
         </Tabs>
       )}
     </div>
