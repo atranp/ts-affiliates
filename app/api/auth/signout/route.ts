@@ -3,7 +3,7 @@ import { clearImpersonateCookie } from "@/lib/auth-impersonation";
 import {
   applyMustChangePasswordCookie,
   clearRoleCookie,
-} from "@/lib/auth-role";
+} from "@/lib/auth-cookies";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST() {

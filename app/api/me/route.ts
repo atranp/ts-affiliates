@@ -3,8 +3,8 @@ import { jsonCached } from "@/lib/api-cache";
 import {
   applyMustChangePasswordCookie,
   applyRoleCookie,
-  ensureAuthRoleConsistency,
-} from "@/lib/auth-role";
+} from "@/lib/auth-cookies";
+import { ensureAuthRoleConsistency } from "@/lib/auth-role";
 import { getAuthBlockReason, getAuthUser } from "@/lib/auth";
 import { touchAffiliateLastSignIn } from "@/lib/admin/affiliate-portal";
 import { linkProfileToAffiliateByEmail } from "@/lib/sync";
