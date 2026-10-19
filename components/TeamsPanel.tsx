@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
 import {
   ChevronDown,
   ChevronRight,
@@ -22,7 +21,7 @@ import {
   TeamMemberGoalStatus,
   TeamMemberRow,
 } from "@/components/affiliate/TeamMemberRow";
-import { apiFetch } from "@/lib/api-client";
+import { useTeamDetail } from "@/hooks/use-teams";
 import {
   AFFILIATE_COPY,
   memberCountLabel,
@@ -65,28 +64,6 @@ import {
 
 type TeamMemberDetail = TeamDetail["members"][number];
 type TeamRule = TeamDetail["rules"][number];
-
-export function useTeams(affiliateId?: string, enabled = true) {
-  const url = affiliateId
-    ? `/api/teams?affiliateId=${affiliateId}`
-    : "/api/teams";
-
-  return useQuery({
-    queryKey: ["teams", affiliateId ?? "self"],
-    queryFn: () => apiFetch<{ teams: TeamSummary[] }>(url),
-    enabled,
-    staleTime: 60 * 1000,
-  });
-}
-
-function useTeamDetail(teamId: string | null, enabled: boolean) {
-  return useQuery({
-    queryKey: ["team", teamId],
-    queryFn: () => apiFetch<{ team: TeamDetail }>(`/api/teams/${teamId}`),
-    enabled: enabled && !!teamId,
-    staleTime: 60 * 1000,
-  });
-}
 
 function formatRuleSummary(rule: TeamRule, affiliateView: boolean) {
   const rate = `${rule.ratePercent}%${rule.isException ? " (exception)" : ""}`;

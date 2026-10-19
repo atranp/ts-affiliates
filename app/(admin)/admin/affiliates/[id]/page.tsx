@@ -41,8 +41,9 @@ import {
 } from "@/hooks/use-admin-query";
 import { apiFetch } from "@/lib/api-client";
 import { ledgerTabToFilters, useLedger, type LedgerTab } from "@/hooks/use-ledger";
-import { TeamPanel, useTeam } from "@/components/TeamPanel";
-import { TeamsPanel, useTeams } from "@/components/TeamsPanel";
+import { TeamPanel } from "@/components/TeamPanel";
+import { TeamsPanel } from "@/components/TeamsPanel";
+import { useTeamRoster, useTeams } from "@/hooks/use-teams";
 import type {
   AdminAffiliateDetail,
 } from "@/lib/admin/types";
@@ -154,11 +155,11 @@ function AdminAffiliateDetailPageContent() {
     isLoading: payoutBatchesLoading,
     refetch: refetchPayoutBatches,
   } = useAdminQuery<{ batches: PayoutBatchRow[] }>(
-    ["admin", "payout-batches", affiliateId],
+    queryKeys.admin.payoutBatches(affiliateId),
     affiliateId ? `/api/admin/payouts/batches?affiliateId=${affiliateId}` : null
   );
 
-  const { data: teamData, isLoading: teamLoading } = useTeam(
+  const { data: teamData, isLoading: teamLoading } = useTeamRoster(
     affiliateId,
     !!affiliateId
   );
@@ -169,7 +170,7 @@ function AdminAffiliateDetailPageContent() {
 
   async function refreshAffiliate() {
     await queryClient.invalidateQueries({
-      queryKey: ["admin", "affiliate", affiliateId],
+      queryKey: queryKeys.admin.affiliate(affiliateId),
     });
     await refetchAffiliate();
   }
@@ -207,7 +208,7 @@ function AdminAffiliateDetailPageContent() {
 
   async function invalidateLedgerData() {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["ledger"] }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.ledgerAll }),
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.affiliate(affiliateId),
       }),

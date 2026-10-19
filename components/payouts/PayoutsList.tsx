@@ -1,7 +1,6 @@
 "use client";
 
 import { CreditCard } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { InlinePanelSkeleton } from "@/components/affiliate/DashboardSkeleton";
 import { PayoutDesktopTable, PayoutRow } from "@/components/affiliate/PayoutRow";
@@ -13,7 +12,7 @@ import {
   AffiliateEmptyState,
   AffiliateListPanel,
 } from "@/components/affiliate/primitives";
-import { apiFetch } from "@/lib/api-client";
+import { useAffiliatePayouts } from "@/hooks/use-payouts";
 import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
 import type { PayoutBatchListItem } from "@/lib/payouts/types";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -66,11 +65,7 @@ export function PayoutsList({
   onViewAll,
   className,
 }: PayoutsListProps) {
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["payouts"],
-    queryFn: () => apiFetch<{ batches: PayoutBatchListItem[] }>("/api/payouts"),
-    staleTime: 60 * 1000,
-  });
+  const { data, isLoading, error, refetch } = useAffiliatePayouts();
 
   const batches = data?.batches ?? [];
   const visible = limit ? batches.slice(0, limit) : batches;

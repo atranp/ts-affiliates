@@ -27,6 +27,7 @@ import { apiFetch } from "@/lib/api-client";
 import type { CommissionDetailResponse } from "@/lib/ledger/commission-detail";
 import type { JourneyStepKind } from "@/lib/ledger/attribution-audit";
 import { cn, formatCurrency, formatSaleDate } from "@/lib/utils";
+import { queryKeys } from "@/lib/query-keys";
 
 type CommissionDetailDrawerProps = {
   entryId: string | null;
@@ -331,7 +332,7 @@ export function CommissionDetailDrawer({
   const panelRef = useRef<HTMLDivElement>(null);
 
   const { data, error, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["commission-detail", entryId],
+    queryKey: queryKeys.commissionDetail(entryId ?? ""),
     queryFn: () =>
       apiFetch<CommissionDetailResponse>(`/api/ledger/${entryId}/detail`),
     enabled: open,

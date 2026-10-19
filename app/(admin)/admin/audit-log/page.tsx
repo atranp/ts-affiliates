@@ -24,6 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAdminQuery } from "@/hooks/use-admin-query";
+import { queryKeys } from "@/lib/query-keys";
 
 type AuditEntry = {
   id: string;
@@ -102,7 +103,7 @@ function AuditLogPageContent() {
   const [action, setAction] = useState("all");
 
   const { data, error, isLoading, refetch } = useAdminQuery<AuditResponse>(
-    ["admin", "audit-log", page, action],
+    queryKeys.admin.auditLog(page, action),
     `/api/admin/audit-log?page=${page}&action=${action}`
   );
 

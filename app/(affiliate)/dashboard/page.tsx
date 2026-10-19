@@ -2,7 +2,6 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/components/AuthProvider';
 import { affiliateBadgeClass } from '@/components/affiliate/AffiliateBadge';
 import { AffiliateStatCard } from '@/components/affiliate/AffiliateStatCard';
@@ -16,8 +15,10 @@ import { CommissionsHomePreview } from '@/components/affiliate/CommissionsHomePr
 import { PayoutsHomePreview } from '@/components/affiliate/PayoutsHomePreview';
 import { TeamHomePreview } from '@/components/affiliate/TeamHomePreview';
 import { CommissionsPanel } from '@/components/CommissionsPanel';
-import { TeamsPanel, useTeams } from '@/components/TeamsPanel';
-import { TeamPanel, useTeam } from '@/components/TeamPanel';
+import { TeamsPanel } from '@/components/TeamsPanel';
+import { TeamPanel } from '@/components/TeamPanel';
+import { useTeamRoster, useTeams } from '@/hooks/use-teams';
+import { useAffiliatePayouts } from '@/hooks/use-payouts';
 import { ErrorState } from '@/components/admin/ErrorState';
 import {
   Card,
@@ -56,14 +57,11 @@ import {
   useAffiliateVisits,
   type VisitOutcomeFilter,
 } from '@/hooks/use-affiliate-reach';
-import { apiFetch } from '@/lib/api-client';
-import { queryKeys } from '@/lib/query-keys';
 import { AFFILIATE_COPY } from '@/lib/affiliate/copy';
 import { PeriodPicker } from '@/components/affiliate/PeriodPicker';
 import { EarningsTrend } from '@/components/affiliate/PerformanceCharts';
 import { percentChange, usePerformance } from '@/hooks/use-performance';
 import { periodFromParams, type PeriodKey } from '@/lib/affiliate/period';
-import type { PayoutBatchListItem } from '@/lib/payouts/types';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useMinLg } from '@/hooks/use-media-query';
 
@@ -295,15 +293,10 @@ function DashboardPageContent() {
     undefined,
     !!user,
   );
-  const { data: legacyTeamData } = useTeam(undefined, !!user);
+  const { data: legacyTeamData } = useTeamRoster(undefined, !!user);
 
   // Warms the cache for the payouts tab and the home preview, which render it.
-  useQuery({
-    queryKey: queryKeys.payouts,
-    queryFn: () => apiFetch<{ batches: PayoutBatchListItem[] }>('/api/payouts'),
-    enabled: !!user,
-    staleTime: 60 * 1000,
-  });
+  useAffiliatePayouts(!!user);
 
   // The promotional tabs fetch only once their tab is open — visits in
   // particular is the heaviest query here, and most sessions never open it.

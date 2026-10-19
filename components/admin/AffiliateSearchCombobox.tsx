@@ -7,6 +7,7 @@ import { Check, ChevronsUpDown, Loader2, X } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
+import { queryKeys } from "@/lib/query-keys";
 
 export type AffiliateOption = {
   id: string;
@@ -80,7 +81,7 @@ export function AffiliateSearchCombobox({
   const canSearch = debouncedQuery.length >= MIN_SEARCH_LENGTH;
 
   const { data, isFetching } = useQuery({
-    queryKey: ["affiliate-search", debouncedQuery],
+    queryKey: queryKeys.affiliateSearch(debouncedQuery),
     queryFn: () =>
       apiFetch<{ items: AffiliateOption[] }>(
         `/api/admin/affiliates/search?q=${encodeURIComponent(debouncedQuery)}&limit=20`

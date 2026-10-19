@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api-client";
+import { queryKeys } from "@/lib/query-keys";
 import type { SyncResult } from "@/lib/admin/types";
 
 export type SyncStatus = {
@@ -87,8 +88,8 @@ export function useSyncStatus(options?: { poll?: boolean }) {
             ].filter(Boolean);
             toast.success(`Sync complete — ${parts.join(", ")}`);
           }
-          await queryClient.invalidateQueries({ queryKey: ["admin"] });
-          await queryClient.invalidateQueries({ queryKey: ["ledger"] });
+          await queryClient.invalidateQueries({ queryKey: queryKeys.admin.all });
+          await queryClient.invalidateQueries({ queryKey: queryKeys.ledgerAll });
         }
 
         wasRunning.current = next.running;

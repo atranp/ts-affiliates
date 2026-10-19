@@ -44,6 +44,7 @@ import type {
 import type { PayoutOption, PayoutOptions } from "@/lib/payouts/options";
 import { APP_TIMEZONE_LABEL, formatAppDateTime } from "@/lib/timezone";
 import { cn, formatCurrency, formatSaleDate } from "@/lib/utils";
+import { queryKeys } from "@/lib/query-keys";
 
 function targetParams(target: PayoutTarget): Record<string, string> {
   if (target.scope === "member") {
@@ -135,7 +136,7 @@ export function CreatePayoutPanel({
     isLoading: optionsLoading,
     error: optionsError,
   } = useAdminQuery<PayoutOptions>(
-    ["admin", "payout-options", affiliateId ?? "", refreshedAt],
+    queryKeys.admin.payoutOptions(affiliateId ?? "", refreshedAt),
     affiliateId && synced
       ? `/api/admin/payouts/create/options?affiliateId=${affiliateId}`
       : null,
@@ -177,7 +178,7 @@ export function CreatePayoutPanel({
     isFetching: draftFetching,
     error: draftError,
   } = useAdminQuery<PayoutDraft>(
-    ["admin", "payout-draft", draftQuery ?? ""],
+    queryKeys.admin.payoutDraft(draftQuery ?? ""),
     draftQuery ? `/api/admin/payouts/create?${draftQuery}` : null,
     { staleTime: 0, gcTime: 0 }
   );

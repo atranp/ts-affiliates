@@ -19,6 +19,7 @@ import {
 import { useAdminQuery } from "@/hooks/use-admin-query";
 import type { TeamDetail } from "@/lib/teams/queries";
 import { formatCurrency } from "@/lib/utils";
+import { queryKeys } from "@/lib/query-keys";
 
 function AdminTeamDetailContent() {
   const params = useParams<{ id: string; teamId: string }>();
@@ -31,7 +32,7 @@ function AdminTeamDetailContent() {
     error,
     refetch,
   } = useAdminQuery<{ team: TeamDetail }>(
-    ["admin", "team", teamId],
+    queryKeys.admin.team(teamId),
     `/api/teams/${teamId}`
   );
 

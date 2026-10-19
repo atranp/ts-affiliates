@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useAdminQuery } from "@/hooks/use-admin-query";
 import { apiFetch } from "@/lib/api-client";
 import type { PayoutBatchDetail } from "@/lib/payouts/types";
+import { queryKeys } from "@/lib/query-keys";
 
 export default function AdminPayoutDetailPage() {
   const params = useParams<{ id: string }>();
@@ -20,7 +21,10 @@ export default function AdminPayoutDetailPage() {
 
   const { data, error, isLoading, refetch } = useAdminQuery<{
     batch: PayoutBatchDetail;
-  }>(["admin", "payout-batch", params.id], `/api/admin/payouts/batches/${params.id}`);
+  }>(
+    queryKeys.admin.payoutBatch(params.id),
+    `/api/admin/payouts/batches/${params.id}`
+  );
 
   if (isLoading) {
     return <p className="text-muted-foreground">Loading payout...</p>;
