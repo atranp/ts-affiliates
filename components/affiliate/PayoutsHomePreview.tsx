@@ -8,10 +8,8 @@ import {
   AffiliateEmptyState,
   AffiliateHomeCard,
 } from "@/components/affiliate/primitives";
-import { apiFetch } from "@/lib/api-client";
+import { useAffiliatePayouts } from "@/hooks/use-payouts";
 import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
-import type { PayoutBatchListItem } from "@/lib/payouts/types";
-import { useQuery } from "@tanstack/react-query";
 
 const PREVIEW_LIMIT = 3;
 const DETAIL_HREF_PREFIX = "/dashboard/payouts";
@@ -25,12 +23,7 @@ export function PayoutsHomePreview({
   enabled = true,
   onViewPayouts,
 }: PayoutsHomePreviewProps) {
-  const { data, isLoading } = useQuery({
-    queryKey: ["payouts"],
-    queryFn: () => apiFetch<{ batches: PayoutBatchListItem[] }>("/api/payouts"),
-    enabled,
-    staleTime: 60 * 1000,
-  });
+  const { data, isLoading } = useAffiliatePayouts(enabled);
 
   if (isLoading) {
     return (

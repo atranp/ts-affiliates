@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/api-auth";
+import { requireAdmin } from "@/lib/api/auth";
 import { getSettings } from "@/lib/settings";
-import { testSliceWPConnection } from "@/lib/slicewp";
+import { testSliceWPConnection } from "@/lib/integrations/slicewp";
 
 export async function POST() {
   const auth = await requireAdmin();

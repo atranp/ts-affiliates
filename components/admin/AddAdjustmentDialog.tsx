@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { DialogOverlay } from "@/components/admin/DialogOverlay";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,8 +28,6 @@ export function AddAdjustmentDialog({
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("UNPAID");
 
-  if (!open) return null;
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     await onSubmit({
@@ -42,16 +41,14 @@ export function AddAdjustmentDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <button
-        type="button"
-        className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
-        aria-label="Close dialog"
-        onClick={onClose}
-      />
+    <DialogOverlay
+      open={open}
+      label="Add adjustment"
+      onDismiss={loading ? undefined : onClose}
+    >
       <form
         onSubmit={handleSubmit}
-        className="relative z-10 w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-lg"
+        className="rounded-lg border border-border bg-card p-6 shadow-lg"
       >
         <h3 className="text-lg font-semibold">Add adjustment</h3>
         <div className="mt-4 space-y-4">
@@ -103,6 +100,6 @@ export function AddAdjustmentDialog({
           </Button>
         </div>
       </form>
-    </div>
+    </DialogOverlay>
   );
 }

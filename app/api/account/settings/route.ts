@@ -7,7 +7,8 @@ import {
 } from "@/lib/mock/affiliate-fixtures";
 import { requireAffiliateAuth } from "@/lib/mock/require-affiliate-auth";
 import { prisma } from "@/lib/prisma";
-import { AffiliateSettingsError } from "@/lib/slicewp-bridge";
+import { AffiliateSettingsError } from "@/lib/integrations/slicewp-bridge";
+import { readJsonObject } from "@/lib/api/body";
 
 /**
  * The affiliate's own SliceWP settings.
@@ -78,14 +79,9 @@ export async function PATCH(request: Request) {
   const auth = await requireAffiliateAuth();
   if ("error" in auth) return auth.error;
 
-  const body = (await request.json().catch(() => null)) as Record<
-    string,
-    unknown
-  > | null;
-
-  if (!body) {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-  }
+  const parsed = await readJsonObject(request, "Invalid request");
+  if ("error" in parsed) return parsed.error;
+  const { body } = parsed;
 
   const edit = readEdit(body);
 

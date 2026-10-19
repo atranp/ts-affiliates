@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AffiliateHomeCard } from "@/components/affiliate/primitives";
 import { ReferralLinkField } from "@/components/affiliate/ReferralLinkField";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch } from "@/lib/api/client";
 import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
 import type { AffiliateLink } from "@/lib/affiliate/reach";
 
@@ -37,7 +37,6 @@ export function LinksPanel({ link }: { link: AffiliateLink }) {
     try {
       const result = await apiFetch<{ referralUrl: string }>("/api/links", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
       });
       setGenerated(result.referralUrl);

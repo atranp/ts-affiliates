@@ -1,7 +1,7 @@
 "use client";
 
 import { useAdminSettings } from "@/hooks/use-admin-query";
-import { wooOrderAdminUrl } from "@/lib/woocommerce";
+import { wooOrderAdminUrl } from "@/lib/integrations/woocommerce";
 import { cn } from "@/lib/utils";
 
 type WooOrderLinkProps = {

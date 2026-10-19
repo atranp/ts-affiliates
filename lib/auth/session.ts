@@ -1,8 +1,8 @@
 import { AffiliateStatus, Role } from "@prisma/client";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { IMPERSONATE_COOKIE } from "@/lib/auth-impersonation";
-import { prisma } from "./prisma";
+import { IMPERSONATE_COOKIE } from "@/lib/auth/impersonation";
+import { prisma } from "../prisma";
 
 export type AuthUser = {
   id: string;

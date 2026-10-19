@@ -1,26 +1,11 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { MilestoneProgress } from "@/components/affiliate/MilestoneProgress";
-import { apiFetch } from "@/lib/api-client";
 import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
 import type { TeamMember } from "@/lib/admin/team";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-
-export function useTeam(affiliateId?: string, enabled = true) {
-  const url = affiliateId
-    ? `/api/team?affiliateId=${affiliateId}`
-    : "/api/team";
-
-  return useQuery({
-    queryKey: ["team", affiliateId ?? "self"],
-    queryFn: () => apiFetch<{ team: TeamMember[] }>(url),
-    enabled,
-    staleTime: 60 * 1000,
-  });
-}
 
 export function TeamPanel({
   team,

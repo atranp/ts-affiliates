@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AffiliateHomeCard } from "@/components/affiliate/primitives";
 import { ReferralLinkField } from "@/components/affiliate/ReferralLinkField";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch } from "@/lib/api/client";
 import { queryKeys } from "@/lib/query-keys";
 import { AFFILIATE_COPY } from "@/lib/affiliate/copy";
 import type { AffiliateAccountSettings } from "@/hooks/use-affiliate-reach";
@@ -64,7 +64,6 @@ export function SettingsPanel({
     try {
       const saved = await apiFetch<SaveResult>("/api/account/settings", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(edit),
       });
 

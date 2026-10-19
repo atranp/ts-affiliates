@@ -1,5 +1,5 @@
-import { prisma } from "./prisma";
-import type { SyncResult } from "./sync";
+import { prisma } from "../prisma";
+import type { SyncResult } from "./full-sync";
 
 export type SyncStep =
   | "affiliates"

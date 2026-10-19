@@ -31,7 +31,7 @@ export type JourneyStep = {
   meta?: Record<string, string>;
 };
 
-/** WP `_ts_slicewp_attribution_audit` — written at commission time (M1). */
+/** WP `_ts_slicewp_attribution_audit` — written at commission time. */
 export type AttributionAuditCandidates = {
   coupon: { affiliateId: number; codes: string[] };
   link: { affiliateId: number; visitId: number };

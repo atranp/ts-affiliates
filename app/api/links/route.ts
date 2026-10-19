@@ -4,7 +4,7 @@ import { isAffiliateMockMode } from "@/lib/mock/config";
 import { mockAffiliateLink, mockGeneratedLink } from "@/lib/mock/affiliate-fixtures";
 import { requireAffiliateAuth } from "@/lib/mock/require-affiliate-auth";
 import { prisma } from "@/lib/prisma";
-import { generateAffiliateLink } from "@/lib/slicewp-bridge";
+import { generateAffiliateLink } from "@/lib/integrations/slicewp-bridge";
 
 /** The affiliate's referral link and custom slug. */
 export async function GET() {

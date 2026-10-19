@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/api-auth";
-import { jsonCached } from "@/lib/api-cache";
+import { requireAdmin } from "@/lib/api/auth";
+import { jsonCached } from "@/lib/api/cache";
 import { searchAffiliates } from "@/lib/admin/queries";
 import { isAdminMockMode } from "@/lib/mock/config";
 import { mockAdminSearchAffiliates } from "@/lib/mock/admin-fixtures";

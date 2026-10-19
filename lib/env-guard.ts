@@ -1,4 +1,4 @@
-import { normalizeStoreUrl } from "./wordpress-auth";
+import { normalizeStoreUrl } from "./integrations/wordpress-auth";
 
 /**
  * Guards against the two ways a misconfigured `.env.local` can reach past the

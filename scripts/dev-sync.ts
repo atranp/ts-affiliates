@@ -26,7 +26,7 @@ async function main() {
   );
   const { getSettings } = await import("../lib/settings");
   const { runFullSyncJob } = await import("../lib/sync");
-  const { clearStaleSyncLock, tryBeginSync } = await import("../lib/sync-state");
+  const { clearStaleSyncLock, tryBeginSync } = await import("../lib/sync/state");
 
   const { wcStoreUrl } = await getSettings();
 

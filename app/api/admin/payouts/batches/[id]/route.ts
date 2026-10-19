@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/api-auth";
+import { requireAdmin } from "@/lib/api/auth";
 import { prisma } from "@/lib/prisma";
 import { getPayoutDetail } from "@/lib/payouts/history";
 import { isAdminMockMode } from "@/lib/mock/config";

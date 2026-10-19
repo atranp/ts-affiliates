@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { jsonCached } from "@/lib/api-cache";
+import { jsonCached } from "@/lib/api/cache";
 import { getTeamsForSponsor } from "@/lib/teams/queries";
 import { isAffiliateMockMode } from "@/lib/mock/config";
 import { mockTeamsResponse } from "@/lib/mock/affiliate-fixtures";

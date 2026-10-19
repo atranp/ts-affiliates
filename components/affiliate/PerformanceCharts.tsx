@@ -4,7 +4,6 @@ import { AffiliateEmptyState } from "@/components/affiliate/primitives";
 import type {
   DayOfWeekPoint,
   PerformancePoint,
-  SalesAttribution,
 } from "@/lib/affiliate/performance";
 import { cn, formatCurrency } from "@/lib/utils";
 
@@ -248,80 +247,6 @@ export function DayOfWeekBars({
         {countFormat(busiest.clicks)} clicks and {countFormat(busiest.sales)}{" "}
         {busiest.sales === 1 ? "sale" : "sales"}.
       </p>
-    </div>
-  );
-}
-
-/**
- * How sales reached us, split only as far as the data can actually prove.
- *
- * A commission either carries the click that produced it or it does not; there
- * is no coupon code recorded against the sale, so guessing at a third bucket
- * would be presenting an inference as a fact.
- */
-export function AttributionBars({
-  attribution,
-  className,
-}: {
-  attribution: SalesAttribution;
-  className?: string;
-}) {
-  const total = attribution.tracked + attribution.untracked;
-
-  if (total === 0) {
-    return (
-      <AffiliateEmptyState>
-        No sales in this period yet.
-      </AffiliateEmptyState>
-    );
-  }
-
-  const rows = [
-    {
-      label: "Traced to a link click",
-      value: attribution.tracked,
-      bar: "bg-primary",
-    },
-    {
-      label: "No click recorded",
-      value: attribution.untracked,
-      bar: "bg-muted-foreground/35",
-    },
-  ];
-
-  return (
-    <div className={cn("flex flex-col gap-3.5", className)}>
-      <div className="space-y-3">
-        {rows.map((row) => (
-          <div key={row.label}>
-            <div className="flex items-baseline justify-between gap-3 text-sm">
-              <span className="font-medium text-brand-dark">{row.label}</span>
-              <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                {countFormat(row.value)}{" "}
-                {row.value === 1 ? "sale" : "sales"} ·{" "}
-                {Math.round((row.value / total) * 100)}%
-              </span>
-            </div>
-            <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-muted/60">
-              <div
-                className={cn("h-full rounded-full", row.bar)}
-                style={{ width: `${(row.value / total) * 100}%` }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {attribution.untracked > 0 ? (
-        <p className="rounded-lg border border-border/60 bg-muted/25 p-2.5 text-xs leading-relaxed text-muted-foreground">
-          <span className="font-semibold text-brand-dark">
-            You are paid the same either way.
-          </span>{" "}
-          Sales with no click usually came from a discount code, a browser that
-          dropped the referral before checkout, or a customer you referred on an
-          earlier order.
-        </p>
-      ) : null}
     </div>
   );
 }

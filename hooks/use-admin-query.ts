@@ -2,12 +2,10 @@
 
 import {
   keepPreviousData,
-  useMutation,
   useQuery,
-  useQueryClient,
   type UseQueryOptions,
 } from "@tanstack/react-query";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch } from "@/lib/api/client";
 import { queryKeys } from "@/lib/query-keys";
 import type {
   AdminAffiliateDetail,
@@ -74,14 +72,6 @@ export function useAdminAffiliate(id: string | null) {
   );
 }
 
-export function useAdminAffiliatePicker() {
-  return useAdminQuery<PaginatedAffiliates>(
-    queryKeys.admin.affiliates({ page: 1, q: "", status: "all", pageSize: 500 }),
-    "/api/admin/affiliates?pageSize=500",
-    { staleTime: 5 * 60 * 1000 }
-  );
-}
-
 export function useAdminDealRules() {
   return useAdminQuery<DealRuleListItem[]>(
     queryKeys.admin.dealRules,
@@ -94,35 +84,6 @@ export function useAdminSettings() {
     queryKeys.admin.settings,
     "/api/settings"
   );
-}
-
-export function useAdminMutation<T>(
-  invalidateKeys: readonly (readonly unknown[])[] = []
-) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      url,
-      options,
-    }: {
-      url: string;
-      options?: RequestInit;
-    }) => apiFetch<T>(url, options),
-    onSuccess: async () => {
-      for (const key of invalidateKeys) {
-        await queryClient.invalidateQueries({ queryKey: key });
-      }
-    },
-  });
-}
-
-/** @deprecated use apiFetch directly or useAdminMutation */
-export async function adminMutate<T>(
-  url: string,
-  options?: RequestInit
-): Promise<T> {
-  return apiFetch<T>(url, options);
 }
 
 export { queryKeys };

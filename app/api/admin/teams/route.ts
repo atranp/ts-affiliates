@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/api-auth";
-import { jsonCached } from "@/lib/api-cache";
+import { requireAdmin } from "@/lib/api/auth";
+import { jsonCached } from "@/lib/api/cache";
 import { endOfStoreDay, startOfStoreDay } from "@/lib/payouts/store-dates";
 import { prisma } from "@/lib/prisma";
 import { getTeamsForSponsor } from "@/lib/teams/queries";
+import { readJsonObject } from "@/lib/api/body";
 
 export async function GET(request: Request) {
   const auth = await requireAdmin();
@@ -52,7 +53,9 @@ export async function POST(request: Request) {
   const auth = await requireAdmin();
   if ("error" in auth) return auth.error;
 
-  const body = await request.json();
+  const parsed = await readJsonObject(request);
+  if ("error" in parsed) return parsed.error;
+  const { body } = parsed;
   const { name, description, sponsorAffiliateId, active } = body as {
     name: string;
     description?: string;

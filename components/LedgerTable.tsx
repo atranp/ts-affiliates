@@ -1,13 +1,13 @@
 "use client";
 
-import { ChevronDown, ChevronRight, ChevronUp, ReceiptText } from "lucide-react";
+import { ChevronRight, ReceiptText } from "lucide-react";
 import { CommissionRow, commissionAmountTone } from "@/components/affiliate/CommissionRow";
 import { CommissionTypeBadge } from "@/components/affiliate/AffiliateBadge";
 import {
   formatCommissionStatus,
   AFFILIATE_COPY,
 } from "@/lib/affiliate/copy";
-import { formatAppDate } from "@/lib/timezone";
+import { formatPayoutWeekLabel } from "@/lib/ledger/format";
 import {
   commissionableSale,
   formatCurrency,
@@ -16,6 +16,7 @@ import {
 } from "@/lib/utils";
 import type { LedgerSortKey, SortDirection } from "@/lib/ledger/sort";
 import { Badge } from "@/components/ui/badge";
+import { SortableHead } from "@/components/ui/sortable-head";
 import {
   DataCard,
   DataCardHeader,
@@ -69,66 +70,6 @@ function amountClass(status: string): string {
   if (tone === "warning") return "text-amber-700";
   if (tone === "primary") return "text-primary";
   return "text-brand-dark";
-}
-
-function formatPayoutWeek(iso: string | null) {
-  if (!iso) return "—";
-  return formatAppDate(iso, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function SortableHead({
-  sortKey,
-  activeKey,
-  direction,
-  onSort,
-  align = "left",
-  className,
-  children,
-}: {
-  sortKey: LedgerSortKey;
-  activeKey: LedgerSortKey;
-  direction: SortDirection;
-  onSort: (key: LedgerSortKey) => void;
-  align?: "left" | "right";
-  className?: string;
-  children: React.ReactNode;
-}) {
-  const active = activeKey === sortKey;
-
-  return (
-    <TableHead
-      className={cn(className, align === "right" && "text-right")}
-      aria-sort={
-        active
-          ? direction === "asc"
-            ? "ascending"
-            : "descending"
-          : "none"
-      }
-    >
-      <button
-        type="button"
-        onClick={() => onSort(sortKey)}
-        className={cn(
-          "inline-flex items-center gap-1 transition-colors hover:text-brand-dark",
-          align === "right" && "flex-row-reverse",
-          active ? "text-brand-dark" : "text-muted-foreground"
-        )}
-      >
-        {children}
-        {active &&
-          (direction === "asc" ? (
-            <ChevronUp className="h-3 w-3 text-primary" />
-          ) : (
-            <ChevronDown className="h-3 w-3 text-primary" />
-          ))}
-      </button>
-    </TableHead>
-  );
 }
 
 export function LedgerTable({
@@ -479,7 +420,7 @@ export function LedgerTable({
               </TableCell>
               {showDetails && !affiliateView && (
                 <TableCell className={cn(tdClass, "ts-row-meta")}>
-                  {formatPayoutWeek(entry.payoutWeek)}
+                  {formatPayoutWeekLabel(entry.payoutWeek)}
                 </TableCell>
               )}
               <TableCell
@@ -495,7 +436,7 @@ export function LedgerTable({
                       <>
                         <span className="text-muted-foreground/50"> · </span>
                         <span className="font-normal">
-                          {formatPayoutWeek(entry.payoutWeek)}
+                          {formatPayoutWeekLabel(entry.payoutWeek)}
                         </span>
                       </>
                     ) : null}

@@ -47,18 +47,6 @@ export function memberCountLabel(count: number): string {
   return `${count} team member${count === 1 ? '' : 's'}`;
 }
 
-export function teamDealLabel(
-  ratePercent: string,
-  milestoneRevenueThreshold: string | null,
-  formatAmount: (value: number) => string,
-): string {
-  const rate = `${ratePercent}% of commissionable sales`;
-  if (!milestoneRevenueThreshold) return rate;
-  return `${rate} once a member reaches ${formatAmount(
-    Number(milestoneRevenueThreshold),
-  )} in commissionable sales`;
-}
-
 export const AFFILIATE_COPY = {
   portal: {
     label: 'Partner Portal',

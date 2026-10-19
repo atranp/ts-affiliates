@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { waitUntil } from "@vercel/functions";
-import { requireAdmin } from "@/lib/api-auth";
+import { requireAdmin } from "@/lib/api/auth";
 import { runFullSyncJob } from "@/lib/sync";
 import {
   clearStaleSyncLock,
@@ -8,7 +8,7 @@ import {
   getSyncStatus,
   isSyncStale,
   tryBeginSync,
-} from "@/lib/sync-state";
+} from "@/lib/sync/state";
 
 export const maxDuration = 300;
 

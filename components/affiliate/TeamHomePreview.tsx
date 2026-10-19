@@ -1,6 +1,5 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
 import { Users } from 'lucide-react';
 import { useMemo } from 'react';
 import { InlinePanelSkeleton } from '@/components/affiliate/DashboardSkeleton';
@@ -11,9 +10,9 @@ import {
   AffiliateMetaHighlight,
   AffiliateMetaLine,
 } from '@/components/affiliate/primitives';
-import { apiFetch } from '@/lib/api-client';
+import { useTeamDetail } from '@/hooks/use-teams';
 import { AFFILIATE_COPY, memberCountLabel } from '@/lib/affiliate/copy';
-import type { TeamDetail, TeamSummary } from '@/lib/teams/queries';
+import type { TeamSummary } from '@/lib/teams/queries';
 import {
   countSegments,
   memberName,
@@ -31,15 +30,6 @@ type TeamHomePreviewProps = {
   onViewTeamLedger: (teamId: string) => void;
   onViewMember: (memberId: string) => void;
 };
-
-function useTeamDetail(teamId: string | null, enabled: boolean) {
-  return useQuery({
-    queryKey: ['team', teamId],
-    queryFn: () => apiFetch<{ team: TeamDetail }>(`/api/teams/${teamId}`),
-    enabled: enabled && !!teamId,
-    staleTime: 60 * 1000,
-  });
-}
 
 function SegmentSummary({
   memberCount,

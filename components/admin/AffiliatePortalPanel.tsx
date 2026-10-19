@@ -24,7 +24,7 @@ import {
   PortalCredentialsDialog,
   type PortalCredentials,
 } from "@/components/admin/PortalCredentialsDialog";
-import { adminMutate } from "@/hooks/use-admin-query";
+import { apiFetch } from "@/lib/api/client";
 import type {
   AdminAffiliatePortal,
   InviteAffiliateResult,
@@ -64,7 +64,7 @@ export function AffiliatePortalPanel({
   async function handleInvite() {
     setLoading("invite");
     try {
-      const result = await adminMutate<InviteAffiliateResult>(
+      const result = await apiFetch<InviteAffiliateResult>(
         `/api/admin/affiliates/${affiliateId}/invite`,
         { method: "POST" }
       );
@@ -99,11 +99,10 @@ export function AffiliatePortalPanel({
   ) {
     setLoading(action);
     try {
-      const result = await adminMutate<PortalActionResult>(
+      const result = await apiFetch<PortalActionResult>(
         `/api/admin/affiliates/${affiliateId}/portal`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action }),
         }
       );

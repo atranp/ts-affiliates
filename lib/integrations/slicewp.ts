@@ -1,10 +1,6 @@
-import { mapWithConcurrency } from "./utils";
-import {
-  appendWpAuthParams,
-  normalizeStoreUrl,
-  readApiError,
-  sanitizeCredential,
-} from "./wordpress-auth";
+import { mapWithConcurrency } from "../utils";
+import { slicewpAuthParams, slicewpUrl } from "./slicewp-http";
+import { readApiError } from "./wordpress-auth";
 
 function formatSliceWPAuthError(status: number, detail: string): string {
   if (detail.includes("invalid_username")) {
@@ -35,20 +31,13 @@ async function slicewpFetch<T>(
   path: string,
   params: Record<string, string> = {}
 ): Promise<T> {
-  const baseUrl = normalizeStoreUrl(storeUrl);
-  const key = sanitizeCredential(consumerKey);
-  const secret = sanitizeCredential(consumerSecret);
-
-  if (!key || !secret) {
-    throw new Error(
-      "SliceWP credentials are missing. Add them in Admin → Integrations."
-    );
-  }
-
-  const search = appendWpAuthParams(new URLSearchParams(params), key, secret);
-
   const response = await fetch(
-    `${baseUrl}/wp-json/slicewp/v1${path}?${search.toString()}`,
+    slicewpUrl(
+      storeUrl,
+      "slicewp/v1",
+      path,
+      slicewpAuthParams(consumerKey, consumerSecret, params)
+    ),
     {
       headers: { Accept: "application/json" },
       cache: "no-store",
@@ -237,25 +226,6 @@ export async function fetchSliceWPCommissions(
     params
   );
   return normalizeList(data);
-}
-
-export async function fetchSliceWPCommissionsByOrder(
-  storeUrl: string,
-  consumerKey: string,
-  consumerSecret: string,
-  orderId: number
-): Promise<SliceWPCommission[]> {
-  try {
-    return await fetchSliceWPCommissions(storeUrl, consumerKey, consumerSecret, {
-      reference: String(orderId),
-      origin: "woo",
-    });
-  } catch (error) {
-    if (error instanceof Error && error.message.includes("404")) {
-      return [];
-    }
-    throw error;
-  }
 }
 
 export async function fetchAllSliceWPAffiliates(

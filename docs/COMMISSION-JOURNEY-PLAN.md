@@ -198,7 +198,7 @@ Meta key: `_ts_slicewp_attribution_audit` (order meta; map keyed by commission i
 
 **Goal:** Expose commission + order + audit data through the existing bridge (server-side WC credentials).
 
-**Repo:** `true-sciences-04` mu-plugin `true-sciences-slicewp-bridge.php` + portal `lib/slicewp-bridge.ts`
+**Repo:** `true-sciences-04` mu-plugin `true-sciences-slicewp-bridge.php` + portal `lib/integrations/slicewp-bridge.ts`
 
 ### Route
 
@@ -252,7 +252,7 @@ type CommissionJourneyPayload = {
 - [x] Load WC order by `reference`
 - [x] Read `_ts_slicewp_attribution_audit` from order meta
 - [x] Customer summary: count prior commissions same affiliate + `customer_id`
-- [x] Add `fetchCommissionJourney(id)` to `lib/slicewp-bridge.ts`
+- [x] Add `fetchCommissionJourney(id)` to `lib/integrations/slicewp-bridge.ts`
 - [x] Smoke script: `scripts/m2-journey-smoke.ts`
 - [ ] Curl test against Local WP (Mode B in migration doc)
 
@@ -298,8 +298,8 @@ model OrderAttribution {
 ### Tasks
 
 - [x] Prisma migration (`Commission` + `OrderAttribution` models)
-- [x] Extend `buildCommissionData()` in `lib/sync.ts` — map SliceWP REST `visit_id`, `customer_id`
-- [x] During commission sync: `enrichCommissionJourneyAfterSync()` in `lib/sync-journey.ts`
+- [x] Extend `buildCommissionData()` in `lib/sync/` — map SliceWP REST `visit_id`, `customer_id`
+- [x] During commission sync: `enrichCommissionJourneyAfterSync()` in `lib/sync/journey.ts`
   - Bridge fetch capped at **75 commissions/sync** (newest first, since 2026-08-18)
   - Skips silently when bridge unavailable
 - [x] Denormalize `winningRule` + `attributionAudit` onto `Commission` from journey audit
@@ -550,7 +550,7 @@ Build `journey` server-side from Commission + Visit + OrderAttribution + audit �
 | WP attribution engine | `true-sciences-04/.../inc/order-awaiting-payment.php` |
 | Lifetime priority | `true-sciences-04/.../inc/slicewp-lifetime-priority.php` |
 | Bridge plugin | `true-sciences-04/.../mu-plugins/true-sciences-slicewp-bridge.php` |
-| Portal sync | `ts-affiliate-platform/lib/sync.ts` |
+| Portal sync | `ts-affiliate-platform/lib/sync/` |
 | Attribution enrich | `ts-affiliate-platform/lib/ledger/attribution.ts` |
 | Commission row | `ts-affiliate-platform/components/affiliate/CommissionRow.tsx` |
 | Copy | `ts-affiliate-platform/lib/affiliate/copy.ts` |

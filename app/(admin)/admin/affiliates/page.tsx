@@ -27,23 +27,9 @@ import {
 } from "@/components/ui/table";
 import { useAdminAffiliates } from "@/hooks/use-admin-query";
 import { formatCurrency } from "@/lib/utils";
+import { affiliateStatusBadgeVariant } from "@/lib/admin/format";
 
 const STATUS_OPTIONS = ["all", "ACTIVE", "PENDING", "INACTIVE", "REJECTED"];
-
-function statusBadgeVariant(
-  status: string
-): "paid" | "pending" | "secondary" | "destructive" {
-  switch (status) {
-    case "ACTIVE":
-      return "paid";
-    case "PENDING":
-      return "pending";
-    case "REJECTED":
-      return "destructive";
-    default:
-      return "secondary";
-  }
-}
 
 export default function AdminAffiliatesPage() {
   const router = useRouter();
@@ -179,7 +165,7 @@ export default function AdminAffiliatesPage() {
                           </TableCell>
                           <TableCell>
                             <Badge
-                              variant={statusBadgeVariant(affiliate.status)}
+                              variant={affiliateStatusBadgeVariant(affiliate.status)}
                             >
                               {affiliate.status}
                             </Badge>
@@ -224,7 +210,7 @@ export default function AdminAffiliatesPage() {
                         />
                         <DataCardMeta>
                           <Badge
-                            variant={statusBadgeVariant(affiliate.status)}
+                            variant={affiliateStatusBadgeVariant(affiliate.status)}
                           >
                             {affiliate.status}
                           </Badge>

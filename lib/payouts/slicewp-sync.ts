@@ -5,7 +5,7 @@ import {
   fetchSliceWPPaymentsForAffiliates,
   parseSliceWPCommissionIds,
   type SliceWPPayment,
-} from "@/lib/slicewp";
+} from "@/lib/integrations/slicewp";
 import { toNumber } from "@/lib/utils";
 
 /** Rows per transaction. Payments are far rarer than commissions. */

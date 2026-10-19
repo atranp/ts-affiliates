@@ -1,5 +1,5 @@
 import { Role } from "@prisma/client";
-import type { AuthUser } from "@/lib/auth";
+import type { AuthUser } from "@/lib/auth/session";
 
 export const MOCK_ADMIN_USER_ID = "mock-user-admin";
 

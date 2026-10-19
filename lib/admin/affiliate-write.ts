@@ -7,7 +7,7 @@ import {
   updateSliceWPAffiliate,
   type AffiliateWritePayload,
   type SliceWPAffiliateStatus,
-} from "@/lib/slicewp-write";
+} from "@/lib/integrations/slicewp-write";
 
 /**
  * Admin edits to an affiliate, applied to SliceWP first and mirrored locally.

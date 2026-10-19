@@ -5,7 +5,7 @@ config({ path: ".env.local", override: true });
 
 /** Reads every bridge endpoint against the configured store. Read-only. */
 async function main() {
-  const bridge = await import("../lib/slicewp-bridge");
+  const bridge = await import("../lib/integrations/slicewp-bridge");
   const slicewpId = Number(process.argv[2] ?? 17);
 
   console.log("bridge available:", await bridge.isBridgeAvailable());

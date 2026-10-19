@@ -1,6 +1,6 @@
 import { CommissionStatus, LedgerEntryType } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { jsonCached } from "@/lib/api-cache";
+import { jsonCached } from "@/lib/api/cache";
 import { periodFromParams } from "@/lib/affiliate/period";
 import { getLedgerResponse } from "@/lib/ledger/queries";
 import { isAffiliateMockMode } from "@/lib/mock/config";

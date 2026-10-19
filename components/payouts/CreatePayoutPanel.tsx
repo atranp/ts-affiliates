@@ -1,16 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import {
-  AlertTriangle,
-  Check,
-  Download,
-  RefreshCw,
-  UserRound,
-  Wallet,
-} from "lucide-react";
+import { AlertTriangle, Check, Download, UserRound, Wallet } from "lucide-react";
 import {
   AffiliateSearchCombobox,
   type AffiliateOption,
@@ -18,54 +11,27 @@ import {
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { ErrorState } from "@/components/admin/ErrorState";
-import { WooOrderLink } from "@/components/admin/WooOrderLink";
-import { AffiliateBadge } from "@/components/affiliate/AffiliateBadge";
+import { AffiliateEmptyState } from "@/components/affiliate/primitives";
+import { PayoutOptionTree } from "@/components/payouts/create/PayoutOptionTree";
 import {
-  AffiliateAmountCell,
-  AffiliateEmptyState,
-  AffiliateSectionLabel,
-} from "@/components/affiliate/primitives";
+  CutoffBar,
+  EntriesTable,
+  ReviewHero,
+} from "@/components/payouts/create/PayoutReview";
+import {
+  LoadingLine,
+  WizardStepCard,
+} from "@/components/payouts/create/WizardStepCard";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { useAdminQuery } from "@/hooks/use-admin-query";
-import { apiFetch } from "@/lib/api-client";
-import type {
-  CreatedPayout,
-  PayoutDraft,
-  PayoutTarget,
-} from "@/lib/payouts/create";
-import type { PayoutOption, PayoutOptions } from "@/lib/payouts/options";
-import { APP_TIMEZONE_LABEL, formatAppDateTime } from "@/lib/timezone";
-import { cn, formatCurrency, formatSaleDate } from "@/lib/utils";
-
-function targetParams(target: PayoutTarget): Record<string, string> {
-  if (target.scope === "member") {
-    const ref =
-      target.directPayout.source === "slicewp"
-        ? {
-            directPayoutSource: "slicewp",
-            directPayoutId: target.directPayout.paymentId,
-          }
-        : {
-            directPayoutSource: "platform",
-            directPayoutId: target.directPayout.batchId,
-          };
-    return {
-      scope: "member",
-      teamId: target.teamId,
-      memberId: target.memberId,
-      ...ref,
-    };
-  }
-  return { scope: target.scope };
-}
+import { useSliceWPPreSync } from "@/hooks/use-slicewp-pre-sync";
+import { apiFetch } from "@/lib/api/client";
+import type { CreatedPayout, PayoutDraft } from "@/lib/payouts/create";
+import type { PayoutOptions } from "@/lib/payouts/options";
+import { payoutTargetParams } from "@/lib/payouts/target-params";
+import { formatAppDateTime } from "@/lib/timezone";
+import { formatCurrency } from "@/lib/utils";
+import { queryKeys } from "@/lib/query-keys";
 
 type CreatePayoutPanelProps = {
   /**
@@ -77,7 +43,6 @@ type CreatePayoutPanelProps = {
   onCreated?: (payout: CreatedPayout) => void;
 };
 
-
 export function CreatePayoutPanel({
   fixedAffiliate,
   onCreated,
@@ -88,54 +53,17 @@ export function CreatePayoutPanel({
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [refreshedAt, setRefreshedAt] = useState(0);
-  const [syncing, setSyncing] = useState(false);
-  const [syncedAt, setSyncedAt] = useState<number | null>(null);
-  const [syncFailed, setSyncFailed] = useState(false);
-  const [syncedAffiliateId, setSyncedAffiliateId] = useState<string | null>(
-    null
-  );
 
   const affiliateId = fixedAffiliate?.id ?? affiliate?.id ?? null;
-
-  const runSync = useCallback(async (id: string) => {
-    setSyncing(true);
-    setSyncFailed(false);
-    try {
-      await apiFetch(`/api/admin/affiliates/${id}/sync`, { method: "POST" });
-      setSyncedAt(Date.now());
-    } catch {
-      setSyncFailed(true);
-    } finally {
-      setSyncedAffiliateId(id);
-      setSyncing(false);
-      setRefreshedAt(Date.now());
-    }
-  }, []);
-
-  const syncStartedFor = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!affiliateId) {
-      syncStartedFor.current = null;
-      setSyncedAffiliateId(null);
-      setSyncedAt(null);
-      setSyncFailed(false);
-      return;
-    }
-    if (syncStartedFor.current === affiliateId) return;
-    syncStartedFor.current = affiliateId;
-    void runSync(affiliateId);
-  }, [affiliateId, runSync]);
-
-  const synced = !!affiliateId && syncedAffiliateId === affiliateId;
+  const { synced, syncing, syncedAt, syncFailed, refreshedAt, refresh } =
+    useSliceWPPreSync(affiliateId);
 
   const {
     data: optionsData,
     isLoading: optionsLoading,
     error: optionsError,
   } = useAdminQuery<PayoutOptions>(
-    ["admin", "payout-options", affiliateId ?? "", refreshedAt],
+    queryKeys.admin.payoutOptions(affiliateId ?? "", refreshedAt),
     affiliateId && synced
       ? `/api/admin/payouts/create/options?affiliateId=${affiliateId}`
       : null,
@@ -166,7 +94,7 @@ export function CreatePayoutPanel({
   const draftQuery = selected
     ? new URLSearchParams({
         affiliateId: affiliateId!,
-        ...targetParams(selected.target),
+        ...payoutTargetParams(selected.target),
         cutoff: optionsData!.cutoff,
       }).toString()
     : null;
@@ -177,18 +105,10 @@ export function CreatePayoutPanel({
     isFetching: draftFetching,
     error: draftError,
   } = useAdminQuery<PayoutDraft>(
-    ["admin", "payout-draft", draftQuery ?? ""],
+    queryKeys.admin.payoutDraft(draftQuery ?? ""),
     draftQuery ? `/api/admin/payouts/create?${draftQuery}` : null,
     { staleTime: 0, gcTime: 0 }
   );
-
-  function refresh() {
-    if (affiliateId) {
-      void runSync(affiliateId);
-      return;
-    }
-    setRefreshedAt(Date.now());
-  }
 
   async function create() {
     if (!draft || !selected || !affiliateId) return;
@@ -200,7 +120,7 @@ export function CreatePayoutPanel({
           method: "POST",
           body: JSON.stringify({
             affiliateId,
-            ...targetParams(selected.target),
+            ...payoutTargetParams(selected.target),
             cutoff: draft.cutoff,
             expected: {
               entryCount: draft.entryCount,
@@ -291,7 +211,7 @@ export function CreatePayoutPanel({
                 description="Every commission for this ambassador has already been paid out."
               />
             ) : (
-              <OptionTree
+              <PayoutOptionTree
                 data={optionsData}
                 selectedKey={selectedKey}
                 onSelect={setSelectedKey}
@@ -393,323 +313,6 @@ export function CreatePayoutPanel({
           if (!creating) setConfirmOpen(false);
         }}
       />
-    </div>
-  );
-}
-
-
-function WizardStepCard({
-  step,
-  title,
-  children,
-}: {
-  step: number;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="ts-payout-step-card overflow-visible">
-      <header className="ts-payout-step-head flex items-center gap-3">
-        <div className="ts-step-num">{step}</div>
-        <h2 className="ts-section-title text-base">{title}</h2>
-      </header>
-      <div className="ts-payout-step-body overflow-visible">{children}</div>
-    </section>
-  );
-}
-
-function ReviewHero({
-  draft,
-  selected,
-}: {
-  draft: PayoutDraft;
-  selected: PayoutOption;
-}) {
-  const isDirect = selected.target.scope === "direct";
-
-  return (
-    <div className="ts-payout-hero">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="ts-row-title">{selected.label}</h3>
-            <AffiliateBadge variant={isDirect ? "direct" : "team"}>
-              {isDirect ? "Direct" : "Team"}
-            </AffiliateBadge>
-          </div>
-          <p className="ts-row-meta">
-            {draft.targetLabel} · {draft.affiliateName}
-          </p>
-          {selected.math && <p className="ts-micro">{selected.math}</p>}
-        </div>
-        <p className="ts-payout-hero-amount shrink-0">
-          {formatCurrency(draft.totalAmount)}
-        </p>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        <AffiliateBadge variant="neutral">
-          {draft.entryCount.toLocaleString("en-US")} commissions
-        </AffiliateBadge>
-        {draft.revenueTotal > 0 && (
-          <AffiliateBadge variant="paid">
-            {formatCurrency(draft.revenueTotal)} sales
-          </AffiliateBadge>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function OptionTree({
-  data,
-  selectedKey,
-  onSelect,
-}: {
-  data: PayoutOptions;
-  selectedKey: string | null;
-  onSelect: (key: string) => void;
-}) {
-  return (
-    <div role="radiogroup" aria-label="What to pay" className="space-y-3">
-      {data.direct && (
-        <div className="ts-payout-direct-group">
-          <AffiliateSectionLabel>Direct earnings</AffiliateSectionLabel>
-          <OptionRow
-            option={data.direct}
-            selected={selectedKey === data.direct.key}
-            onSelect={() => onSelect(data.direct!.key)}
-          />
-        </div>
-      )}
-
-      {data.teams.map((team) => (
-        <div key={team.teamId} className="ts-payout-team-group">
-          <AffiliateSectionLabel
-            action={
-              <span className="ts-row-meta font-semibold tabular-nums text-violet-900">
-                {formatCurrency(team.amount)}
-              </span>
-            }
-          >
-            {team.label} · {team.sublabel}
-          </AffiliateSectionLabel>
-          <div className="space-y-1.5">
-            {team.members.map((member) => (
-              <OptionRow
-                key={member.key}
-                option={member}
-                selected={selectedKey === member.key}
-                onSelect={() => onSelect(member.key)}
-              />
-            ))}
-          </div>
-        </div>
-      ))}
-
-      {data.unattributed.entryCount > 0 && (
-        <div className="rounded-lg border border-amber-200/80 bg-warning-soft px-3 py-2.5">
-          <p className="ts-row-meta leading-relaxed text-amber-900">
-            <span className="font-semibold">
-              {formatCurrency(data.unattributed.amount)}
-            </span>{" "}
-            across {data.unattributed.entryCount.toLocaleString("en-US")} unpaid{" "}
-            {data.unattributed.entryCount === 1 ? "entry" : "entries"} is not
-            listed above — bonuses, adjustments, and overrides with no team or
-            member attached. Nothing on this screen can pay those yet.
-          </p>
-        </div>
-      )}
-
-      {data.awaitingDirectPayout.entryCount > 0 && (
-        <div className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2.5">
-          <p className="ts-row-meta leading-relaxed text-muted-foreground">
-            <span className="font-semibold text-brand-dark">
-              {formatCurrency(data.awaitingDirectPayout.amount)}
-            </span>{" "}
-            in team earnings is waiting on a recruit direct payout first — those
-            sales are not in any paid direct receipt yet.
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function OptionRow({
-  option,
-  selected,
-  onSelect,
-}: {
-  option: PayoutOption;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={selected}
-      onClick={onSelect}
-      className={cn(
-        "ts-payout-option",
-        selected && "ts-payout-option-selected"
-      )}
-    >
-      <span
-        className={cn(
-          "ts-payout-option-radio",
-          selected && "ts-payout-option-radio-selected"
-        )}
-        aria-hidden
-      >
-        {selected && (
-          <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground" />
-        )}
-      </span>
-
-      <div className="min-w-0 flex-1 text-left">
-        <p className="ts-row-title">{option.label}</p>
-        <p className="ts-row-meta mt-0.5">{option.sublabel}</p>
-        {option.math && (
-          <p className="ts-micro mt-0.5 truncate">{option.math}</p>
-        )}
-      </div>
-
-      <AffiliateAmountCell
-        amount={formatCurrency(option.amount)}
-        tone={selected ? "primary" : "default"}
-      />
-    </button>
-  );
-}
-
-function CutoffBar({
-  cutoff,
-  syncedAt,
-  syncFailed,
-  refreshing,
-  onRefresh,
-}: {
-  cutoff: string;
-  syncedAt: number | null;
-  syncFailed: boolean;
-  refreshing: boolean;
-  onRefresh: () => void;
-}) {
-  return (
-    <div className="ts-payout-cutoff">
-      <div className="min-w-0">
-        <p className="ts-row-meta text-brand-dark">
-          Unpaid through{" "}
-          <span className="font-semibold text-brand-dark">
-            {formatAppDateTime(cutoff)}
-          </span>{" "}
-          ({APP_TIMEZONE_LABEL})
-        </p>
-        <p className="ts-row-meta mt-0.5">
-          {syncFailed
-            ? "SliceWP could not be reached — totals may be out of date."
-            : syncedAt
-              ? `SliceWP read at ${formatAppDateTime(new Date(syncedAt))}.`
-              : "Not yet checked against SliceWP."}
-        </p>
-      </div>
-      <Button
-        size="sm"
-        variant="outline"
-        className="h-8 shrink-0 rounded-lg px-3 text-xs"
-        disabled={refreshing}
-        onClick={onRefresh}
-      >
-        <RefreshCw
-          className={cn("mr-1.5 h-3.5 w-3.5", refreshing && "animate-spin")}
-        />
-        {refreshing ? "Refreshing…" : "Refresh"}
-      </Button>
-    </div>
-  );
-}
-
-function EntriesTable({
-  draft,
-  compact,
-}: {
-  draft: PayoutDraft;
-  compact?: boolean;
-}) {
-  const showSource = draft.target.scope !== "direct";
-  const rows = compact ? draft.entries.slice(0, 5) : draft.entries;
-
-  return (
-    <div className="space-y-2">
-      <p className="ts-row-meta rounded-md border border-border/60 bg-muted/25 px-2.5 py-1.5">
-        {draft.entriesTruncated
-          ? compact
-            ? `Latest ${rows.length} of ${draft.entryCount.toLocaleString("en-US")} commissions — export CSV for all.`
-            : `Showing the ${draft.entries.length} most recent of ${draft.entryCount.toLocaleString("en-US")} commissions. The total above covers all of them — export the CSV for every line.`
-          : compact
-            ? `All ${draft.entries.length} commissions.`
-            : `All ${draft.entries.length} commissions in this payout.`}
-      </p>
-      <div className="ts-table-wrap">
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="ts-table-header h-10 px-3 text-left first:pl-4">
-                Sale
-              </TableHead>
-              {showSource && !compact && (
-                <TableHead className="ts-table-header h-10 px-3 text-left">
-                  Member
-                </TableHead>
-              )}
-              <TableHead className="ts-table-header h-10 px-3 text-right last:pr-4">
-                Earned
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((entry) => (
-              <TableRow
-                key={entry.id}
-                className="border-border/60 hover:bg-muted/40"
-              >
-                <TableCell className="px-3 py-2.5 first:pl-4">
-                  <p className="ts-row-meta whitespace-nowrap">
-                    {formatSaleDate(entry.occurredAt)}
-                  </p>
-                  {entry.wooOrderId ? (
-                    <WooOrderLink
-                      orderId={entry.wooOrderId}
-                      className="text-xs"
-                    />
-                  ) : null}
-                </TableCell>
-                {showSource && !compact && (
-                  <TableCell className="ts-row-title px-3 py-2.5">
-                    {entry.sourceAffiliateName ?? "Direct sale"}
-                  </TableCell>
-                )}
-                <TableCell className="whitespace-nowrap px-3 py-2.5 text-right last:pr-4">
-                  <AffiliateAmountCell
-                    amount={formatCurrency(entry.amount)}
-                    tone="primary"
-                  />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
-  );
-}
-
-function LoadingLine({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-2.5 py-2">
-      <RefreshCw className="h-4 w-4 shrink-0 animate-spin text-primary" />
-      <p className="ts-row-meta">{children}</p>
     </div>
   );
 }

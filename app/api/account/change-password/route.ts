@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-auth";
-import {
-  applyMustChangePasswordCookie,
-} from "@/lib/auth-role";
+import { requireAuth } from "@/lib/api/auth";
+import { applyMustChangePasswordCookie } from "@/lib/auth/cookies";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { describePasswordWeakness } from "@/lib/account/change-password-validation";

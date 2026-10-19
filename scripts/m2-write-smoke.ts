@@ -19,10 +19,10 @@ import { assertTestAffiliate, COHORT_PREFIX, emailFor } from "./cohort";
 
 async function main() {
   const { updateSliceWPAffiliate, canWriteToStore } = await import(
-    "../lib/slicewp-write"
+    "../lib/integrations/slicewp-write"
   );
   const { fetchSliceWPAffiliateById, fetchAllSliceWPAffiliates } = await import(
-    "../lib/slicewp"
+    "../lib/integrations/slicewp"
   );
   const { getSettings } = await import("../lib/settings");
   const { isProductionStore, shouldMirrorWrites } = await import(

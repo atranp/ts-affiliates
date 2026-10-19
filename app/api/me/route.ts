@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { jsonCached } from "@/lib/api-cache";
+import { jsonCached } from "@/lib/api/cache";
 import {
   applyMustChangePasswordCookie,
   applyRoleCookie,
-  ensureAuthRoleConsistency,
-} from "@/lib/auth-role";
-import { getAuthBlockReason, getAuthUser } from "@/lib/auth";
+} from "@/lib/auth/cookies";
+import { ensureAuthRoleConsistency } from "@/lib/auth/role";
+import { getAuthBlockReason, getAuthUser } from "@/lib/auth/session";
 import { touchAffiliateLastSignIn } from "@/lib/admin/affiliate-portal";
 import { linkProfileToAffiliateByEmail } from "@/lib/sync";
 import { createClient } from "@/lib/supabase/server";

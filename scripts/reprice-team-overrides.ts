@@ -34,7 +34,7 @@ async function main() {
     await import("../lib/deal-rules");
   const { toNumber } = await import("../lib/format");
   const { syncCommissionBases, syncLedgerCommissionBases } = await import(
-    "../lib/sync-write"
+    "../lib/sync/write"
   );
 
   const m = (v: number) => `$${v.toFixed(2)}`;

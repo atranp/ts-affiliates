@@ -281,7 +281,7 @@ async function conversionDrill(
   );
 
   try {
-    const { syncVisits } = await import("../lib/sync-parity");
+    const { syncVisits } = await import("../lib/sync/parity");
     const result = await syncVisits();
 
     const after = await prisma.visit.findUnique({

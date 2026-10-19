@@ -7,7 +7,7 @@ import { toNumber } from "@/lib/utils";
  *
  * Every read here is scoped to one affiliate id supplied by the caller, which
  * comes from the session rather than the request body. Mirrored from SliceWP by
- * M4, so all of it is read-only.
+ * the sync, so all of it is read-only.
  */
 
 export type AffiliateLink = {

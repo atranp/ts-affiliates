@@ -3,14 +3,17 @@
 import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Plus, DollarSign, GitBranch, Trash2 } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/PageHeader";
 import {
   AffiliateSearchCombobox,
+  fetchAffiliateOption,
   type AffiliateOption,
 } from "@/components/admin/AffiliateSearchCombobox";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { DialogOverlay } from "@/components/admin/DialogOverlay";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { TableSkeleton } from "@/components/admin/TableSkeleton";
@@ -39,8 +42,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { adminMutate, useAdminQuery } from "@/hooks/use-admin-query";
-import { apiFetch } from "@/lib/api-client";
+import { useAdminQuery } from "@/hooks/use-admin-query";
+import { apiFetch } from "@/lib/api/client";
+import { queryKeys } from "@/lib/query-keys";
 
 type AdminTeamRow = {
   id: string;
@@ -114,16 +118,14 @@ function AdminTeamsPageContent() {
     error,
     refetch,
   } = useAdminQuery<{ teams: AdminTeamRow[] }>(
-    ["admin", "teams-all"],
+    queryKeys.admin.allTeams,
     "/api/admin/teams"
   );
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [sponsor, setSponsor] = useState<AffiliateOption | null>(null);
   const [form, setForm] = useState({ name: "", description: "" });
   const [deletingTeam, setDeletingTeam] = useState<AdminTeamRow | null>(null);
-  const [deleting, setDeleting] = useState(false);
   const [urlPrefilled, setUrlPrefilled] = useState(false);
 
   useEffect(() => {
@@ -134,24 +136,11 @@ function AdminTeamsPageContent() {
     async function prefillFromUrl() {
       try {
         if (sponsorId) {
-          const affiliate = await apiFetch<{
-            id: string;
-            email: string;
-            displayName: string | null;
-            slicewpId: number;
-            status: string;
-          }>(`/api/admin/affiliates/${sponsorId}`);
-          setSponsor({
-            id: affiliate.id,
-            email: affiliate.email,
-            displayName: affiliate.displayName,
-            slicewpId: affiliate.slicewpId,
-            status: affiliate.status,
-          });
+          setSponsor(await fetchAffiliateOption(sponsorId));
         }
         if (shouldOpen) setCreateOpen(true);
       } catch {
-        // ignore
+        // A stale link leaves the form closed rather than half-filled.
       } finally {
         setUrlPrefilled(true);
       }
@@ -161,51 +150,49 @@ function AdminTeamsPageContent() {
     else setUrlPrefilled(true);
   }, [searchParams, urlPrefilled]);
 
-  async function createTeam(e: React.FormEvent) {
+  const createTeam = useMutation({
+    mutationFn: (input: { name: string; description: string; sponsorAffiliateId: string }) =>
+      apiFetch("/api/admin/teams", {
+        method: "POST",
+        body: JSON.stringify({
+          name: input.name,
+          description: input.description || undefined,
+          sponsorAffiliateId: input.sponsorAffiliateId,
+        }),
+      }),
+    onSuccess: async (_data, input) => {
+      toast.success(`Created team: ${input.name}`);
+      setForm({ name: "", description: "" });
+      setSponsor(null);
+      setCreateOpen(false);
+      await refetch();
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : "Failed to create team"),
+  });
+
+  const deleteTeam = useMutation({
+    mutationFn: (team: AdminTeamRow) =>
+      apiFetch(`/api/admin/teams/${team.id}`, { method: "DELETE" }),
+    onSuccess: async (_data, team) => {
+      toast.success(`Deleted team: ${team.name}`);
+      setDeletingTeam(null);
+      await refetch();
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : "Failed to delete team"),
+  });
+
+  const submitting = createTeam.isPending;
+  const deleting = deleteTeam.isPending;
+
+  function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!sponsor?.id || !form.name.trim()) {
       toast.error("Select sponsor and enter a team name");
       return;
     }
-
-    setSubmitting(true);
-    try {
-      await adminMutate("/api/admin/teams", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name,
-          description: form.description || undefined,
-          sponsorAffiliateId: sponsor.id,
-        }),
-      });
-      toast.success(`Created team: ${form.name}`);
-      setForm({ name: "", description: "" });
-      setSponsor(null);
-      setCreateOpen(false);
-      await refetch();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create team");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function confirmDelete() {
-    if (!deletingTeam) return;
-    setDeleting(true);
-    try {
-      await adminMutate(`/api/admin/teams/${deletingTeam.id}`, {
-        method: "DELETE",
-      });
-      toast.success(`Deleted team: ${deletingTeam.name}`);
-      setDeletingTeam(null);
-      await refetch();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete team");
-    } finally {
-      setDeleting(false);
-    }
+    createTeam.mutate({ ...form, sponsorAffiliateId: sponsor.id });
   }
 
   return (
@@ -351,73 +338,68 @@ function AdminTeamsPageContent() {
         </div>
       </div>
 
-      {createOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <button
-            type="button"
-            className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
-            aria-label="Close dialog"
-            onClick={() => {
-              if (!submitting) setCreateOpen(false);
-            }}
-          />
-          <Card className="relative z-10 w-full max-w-lg shadow-lg">
-            <CardHeader>
-              <CardTitle>Create team</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={createTeam} className="space-y-4">
-                <AffiliateSearchCombobox
-                  id="team-sponsor"
-                  label="Sponsor"
-                  value={sponsor?.id ?? ""}
-                  selected={sponsor}
-                  onChange={(_id, affiliate) => setSponsor(affiliate)}
+      <DialogOverlay
+        open={createOpen}
+        label="Create team"
+        onDismiss={submitting ? undefined : () => setCreateOpen(false)}
+        className="max-w-lg"
+      >
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle>Create team</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleCreate} className="space-y-4">
+              <AffiliateSearchCombobox
+                id="team-sponsor"
+                label="Sponsor"
+                value={sponsor?.id ?? ""}
+                selected={sponsor}
+                onChange={(_id, affiliate) => setSponsor(affiliate)}
+                disabled={submitting}
+              />
+              <div className="space-y-2">
+                <Label htmlFor="team-name">Team name</Label>
+                <Input
+                  id="team-name"
+                  value={form.name}
+                  onChange={(e) =>
+                    setForm({ ...form, name: e.target.value })
+                  }
+                  placeholder="West Coast Team"
+                  required
                   disabled={submitting}
                 />
-                <div className="space-y-2">
-                  <Label htmlFor="team-name">Team name</Label>
-                  <Input
-                    id="team-name"
-                    value={form.name}
-                    onChange={(e) =>
-                      setForm({ ...form, name: e.target.value })
-                    }
-                    placeholder="West Coast Team"
-                    required
-                    disabled={submitting}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="team-desc">Description (optional)</Label>
-                  <Input
-                    id="team-desc"
-                    value={form.description}
-                    onChange={(e) =>
-                      setForm({ ...form, description: e.target.value })
-                    }
-                    placeholder="Blair, Sarah, and Mike recruits"
-                    disabled={submitting}
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setCreateOpen(false)}
-                    disabled={submitting}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={submitting}>
-                    {submitting ? "Creating…" : "Create team"}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="team-desc">Description (optional)</Label>
+                <Input
+                  id="team-desc"
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm({ ...form, description: e.target.value })
+                  }
+                  placeholder="Blair, Sarah, and Mike recruits"
+                  disabled={submitting}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCreateOpen(false)}
+                  disabled={submitting}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={submitting}>
+                  {submitting ? "Creating…" : "Create team"}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </DialogOverlay>
 
       <ConfirmDialog
         open={!!deletingTeam}
@@ -430,7 +412,7 @@ function AdminTeamsPageContent() {
         confirmLabel="Delete team"
         destructive
         loading={deleting}
-        onConfirm={confirmDelete}
+        onConfirm={() => deletingTeam && deleteTeam.mutate(deletingTeam)}
         onCancel={() => {
           if (!deleting) setDeletingTeam(null);
         }}

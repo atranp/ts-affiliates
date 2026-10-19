@@ -8,8 +8,10 @@ import { PayoutBatchDetailView } from "@/components/payouts/PayoutBatchDetailVie
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { Button } from "@/components/ui/button";
-import { adminMutate, useAdminQuery } from "@/hooks/use-admin-query";
+import { useAdminQuery } from "@/hooks/use-admin-query";
+import { apiFetch } from "@/lib/api/client";
 import type { PayoutBatchDetail } from "@/lib/payouts/types";
+import { queryKeys } from "@/lib/query-keys";
 
 export default function AdminPayoutDetailPage() {
   const params = useParams<{ id: string }>();
@@ -19,7 +21,10 @@ export default function AdminPayoutDetailPage() {
 
   const { data, error, isLoading, refetch } = useAdminQuery<{
     batch: PayoutBatchDetail;
-  }>(["admin", "payout-batch", params.id], `/api/admin/payouts/batches/${params.id}`);
+  }>(
+    queryKeys.admin.payoutBatch(params.id),
+    `/api/admin/payouts/batches/${params.id}`
+  );
 
   if (isLoading) {
     return <p className="text-muted-foreground">Loading payout...</p>;
@@ -41,7 +46,7 @@ export default function AdminPayoutDetailPage() {
   async function remove() {
     setBusy(true);
     try {
-      const result = await adminMutate<{ entriesReleased: number }>(
+      const result = await apiFetch<{ entriesReleased: number }>(
         `/api/admin/payouts/batches/${params.id}`,
         { method: "DELETE" }
       );

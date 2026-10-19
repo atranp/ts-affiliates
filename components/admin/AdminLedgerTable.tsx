@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatAppDate } from "@/lib/timezone";
+import { formatPayoutWeekLabel } from "@/lib/ledger/format";
 import {
   cn,
   commissionableSale,
@@ -10,8 +10,6 @@ import {
 } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -20,7 +18,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import {
+  LedgerBulkConfirm,
+  LedgerEntryEditDialog,
+  type LedgerEditForm,
+} from "@/components/admin/ledger/LedgerEntryDialogs";
 import { WooOrderLink } from "@/components/admin/WooOrderLink";
 import { LEDGER_STATUSES } from "@/lib/ledger/statuses";
 import { Pencil, Plus } from "lucide-react";
@@ -64,26 +66,11 @@ function EntryTypeBadge({ type }: { type: string }) {
   );
 }
 
-function formatPayoutWeek(iso: string | null) {
-  if (!iso) return "—";
-  return formatAppDate(iso, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
-}
-
 function entryPayoutLabel(entry: AdminLedgerEntry) {
   const batch = entry.payoutBatch;
   if (batch) return batch.label;
-  return formatPayoutWeek(entry.payoutWeek) ?? "—";
+  return formatPayoutWeekLabel(entry.payoutWeek) ?? "—";
 }
-
-type EditForm = {
-  status: string;
-  amount: string;
-  description: string;
-};
 
 type AdminLedgerTableProps = {
   entries: AdminLedgerEntry[];
@@ -105,7 +92,7 @@ export function AdminLedgerTable({
 }: AdminLedgerTableProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<AdminLedgerEntry | null>(null);
-  const [form, setForm] = useState<EditForm | null>(null);
+  const [form, setForm] = useState<LedgerEditForm | null>(null);
   const [saving, setSaving] = useState(false);
   const [bulkConfirm, setBulkConfirm] = useState<{
     status: string;
@@ -141,6 +128,11 @@ export function AdminLedgerTable({
     });
   }
 
+  function closeEdit() {
+    setEditing(null);
+    setForm(null);
+  }
+
   async function saveEdit() {
     if (!editing || !form) return;
     setSaving(true);
@@ -150,8 +142,7 @@ export function AdminLedgerTable({
         amount: Number(form.amount),
         description: form.description.trim() || null,
       });
-      setEditing(null);
-      setForm(null);
+      closeEdit();
     } finally {
       setSaving(false);
     }
@@ -427,105 +418,21 @@ export function AdminLedgerTable({
       </div>
 
       {editing && form && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <button
-            type="button"
-            className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
-            aria-label="Close dialog"
-            onClick={() => {
-              setEditing(null);
-              setForm(null);
-            }}
-          />
-          <div className="relative z-10 w-full max-w-md ts-panel shadow-lg">
-            <div className="ts-panel-header">
-              <h3 className="ts-section-title">Edit ledger entry</h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {editing.type} ·{" "}
-                {editing.wooOrderId ? `Order #${editing.wooOrderId}` : "No order"}
-              </p>
-            </div>
-            <div className="ts-panel-body space-y-4">
-              {editing.payoutBatchId && (
-                <p className="rounded-md bg-warning/10 px-3 py-2 text-xs text-warning">
-                  Linked to payout batch &quot;{editing.payoutBatch?.label ?? editing.payoutBatchId}&quot;.
-                  Changing status will unlink this entry from the batch.
-                </p>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="edit-status" className="ts-field-label">
-                  Status
-                </Label>
-                <select
-                  id="edit-status"
-                  className="select-field w-full"
-                  value={form.status}
-                  onChange={(e) =>
-                    setForm((f) => f && { ...f, status: e.target.value })
-                  }
-                >
-                  {LEDGER_STATUSES.map((s) => (
-                    <option key={s.value} value={s.value}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-amount" className="ts-field-label">
-                  Amount
-                </Label>
-                <Input
-                  id="edit-amount"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={form.amount}
-                  onChange={(e) =>
-                    setForm((f) => f && { ...f, amount: e.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-description" className="ts-field-label">
-                  Description / notes
-                </Label>
-                <Input
-                  id="edit-description"
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm((f) => f && { ...f, description: e.target.value })
-                  }
-                  placeholder="Optional note for this entry"
-                />
-              </div>
-              <div className="flex justify-end gap-2 border-t border-border/40 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setEditing(null);
-                    setForm(null);
-                  }}
-                  disabled={saving}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={saveEdit} disabled={saving}>
-                  {saving ? "Saving..." : "Save changes"}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <LedgerEntryEditDialog
+          entry={editing}
+          form={form}
+          saving={saving}
+          onChange={setForm}
+          onClose={closeEdit}
+          onSave={saveEdit}
+        />
       )}
 
-      <ConfirmDialog
-        open={!!bulkConfirm}
-        title={bulkConfirm?.label ?? "Bulk update"}
-        description={`Update ${selected.size} selected ${selected.size === 1 ? "entry" : "entries"}? Entries linked to payout batches will be unlinked if not marked paid.`}
-        confirmLabel={bulkConfirm?.label ?? "Confirm"}
-        loading={saving}
-        destructive={bulkConfirm?.status === "REJECTED"}
+      <LedgerBulkConfirm
+        count={selected.size}
+        status={bulkConfirm?.status ?? null}
+        label={bulkConfirm?.label ?? ""}
+        saving={saving}
         onConfirm={runBulk}
         onCancel={() => setBulkConfirm(null)}
       />

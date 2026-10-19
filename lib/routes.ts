@@ -1,7 +1,7 @@
-import { Role } from "@prisma/client";
+import type { Role } from "@prisma/client";
 
 export function homePathForRole(role: Role | string | undefined): string {
-  return role === Role.ADMIN || role === "ADMIN" ? "/admin" : "/dashboard";
+  return role === "ADMIN" ? "/admin" : "/dashboard";
 }
 
 export const NEXT_PARAM = "next";

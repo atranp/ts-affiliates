@@ -1,27 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
-import {
-  IMPERSONATE_COOKIE,
-} from "@/lib/auth-impersonation";
+import { IMPERSONATE_COOKIE } from "@/lib/auth/impersonation";
 import {
   MUST_CHANGE_PASSWORD_COOKIE,
   ROLE_COOKIE,
   roleFromRequest,
-} from "@/lib/auth-role";
+} from "@/lib/auth/cookies";
+import { isAdminMockMode, isAffiliateMockMode } from "@/lib/mock/config";
 import { homePathForRole, NEXT_PARAM, safeNextPath } from "@/lib/routes";
 
 const adminPaths = ["/admin"];
 const affiliatePaths = ["/dashboard", "/account"];
-
-function isAffiliateMockMode(): boolean {
-  if (process.env.NODE_ENV === "production") return false;
-  return process.env.AFFILIATE_MOCK_DATA === "true";
-}
-
-function isAdminMockMode(): boolean {
-  if (process.env.NODE_ENV === "production") return false;
-  return process.env.ADMIN_MOCK_DATA === "true";
-}
 
 /** Sends an unauthenticated visitor to sign in without losing the deep link. */
 function redirectToLogin(request: NextRequest) {

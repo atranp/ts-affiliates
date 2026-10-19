@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { cn } from "@/lib/utils";
 
 type DialogOverlayProps = {
   open: boolean;
@@ -9,6 +10,8 @@ type DialogOverlayProps = {
   children: ReactNode;
   /** Omit to make the dialog dismissable only through its own controls. */
   onDismiss?: () => void;
+  /** Width constraint for the panel; defaults to a confirm-sized dialog. */
+  className?: string;
 };
 
 /**
@@ -20,6 +23,7 @@ export function DialogOverlay({
   label,
   children,
   onDismiss,
+  className,
 }: DialogOverlayProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -62,7 +66,9 @@ export function DialogOverlay({
       ) : (
         <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" />
       )}
-      <div className="relative z-10 my-auto w-full max-w-md">{children}</div>
+      <div className={cn("relative z-10 my-auto w-full max-w-md", className)}>
+        {children}
+      </div>
     </div>,
     document.body
   );

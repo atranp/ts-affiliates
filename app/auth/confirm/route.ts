@@ -4,8 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import {
   applyMustChangePasswordCookie,
   applyRoleCookie,
-  ensureAuthRoleConsistency,
-} from "@/lib/auth-role";
+} from "@/lib/auth/cookies";
+import { ensureAuthRoleConsistency } from "@/lib/auth/role";
 import { homePathForRole, safeNextPath } from "@/lib/routes";
 
 /**

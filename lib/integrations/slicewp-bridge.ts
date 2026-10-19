@@ -1,23 +1,19 @@
-import { getSettings } from "./settings";
-import type { CommissionJourneyPayload } from "./ledger/attribution-audit";
-import {
-  appendWpAuthParams,
-  normalizeStoreUrl,
-  readApiError,
-  sanitizeCredential,
-} from "./wordpress-auth";
+import { getSettings } from "../settings";
+import type { CommissionJourneyPayload } from "../ledger/attribution-audit";
+import { slicewpAuthParams, slicewpUrl } from "./slicewp-http";
+import { readApiError } from "./wordpress-auth";
 
 /**
  * Client for the `slicewp-ts/v1` routes added by the True Sciences bridge
  * mu-plugin — the data SliceWP stores but does not expose over its own REST API.
  *
- * Authentication is identical to `lib/slicewp.ts`: the bridge namespace starts
+ * Authentication is identical to `lib/integrations/slicewp.ts`: the bridge namespace starts
  * with `slicewp-`, which the REST add-on's auth filter matches, so the same
  * consumer key and secret apply.
  *
- * Every read tolerates the plugin being absent. Until Milestone 6 the bridge
- * only exists on Local WordPress, so on production these return empty rather
- * than breaking the page around them.
+ * Every read tolerates the plugin being absent: it is not installed on every
+ * store, and a missing bridge should return empty rather than break the page
+ * around it.
  */
 
 export type SliceWPCreative = {
@@ -80,20 +76,17 @@ async function bridgeFetch<T>(
 ): Promise<T> {
   const settings = await getSettings();
 
-  const key = sanitizeCredential(settings.slicewpConsumerKey);
-  const secret = sanitizeCredential(settings.slicewpConsumerSecret);
-
-  if (!key || !secret) {
-    throw new Error(
-      "SliceWP credentials are missing. Add them in Admin → Integrations."
-    );
-  }
-
-  const baseUrl = normalizeStoreUrl(settings.wcStoreUrl);
-  const search = appendWpAuthParams(new URLSearchParams(params), key, secret);
-
   const response = await fetch(
-    `${baseUrl}/wp-json/slicewp-ts/v1${path}?${search.toString()}`,
+    slicewpUrl(
+      settings.wcStoreUrl,
+      "slicewp-ts/v1",
+      path,
+      slicewpAuthParams(
+        settings.slicewpConsumerKey,
+        settings.slicewpConsumerSecret,
+        params
+      )
+    ),
     {
       headers: { Accept: "application/json" },
       cache: "no-store",
@@ -278,25 +271,21 @@ export class SliceWPSettleError extends Error {
 export async function settlePayment(
   payload: SliceWPSettleRequest
 ): Promise<SliceWPPaymentReceipt> {
-  const { assertWritableStore } = await import("./env-guard");
+  const { assertWritableStore } = await import("../env-guard");
   const settings = await getSettings();
 
   assertWritableStore(settings.wcStoreUrl);
 
-  const key = sanitizeCredential(settings.slicewpConsumerKey);
-  const secret = sanitizeCredential(settings.slicewpConsumerSecret);
-
-  if (!key || !secret) {
-    throw new Error(
-      "SliceWP credentials are missing. Add them in Admin → Integrations."
-    );
-  }
-
-  const baseUrl = normalizeStoreUrl(settings.wcStoreUrl);
-  const search = appendWpAuthParams(new URLSearchParams(), key, secret);
-
   const response = await fetch(
-    `${baseUrl}/wp-json/slicewp-ts/v1/payments/settle?${search.toString()}`,
+    slicewpUrl(
+      settings.wcStoreUrl,
+      "slicewp-ts/v1",
+      "/payments/settle",
+      slicewpAuthParams(
+        settings.slicewpConsumerKey,
+        settings.slicewpConsumerSecret
+      )
+    ),
     {
       method: "POST",
       headers: {
@@ -363,24 +352,17 @@ export async function fetchCommissionJourney(
   options: { lite?: boolean } = {}
 ): Promise<CommissionJourneyPayload> {
   const settings = await getSettings();
-
-  const key = sanitizeCredential(settings.slicewpConsumerKey);
-  const secret = sanitizeCredential(settings.slicewpConsumerSecret);
-
-  if (!key || !secret) {
-    throw new Error(
-      "SliceWP credentials are missing. Add them in Admin → Integrations."
-    );
-  }
-
-  const baseUrl = normalizeStoreUrl(settings.wcStoreUrl);
-  const search = appendWpAuthParams(new URLSearchParams(), key, secret);
-  if (options.lite) {
-    search.set("lite", "1");
-  }
-
   const response = await fetch(
-    `${baseUrl}/wp-json/slicewp-ts/v1/commissions/${slicewpCommissionId}/journey?${search.toString()}`,
+    slicewpUrl(
+      settings.wcStoreUrl,
+      "slicewp-ts/v1",
+      `/commissions/${slicewpCommissionId}/journey`,
+      slicewpAuthParams(
+        settings.slicewpConsumerKey,
+        settings.slicewpConsumerSecret,
+        options.lite ? { lite: "1" } : {}
+      )
+    ),
     {
       headers: { Accept: "application/json" },
       cache: "no-store",
@@ -452,30 +434,26 @@ export async function updateAffiliateSettings(
   slicewpAffiliateId: number,
   edit: AffiliateSettingsWrite
 ): Promise<AffiliateSettingsResult> {
-  const { assertWritableStore } = await import("./env-guard");
+  const { assertWritableStore } = await import("../env-guard");
   const settings = await getSettings();
 
   assertWritableStore(settings.wcStoreUrl);
-
-  const key = sanitizeCredential(settings.slicewpConsumerKey);
-  const secret = sanitizeCredential(settings.slicewpConsumerSecret);
-
-  if (!key || !secret) {
-    throw new Error(
-      "SliceWP credentials are missing. Add them in Admin → Integrations."
-    );
-  }
 
   const body: Record<string, string> = {};
   if (edit.paymentEmail !== undefined) body.payment_email = edit.paymentEmail;
   if (edit.website !== undefined) body.website = edit.website;
   if (edit.customSlug !== undefined) body.custom_slug = edit.customSlug;
 
-  const baseUrl = normalizeStoreUrl(settings.wcStoreUrl);
-  const search = appendWpAuthParams(new URLSearchParams(), key, secret);
-
   const response = await fetch(
-    `${baseUrl}/wp-json/slicewp-ts/v1/affiliates/${slicewpAffiliateId}/settings?${search.toString()}`,
+    slicewpUrl(
+      settings.wcStoreUrl,
+      "slicewp-ts/v1",
+      `/affiliates/${slicewpAffiliateId}/settings`,
+      slicewpAuthParams(
+        settings.slicewpConsumerKey,
+        settings.slicewpConsumerSecret
+      )
+    ),
     {
       method: "POST",
       headers: {

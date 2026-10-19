@@ -42,7 +42,7 @@ function AdminPayoutsPageContent() {
     isLoading,
     refetch,
   } = useAdminQuery<{ batches: PayoutBatchRow[] }>(
-    ["admin", "payout-batches"],
+    queryKeys.admin.payoutBatches(),
     "/api/admin/payouts/batches"
   );
 

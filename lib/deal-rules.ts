@@ -237,7 +237,3 @@ export function payoutDisplayTerm(
   }
   return payoutMathTerm(rule, sourceAffiliateId);
 }
-
-export function teamDealRateLabel(ratePercent: string | number): string {
-  return `${toNumber(ratePercent)}% of commissionable sales`;
-}

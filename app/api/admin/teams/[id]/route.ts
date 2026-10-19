@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/api-auth";
+import { requireAdmin } from "@/lib/api/auth";
 import { prisma } from "@/lib/prisma";
 import { getTeamDetail } from "@/lib/teams/queries";
+import { readJsonObject } from "@/lib/api/body";
 
 export async function GET(
   _request: Request,
@@ -25,7 +26,9 @@ export async function PATCH(
   const auth = await requireAdmin();
   if ("error" in auth) return auth.error;
 
-  const body = await request.json();
+  const parsed = await readJsonObject(request);
+  if ("error" in parsed) return parsed.error;
+  const { body } = parsed;
   const { name, description, active } = body as {
     name?: string;
     description?: string | null;

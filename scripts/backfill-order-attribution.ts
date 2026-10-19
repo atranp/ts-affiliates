@@ -219,8 +219,8 @@ async function fetchJourneyWithRetry(
 async function main() {
   const args = parseArgs();
   const { prisma } = await import("../lib/prisma");
-  const syncJourney = await import("../lib/sync-journey");
-  const bridge = await import("../lib/slicewp-bridge");
+  const syncJourney = await import("../lib/sync/journey");
+  const bridge = await import("../lib/integrations/slicewp-bridge");
 
   const {
     applyJourneyToCommission,

@@ -86,26 +86,3 @@ export function formatStoreDate(
 export function storeYear(date: Date): number {
   return Number(formatInTimeZone(date, APP_TIMEZONE, "yyyy"));
 }
-
-/** @deprecated Use startOfStoreDay */
-export const startOfUtcDay = startOfStoreDay;
-/** @deprecated Use endOfStoreDay */
-export const endOfUtcDay = endOfStoreDay;
-/** @deprecated Use addStoreDays */
-export const addUtcDays = addStoreDays;
-/** @deprecated Use startOfStoreWeek */
-export const startOfUtcWeek = startOfStoreWeek;
-/** @deprecated Use endOfStoreWeek */
-export const endOfUtcWeek = endOfStoreWeek;
-/** @deprecated Use startOfStoreMonth */
-export const startOfUtcMonth = startOfStoreMonth;
-/** @deprecated Use endOfStoreMonth */
-export const endOfUtcMonth = endOfStoreMonth;
-/** @deprecated Use nextStoreMonday */
-export const nextUtcMonday = nextStoreMonday;
-/** @deprecated Use parseStoreDateInput */
-export const parseUtcDateInput = parseStoreDateInput;
-/** @deprecated Use formatStoreDateInput */
-export const formatUtcDateInput = formatStoreDateInput;
-/** @deprecated Use formatStoreDate */
-export const formatUtcDate = formatStoreDate;
