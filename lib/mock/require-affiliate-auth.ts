@@ -15,13 +15,3 @@ export async function requireAffiliateAuth(): Promise<AuthResult> {
   }
   return requireAuth();
 }
-
-export function mockModeBlockedResponse(): NextResponse | null {
-  if (isAffiliateMockMode()) {
-    return NextResponse.json(
-      { error: "Unavailable in affiliate mock mode" },
-      { status: 501 }
-    );
-  }
-  return null;
-}

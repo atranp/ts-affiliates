@@ -241,45 +241,6 @@ async function applyOverrideBatch(
   await bulkUpdateOverrideEntries(updates);
 }
 
-export async function processDealRulesForCommission(
-  commission: Commission,
-  revenueByRecruit?: Map<string, number>
-) {
-  const recruitRules = await prisma.dealRule.findMany({
-    where: {
-      active: true,
-      sourceAffiliateId: commission.affiliateId,
-    },
-  });
-
-  for (const rule of recruitRules) {
-    await createOverrideEntry(rule, commission, revenueByRecruit);
-  }
-
-  const teamRules = await prisma.dealRule.findMany({
-    where: {
-      active: true,
-      sourceAffiliateId: null,
-      teamId: { not: null },
-    },
-  });
-
-  for (const rule of teamRules) {
-    if (commission.affiliateId === rule.sponsorAffiliateId) continue;
-    if (!rule.teamId) continue;
-
-    const memberIds = await getTeamMemberIds(rule.teamId);
-    if (!memberIds.includes(commission.affiliateId)) continue;
-
-    await createOverrideEntry(
-      rule,
-      commission,
-      revenueByRecruit,
-      commission.affiliateId
-    );
-  }
-}
-
 function buildOverrideEntryData(
   rule: DealRule,
   commission: Pick<

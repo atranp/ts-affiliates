@@ -239,25 +239,6 @@ export async function fetchSliceWPCommissions(
   return normalizeList(data);
 }
 
-export async function fetchSliceWPCommissionsByOrder(
-  storeUrl: string,
-  consumerKey: string,
-  consumerSecret: string,
-  orderId: number
-): Promise<SliceWPCommission[]> {
-  try {
-    return await fetchSliceWPCommissions(storeUrl, consumerKey, consumerSecret, {
-      reference: String(orderId),
-      origin: "woo",
-    });
-  } catch (error) {
-    if (error instanceof Error && error.message.includes("404")) {
-      return [];
-    }
-    throw error;
-  }
-}
-
 export async function fetchAllSliceWPAffiliates(
   storeUrl: string,
   consumerKey: string,
