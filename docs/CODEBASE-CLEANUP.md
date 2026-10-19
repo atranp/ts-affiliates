@@ -68,7 +68,7 @@ behaviour-preserving unless it is listed under "Intentional behaviour changes".
 ### Smaller files
 | Before | After |
 | --- | --- |
-| `app/(admin)/admin/deal-rules/page.tsx` 963 | 324, plus `components/admin/deal-rules/*` (draft model and validation, fields, dialog, table) |
+| `app/(admin)/admin/deal-rules/page.tsx` 963 | 313, plus `components/admin/deal-rules/*` (draft model and validation, fields, dialog, table) |
 | `app/(affiliate)/dashboard/page.tsx` 873 | 419, plus `components/affiliate/dashboard/*` (tab panel, overview, team bonuses) |
 | `components/TeamsPanel.tsx` 1125 | 158, plus `components/teams/*` (stats, member rows, roster, detail section, card) |
 | `app/(admin)/admin/affiliates/[id]/page.tsx` 760 | 306, plus `components/admin/affiliate-detail/*` (stats, sidebar, ledger, teams, rules tabs) |
