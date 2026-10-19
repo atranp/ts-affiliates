@@ -33,6 +33,8 @@ export const queryKeys = {
     }) => ["admin", "affiliates", params] as const,
     affiliate: (id: string) => ["admin", "affiliate", id] as const,
     dealRules: ["admin", "deal-rules"] as const,
+    sponsorTeams: (sponsorAffiliateId: string) =>
+      ["admin", "teams", sponsorAffiliateId] as const,
     settings: ["admin", "settings"] as const,
     syncStatus: ["admin", "sync-status"] as const,
     payoutWriteBack: ["admin", "payout-write-back"] as const,
