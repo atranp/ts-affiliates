@@ -11,6 +11,7 @@ import {
   type AffiliateOption,
 } from "@/components/admin/AffiliateSearchCombobox";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { DialogOverlay } from "@/components/admin/DialogOverlay";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { TableSkeleton } from "@/components/admin/TableSkeleton";
@@ -350,73 +351,68 @@ function AdminTeamsPageContent() {
         </div>
       </div>
 
-      {createOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <button
-            type="button"
-            className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
-            aria-label="Close dialog"
-            onClick={() => {
-              if (!submitting) setCreateOpen(false);
-            }}
-          />
-          <Card className="relative z-10 w-full max-w-lg shadow-lg">
-            <CardHeader>
-              <CardTitle>Create team</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={createTeam} className="space-y-4">
-                <AffiliateSearchCombobox
-                  id="team-sponsor"
-                  label="Sponsor"
-                  value={sponsor?.id ?? ""}
-                  selected={sponsor}
-                  onChange={(_id, affiliate) => setSponsor(affiliate)}
+      <DialogOverlay
+        open={createOpen}
+        label="Create team"
+        onDismiss={submitting ? undefined : () => setCreateOpen(false)}
+        className="max-w-lg"
+      >
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle>Create team</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={createTeam} className="space-y-4">
+              <AffiliateSearchCombobox
+                id="team-sponsor"
+                label="Sponsor"
+                value={sponsor?.id ?? ""}
+                selected={sponsor}
+                onChange={(_id, affiliate) => setSponsor(affiliate)}
+                disabled={submitting}
+              />
+              <div className="space-y-2">
+                <Label htmlFor="team-name">Team name</Label>
+                <Input
+                  id="team-name"
+                  value={form.name}
+                  onChange={(e) =>
+                    setForm({ ...form, name: e.target.value })
+                  }
+                  placeholder="West Coast Team"
+                  required
                   disabled={submitting}
                 />
-                <div className="space-y-2">
-                  <Label htmlFor="team-name">Team name</Label>
-                  <Input
-                    id="team-name"
-                    value={form.name}
-                    onChange={(e) =>
-                      setForm({ ...form, name: e.target.value })
-                    }
-                    placeholder="West Coast Team"
-                    required
-                    disabled={submitting}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="team-desc">Description (optional)</Label>
-                  <Input
-                    id="team-desc"
-                    value={form.description}
-                    onChange={(e) =>
-                      setForm({ ...form, description: e.target.value })
-                    }
-                    placeholder="Blair, Sarah, and Mike recruits"
-                    disabled={submitting}
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setCreateOpen(false)}
-                    disabled={submitting}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={submitting}>
-                    {submitting ? "Creating…" : "Create team"}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="team-desc">Description (optional)</Label>
+                <Input
+                  id="team-desc"
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm({ ...form, description: e.target.value })
+                  }
+                  placeholder="Blair, Sarah, and Mike recruits"
+                  disabled={submitting}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCreateOpen(false)}
+                  disabled={submitting}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={submitting}>
+                  {submitting ? "Creating…" : "Create team"}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </DialogOverlay>
 
       <ConfirmDialog
         open={!!deletingTeam}

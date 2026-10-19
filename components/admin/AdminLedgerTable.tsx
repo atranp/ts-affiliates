@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { DialogOverlay } from "@/components/admin/DialogOverlay";
 import { WooOrderLink } from "@/components/admin/WooOrderLink";
 import { LEDGER_STATUSES } from "@/lib/ledger/statuses";
 import { Pencil, Plus } from "lucide-react";
@@ -141,6 +142,11 @@ export function AdminLedgerTable({
     });
   }
 
+  function closeEdit() {
+    setEditing(null);
+    setForm(null);
+  }
+
   async function saveEdit() {
     if (!editing || !form) return;
     setSaving(true);
@@ -150,8 +156,7 @@ export function AdminLedgerTable({
         amount: Number(form.amount),
         description: form.description.trim() || null,
       });
-      setEditing(null);
-      setForm(null);
+      closeEdit();
     } finally {
       setSaving(false);
     }
@@ -427,17 +432,12 @@ export function AdminLedgerTable({
       </div>
 
       {editing && form && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <button
-            type="button"
-            className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
-            aria-label="Close dialog"
-            onClick={() => {
-              setEditing(null);
-              setForm(null);
-            }}
-          />
-          <div className="relative z-10 w-full max-w-md ts-panel shadow-lg">
+        <DialogOverlay
+          open
+          label="Edit ledger entry"
+          onDismiss={saving ? undefined : closeEdit}
+        >
+          <div className="ts-panel shadow-lg">
             <div className="ts-panel-header">
               <h3 className="ts-section-title">Edit ledger entry</h3>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -500,14 +500,7 @@ export function AdminLedgerTable({
                 />
               </div>
               <div className="flex justify-end gap-2 border-t border-border/40 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setEditing(null);
-                    setForm(null);
-                  }}
-                  disabled={saving}
-                >
+                <Button variant="outline" onClick={closeEdit} disabled={saving}>
                   Cancel
                 </Button>
                 <Button onClick={saveEdit} disabled={saving}>
@@ -516,7 +509,7 @@ export function AdminLedgerTable({
               </div>
             </div>
           </div>
-        </div>
+        </DialogOverlay>
       )}
 
       <ConfirmDialog
