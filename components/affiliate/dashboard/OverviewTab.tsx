@@ -1,3 +1,5 @@
+'use client';
+
 import type { ComponentProps } from 'react';
 import { AffiliateStatCard } from '@/components/affiliate/AffiliateStatCard';
 import { AffiliateHomeCard } from '@/components/affiliate/primitives';

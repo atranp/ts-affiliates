@@ -1,3 +1,5 @@
+'use client';
+
 import { affiliateBadgeClass } from '@/components/affiliate/AffiliateBadge';
 import { AffiliateStatCard } from '@/components/affiliate/AffiliateStatCard';
 import { MilestoneProgress } from '@/components/affiliate/MilestoneProgress';

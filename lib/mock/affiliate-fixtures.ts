@@ -620,7 +620,7 @@ export function mockLegacyTeamResponse() {
 }
 
 /**
- * M5 promotional data: link, visits, creatives, coupons, settings.
+ * Promotional data: link, visits, creatives, coupons, settings.
  *
  * Settings are held in a module-level object so an edit in mock mode behaves
  * like a real save for the rest of the session, the same way the payout

@@ -1,3 +1,5 @@
+'use client';
+
 import type { ReactNode } from 'react';
 import { TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';

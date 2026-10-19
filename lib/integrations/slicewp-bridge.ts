@@ -15,9 +15,9 @@ import {
  * with `slicewp-`, which the REST add-on's auth filter matches, so the same
  * consumer key and secret apply.
  *
- * Every read tolerates the plugin being absent. Until Milestone 6 the bridge
- * only exists on Local WordPress, so on production these return empty rather
- * than breaking the page around them.
+ * Every read tolerates the plugin being absent: it is not installed on every
+ * store, and a missing bridge should return empty rather than break the page
+ * around it.
  */
 
 export type SliceWPCreative = {
