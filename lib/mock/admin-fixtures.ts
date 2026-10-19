@@ -1053,13 +1053,3 @@ export function mockAdminPayoutBatchDetail(
   const seeded = SEEDED_DETAILS.get(batchId);
   return seeded ? { batch: seeded } : null;
 }
-
-/** Reset in-memory payout state — useful when hot-reloading gets confusing. */
-export function resetAdminMockSession() {
-  session.cutoff = new Date().toISOString();
-  session.paidDirect = false;
-  session.paidMembers.clear();
-  session.batches = seedBatches();
-  session.batchDetails.clear();
-  session.nextReceipt = 1;
-}

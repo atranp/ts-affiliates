@@ -1,8 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import {
-  formatCommissionStatus,
-  formatCommissionType,
-} from "@/lib/affiliate/copy";
+import { formatCommissionType } from "@/lib/affiliate/copy";
 import { isLifetimeCommission } from "@/lib/affiliate/lifetime";
 import { cn } from "@/lib/utils";
 
@@ -38,13 +35,6 @@ export function commissionTypeVariant(
 ): AffiliateBadgeVariant {
   if (isLifetimeCommission(type, isLifetimeSale)) return "lifetime";
   return type === "OVERRIDE" ? "team" : "direct";
-}
-
-export function commissionStatusVariant(status: string): AffiliateBadgeVariant {
-  if (status === "PAID") return "paid";
-  if (status === "UNPAID") return "unpaid";
-  if (status === "PENDING") return "pending";
-  return "neutral";
 }
 
 type AffiliateBadgeProps = {
@@ -87,23 +77,6 @@ export function CommissionTypeBadge({
       className={className}
     >
       {formatCommissionType(type, { isLifetimeSale: lifetime })}
-    </AffiliateBadge>
-  );
-}
-
-export function CommissionStatusBadge({
-  status,
-  className,
-}: {
-  status: string;
-  className?: string;
-}) {
-  return (
-    <AffiliateBadge
-      variant={commissionStatusVariant(status)}
-      className={className}
-    >
-      {formatCommissionStatus(status)}
     </AffiliateBadge>
   );
 }
